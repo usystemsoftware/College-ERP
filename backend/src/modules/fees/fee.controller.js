@@ -21,7 +21,8 @@ const getStudentFees = async (req, res, next) => {
 const getAllFees = async (req, res, next) => {
   try {
     const { status, semester, feeType, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     if (semester) filter.semester = semester;
     if (feeType) filter.feeType = feeType;
@@ -102,14 +103,17 @@ const getPayments = async (req, res, next) => {
 // GET fee stats (dashboard)
 const getFeeStats = async (req, res, next) => {
   try {
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+    
     const [totalFees, paidFees, unpaidFees, partialFees] = await Promise.all([
-      Fee.countDocuments({ collegeId: req.user.collegeId }),
-      Fee.countDocuments({ collegeId: req.user.collegeId, status: 'Paid' }),
-      Fee.countDocuments({ collegeId: req.user.collegeId, status: 'Unpaid' }),
-      Fee.countDocuments({ collegeId: req.user.collegeId, status: 'Partial' })
+      Fee.countDocuments(filter),
+      Fee.countDocuments({ ...filter, status: 'Paid' }),
+      Fee.countDocuments({ ...filter, status: 'Unpaid' }),
+      Fee.countDocuments({ ...filter, status: 'Partial' })
     ]);
     const totalRevenue = await Payment.aggregate([
-      { $match: { collegeId: req.user.collegeId, status: 'Success' } },
+      { $match: { ...filter, status: 'Success' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     return res.json(new ApiResponse(200, {

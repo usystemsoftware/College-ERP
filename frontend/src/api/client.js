@@ -11,7 +11,7 @@ const client = axios.create({
 // Request Interceptor: Attach Access Token
 client.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -47,6 +47,7 @@ client.interceptors.response.use(
       } catch (refreshError) {
         // Refresh token is dead - clear credentials and redirect to login
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
@@ -55,5 +56,10 @@ client.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const get = client.get;
+export const post = client.post;
+export const put = client.put;
+export const del = client.delete;
 
 export default client;

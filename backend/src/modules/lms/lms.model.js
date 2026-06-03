@@ -7,7 +7,8 @@ const resourceSchema = new mongoose.Schema({
   url: { type: String, required: true }, // Link to cloud storage or external site
   subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' }, // Optional, if meant for a specific batch
-  facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty', required: true }
+  facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty', required: true },
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Resource', resourceSchema);

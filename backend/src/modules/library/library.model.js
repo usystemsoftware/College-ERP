@@ -8,7 +8,8 @@ const bookSchema = new mongoose.Schema({
   category: { type: String }, // e.g., Engineering, Management, Fiction
   totalCopies: { type: Number, required: true, default: 1 },
   availableCopies: { type: Number, required: true, default: 1 },
-  location: { type: String } // e.g., Shelf A-4
+  location: { type: String }, // e.g., Shelf A-4
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const issueRecordSchema = new mongoose.Schema({
@@ -19,7 +20,8 @@ const issueRecordSchema = new mongoose.Schema({
   returnDate: { type: Date },
   status: { type: String, enum: ['Issued', 'Returned', 'Overdue'], default: 'Issued' },
   fineAmount: { type: Number, default: 0 }, // Calculated upon return if late
-  issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // Librarian
+  issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Librarian
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 // Pre-save hook to update status if overdue

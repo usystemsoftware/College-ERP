@@ -1,51 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Plus, Book, BookOpen, Calendar, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, ChevronDown, Folder, Plus, Book, BookOpen, Calendar, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
-
-const mockAcademicData = {
-  college: "State Institute of Technology",
-  departments: [
-    {
-      id: "dept1",
-      name: "Computer Science",
-      code: "CS",
-      courses: [
-        {
-          id: "crs1",
-          name: "B.Tech Computer Engineering",
-          code: "BTECH-CE",
-          batches: [
-            { id: "batch1", name: "2021-2025" },
-            { id: "batch2", name: "2022-2026" }
-          ]
-        },
-        {
-          id: "crs2",
-          name: "M.Tech Data Science",
-          code: "MTECH-DS",
-          batches: [
-            { id: "batch3", name: "2023-2025" }
-          ]
-        }
-      ]
-    },
-    {
-      id: "dept2",
-      name: "Mechanical Engineering",
-      code: "ME",
-      courses: [
-        {
-          id: "crs3",
-          name: "B.Tech Mechanical",
-          code: "BTECH-ME",
-          batches: [
-            { id: "batch4", name: "2021-2025" }
-          ]
-        }
-      ]
-    }
-  ]
-};
+import { getColleges, getDepartments, getCourses, getBatches, createDepartment, createCourse, createBatch, deleteDepartment, deleteCourse, deleteBatch } from '../../api/academic.api';
 
 const TreeNode = ({ label, icon: Icon, children, onAdd, onEdit, onDelete, colorClass }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,20 +25,20 @@ const TreeNode = ({ label, icon: Icon, children, onAdd, onEdit, onDelete, colorC
           <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
         </div>
         
-        {/* Actions (Hidden by default, shown on hover) */}
+        {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           {onAdd && (
-            <button onClick={onAdd} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-brand-500 hover:shadow-sm dark:hover:bg-dark-700" title="Add Child">
+            <button onClick={(e) => { e.stopPropagation(); onAdd(); }} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-brand-500 hover:shadow-sm dark:hover:bg-dark-700" title="Add Child">
               <Plus size={14} />
             </button>
           )}
           {onEdit && (
-            <button onClick={onEdit} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-blue-500 hover:shadow-sm dark:hover:bg-dark-700" title="Edit">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-blue-500 hover:shadow-sm dark:hover:bg-dark-700" title="Edit">
               <Edit2 size={14} />
             </button>
           )}
           {onDelete && (
-            <button onClick={onDelete} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-sm dark:hover:bg-dark-700" title="Delete">
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="rounded p-1.5 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-sm dark:hover:bg-dark-700" title="Delete">
               <Trash2 size={14} />
             </button>
           )}
@@ -90,7 +46,7 @@ const TreeNode = ({ label, icon: Icon, children, onAdd, onEdit, onDelete, colorC
       </div>
       
       {/* Children Container */}
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="ml-5 border-l-2 border-slate-100 pl-2 dark:border-slate-800/50">
           {children}
         </div>
@@ -100,16 +56,95 @@ const TreeNode = ({ label, icon: Icon, children, onAdd, onEdit, onDelete, colorC
 };
 
 const AcademicStructure = () => {
+  const [data, setData] = useState({ college: null, departments: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
+  const [modalParentId, setModalParentId] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleOpenModal = (type) => {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [colRes, deptRes, courseRes, batchRes] = await Promise.all([
+        getColleges(),
+        getDepartments(),
+        getCourses(),
+        getBatches()
+      ]);
+
+      const college = colRes.data.data[0] || { name: 'State Institute of Technology', code: 'SIT' };
+      const depts = deptRes.data.data || [];
+      const courses = courseRes.data.data || [];
+      const batches = batchRes.data.data || [];
+
+      // Build Tree
+      const tree = depts.map(d => ({
+        ...d,
+        courses: courses.filter(c => c.department === d._id || c.department?._id === d._id).map(c => ({
+          ...c,
+          batches: batches.filter(b => b.courseId === c._id || b.courseId?._id === c._id)
+        }))
+      }));
+
+      setData({ college, departments: tree });
+    } catch (err) {
+      setError('Failed to load academic structure');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = (type, parentId = null) => {
     setModalType(type);
+    setModalParentId(parentId);
+    setFormData({});
     setIsModalOpen(true);
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (modalType === 'Add Department') {
+        await createDepartment({ ...formData, collegeId: data.college._id });
+      } else if (modalType === 'Add Course') {
+        await createCourse({ ...formData, department: modalParentId });
+      } else if (modalType === 'Add Batch') {
+        await createBatch({ ...formData, courseId: modalParentId });
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to create');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (type, id) => {
+    if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+    try {
+      if (type === 'Department') await deleteDepartment(id);
+      if (type === 'Course') await deleteCourse(id);
+      if (type === 'Batch') await deleteBatch(id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Delete failed');
+    }
+  };
+
+  if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-brand-500" size={32} /></div>;
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Academic Structure</h1>
@@ -124,47 +159,50 @@ const AcademicStructure = () => {
         </button>
       </div>
 
+      {error && <div className="text-red-500">{error}</div>}
+
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
         
         {/* Root Node (College) */}
-        <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 border border-slate-100 dark:bg-dark-800/80 dark:border-slate-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600">
-            <BookOpen size={20} />
+        {data.college && (
+          <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 border border-slate-100 dark:bg-dark-800/80 dark:border-slate-800">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600">
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white">{data.college.name}</h3>
+              <p className="text-xs text-slate-500">College Code: {data.college.code}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-white">{mockAcademicData.college}</h3>
-            <p className="text-xs text-slate-500">Root Institution</p>
-          </div>
-        </div>
+        )}
 
         {/* Tree Render */}
         <div className="mt-4">
-          {mockAcademicData.departments.map(dept => (
+          {data.departments.map(dept => (
             <TreeNode 
-              key={dept.id} 
+              key={dept._id} 
               label={`${dept.name} (${dept.code})`} 
               icon={Folder} 
               colorClass="text-brand-500"
-              onAdd={() => handleOpenModal('Add Course')}
-              onEdit={() => handleOpenModal('Edit Department')}
+              onAdd={() => handleOpenModal('Add Course', dept._id)}
+              onDelete={() => handleDelete('Department', dept._id)}
             >
               {dept.courses.map(course => (
                 <TreeNode 
-                  key={course.id} 
+                  key={course._id} 
                   label={`${course.name} (${course.code})`} 
                   icon={Book} 
                   colorClass="text-indigo-500"
-                  onAdd={() => handleOpenModal('Add Batch')}
-                  onEdit={() => handleOpenModal('Edit Course')}
+                  onAdd={() => handleOpenModal('Add Batch', course._id)}
+                  onDelete={() => handleDelete('Course', course._id)}
                 >
                   {course.batches.map(batch => (
                     <TreeNode 
-                      key={batch.id} 
-                      label={`Batch: ${batch.name}`} 
+                      key={batch._id} 
+                      label={`Batch: ${batch.name} (${batch.startYear}-${batch.endYear})`} 
                       icon={Calendar} 
                       colorClass="text-emerald-500"
-                      onEdit={() => handleOpenModal('Edit Batch')}
-                      onDelete={() => handleOpenModal('Delete Batch')}
+                      onDelete={() => handleDelete('Batch', batch._id)}
                     />
                   ))}
                 </TreeNode>
@@ -172,17 +210,71 @@ const AcademicStructure = () => {
             </TreeNode>
           ))}
         </div>
-
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalType}>
-        <div className="space-y-4 py-4">
-          <p>Please fill out the details for {modalType}.</p>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
-            <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter name..." />
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalType} hideFooter={true}>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          
+          {modalType.includes('Department') && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
+                <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. Computer Science" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
+                <input required type="text" onChange={e => setFormData({...formData, code: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. CSE" />
+              </div>
+            </>
+          )}
+
+          {modalType.includes('Course') && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
+                <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. B.Tech IT" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
+                  <input required type="text" onChange={e => setFormData({...formData, code: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. BTECH-IT" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
+                  <input required type="number" min="1" max="12" onChange={e => setFormData({...formData, durationSemesters: parseInt(e.target.value, 10)})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. 8" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {modalType.includes('Batch') && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch Name</label>
+                <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. 2021-2025" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Start Year</label>
+                  <input required type="number" onChange={e => setFormData({...formData, startYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2021" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">End Year</label>
+                  <input required type="number" onChange={e => setFormData({...formData, endYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2025" />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 mt-6">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+              {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : 'Save'}
+            </button>
           </div>
-        </div>
+        </form>
       </Modal>
     </div>
   );

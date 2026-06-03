@@ -17,8 +17,10 @@ const academicYearRoutes = require('../modules/academicYears/academicYear.routes
 const semesterRoutes = require('../modules/semesters/semester.routes');
 
 // People
+const admissionRoutes = require('../modules/admission/admission.routes');
 const studentRoutes = require('../modules/students/student.routes');
 const facultyRoutes = require('../modules/faculty/faculty.routes');
+const parentRoutes = require('../modules/parents/parent.routes');
 
 // Operations
 const attendanceRoutes = require('../modules/attendance/attendance.routes');
@@ -46,6 +48,7 @@ const placementRoutes = require('../modules/placements/placement.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
+const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
 // Analytics
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
@@ -96,7 +99,9 @@ router.use('/events', eventRoutes);
 router.use('/placements', placementRoutes);
 router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
+
 router.use('/notifications', notificationRoutes);
+router.use('/analytics', analyticsRoutes);
 
 // Analytics
 router.use('/analytics', analyticsRoutes);

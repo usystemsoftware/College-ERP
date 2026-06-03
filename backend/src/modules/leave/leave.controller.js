@@ -5,7 +5,8 @@ const ApiResponse = require('../../utils/apiResponse');
 const getLeaveRequests = async (req, res, next) => {
   try {
     const { status, requesterType, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     if (requesterType) filter.requesterType = requesterType;
     const isAdmin = ['Super Admin', 'College Admin', 'Principal', 'HOD'].includes(req.user.role.name);

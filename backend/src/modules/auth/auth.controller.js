@@ -26,6 +26,10 @@ const register = async (req, res, next) => {
       throw new ApiError(400, `Requested role '${roleName}' does not exist`);
     }
 
+    if (['Super Admin', 'College Admin'].includes(role.name)) {
+      throw new ApiError(403, `Cannot register as ${role.name} via public registration`);
+    }
+
     // Find or default college
     let collegeId = null;
     if (collegeCode) {

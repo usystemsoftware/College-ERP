@@ -7,7 +7,8 @@ const assetSchema = new mongoose.Schema({
   location: { type: String, required: true }, // e.g., "Computer Lab 1"
   purchaseDate: { type: Date },
   cost: { type: Number },
-  status: { type: String, enum: ['In Use', 'In Storage', 'Under Repair', 'Discarded'], default: 'In Use' }
+  status: { type: String, enum: ['In Use', 'In Storage', 'Under Repair', 'Discarded'], default: 'In Use' },
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Asset', assetSchema);

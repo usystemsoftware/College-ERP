@@ -1,22 +1,73 @@
 const mongoose = require('mongoose');
 
-const assignmentSchema = new mongoose.Schema({
-  title: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
-  subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
-  semester: { type: mongoose.Schema.Types.ObjectId, ref: 'Semester', required: true },
-  department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
-  division: { type: String },
-  dueDate: { type: Date, required: true },
-  totalMarks: { type: Number, required: true },
-  fileUrl: { type: String }, // optional template/question file
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  faculty: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty', required: true },
-  isActive: { type: Boolean, default: true },
-  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
-}, { timestamps: true });
+const submissionSchema = new mongoose.Schema({
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Student',
+    required: true
+  },
+  submittedAt: {
+    type: Date,
+    default: Date.now
+  },
+  content: {
+    type: String // text answer or URL to a file
+  },
+  attachments: [{
+    name: String,
+    url: String
+  }],
+  status: {
+    type: String,
+    enum: ['Submitted', 'Late', 'Graded'],
+    default: 'Submitted'
+  },
+  marksAwarded: {
+    type: Number
+  },
+  feedback: {
+    type: String
+  }
+});
 
-assignmentSchema.index({ subject: 1, semester: 1 });
-assignmentSchema.index({ faculty: 1 });
+const assignmentSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  facultyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Faculty',
+    required: true
+  },
+  subjectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject',
+    required: true
+  },
+  batchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Batch',
+    required: true
+  },
+  dueDate: {
+    type: Date,
+    required: true
+  },
+  totalMarks: {
+    type: Number,
+    required: true,
+    default: 100
+  },
+  attachments: [{
+    name: String,
+    url: String // Resources provided by faculty
+  }],
+  submissions: [submissionSchema]
+}, { timestamps: true });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

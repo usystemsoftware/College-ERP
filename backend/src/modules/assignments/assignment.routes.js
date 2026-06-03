@@ -1,16 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../../middleware/authMiddleware');
-const { authorize } = require('../../middleware/roleMiddleware');
-const { getAssignments, getAssignment, createAssignment, updateAssignment, deleteAssignment, submitAssignment, getSubmissions, gradeSubmission } = require('./assignment.controller');
+const assignmentController = require('./assignment.controller');
+const { protect, authorize } = require('../../middleware/authMiddleware');
 
-router.get('/', protect, getAssignments);
-router.get('/:id', protect, getAssignment);
-router.post('/', protect, authorize('Faculty', 'HOD', 'College Admin', 'Super Admin'), createAssignment);
-router.put('/:id', protect, authorize('Faculty', 'HOD', 'College Admin', 'Super Admin'), updateAssignment);
-router.delete('/:id', protect, authorize('Faculty', 'HOD', 'College Admin', 'Super Admin'), deleteAssignment);
-router.post('/:id/submit', protect, authorize('Student'), submitAssignment);
-router.get('/:id/submissions', protect, authorize('Faculty', 'HOD', 'College Admin', 'Super Admin'), getSubmissions);
-router.patch('/:id/submissions/:subId/grade', protect, authorize('Faculty', 'HOD'), gradeSubmission);
+router.use(protect);
+
+router.post('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), assignmentController.createAssignment);
+router.get('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student'), assignmentController.getAssignments);
+
+router.post('/:assignmentId/submit', authorize('Student'), assignmentController.submitAssignment);
+router.put('/:assignmentId/grade/:submissionId', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), assignmentController.gradeAssignment);
 
 module.exports = router;

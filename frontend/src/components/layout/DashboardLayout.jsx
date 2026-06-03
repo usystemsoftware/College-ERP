@@ -29,7 +29,10 @@ const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -38,8 +41,10 @@ const DashboardLayout = () => {
     const root = window.document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
@@ -49,6 +54,20 @@ const DashboardLayout = () => {
     });
   };
 
+<<<<<<< HEAD
+  const navItems = [
+    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Students', path: '/students/directory', icon: Users },
+    { name: 'Faculty', path: '/faculty/directory', icon: GraduationCap },
+    { name: 'Academic Setup', path: '/academics', icon: BookOpen },
+    { name: 'Timetable', path: '/timetable', icon: Calendar },
+    { name: 'Attendance', path: '/attendance', icon: Clock },
+    { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+    { name: 'Library Catalog', path: '/library', icon: Library },
+    { name: 'Transport Map', path: '/transport', icon: Bus },
+    { name: 'Hostels', path: '/hostel', icon: Hotel },
+    { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+=======
   // Determine role
   const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
   
@@ -57,6 +76,7 @@ const DashboardLayout = () => {
     { name: 'Timetable', path: '/timetable', icon: Calendar },
     { name: 'LMS / Library', path: '/library', icon: BookOpen },
     { name: 'Notifications', path: '/notifications', icon: Bell },
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
   ];
 
   if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {

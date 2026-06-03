@@ -54,18 +54,12 @@ const DashboardLayout = () => {
     });
   };
 
-  const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Students', path: '/students/directory', icon: Users },
-    { name: 'Faculty', path: '/faculty/directory', icon: GraduationCap },
-    { name: 'Academic Setup', path: '/academics', icon: BookOpen },
+  const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+
+  let navItems = [
     { name: 'Timetable', path: '/timetable', icon: Calendar },
-    { name: 'Attendance', path: '/attendance', icon: Clock },
-    { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
-    { name: 'Library Catalog', path: '/library', icon: Library },
-    { name: 'Transport Map', path: '/transport', icon: Bus },
-    { name: 'Hostels', path: '/hostel', icon: Hotel },
-    { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+    { name: 'LMS / Library', path: '/library', icon: BookOpen },
+    { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
   if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {

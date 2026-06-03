@@ -56,7 +56,8 @@ const examSchema = new mongoose.Schema({
   isPublished: {
     type: Boolean,
     default: false
-  }
+  },
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Exam', examSchema);

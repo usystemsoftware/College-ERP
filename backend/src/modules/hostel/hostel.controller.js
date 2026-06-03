@@ -1,5 +1,4 @@
 const { Hostel, Room, HostelAllocation } = require('./hostel.model');
-const Invoice = require('../fees/fees.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -8,7 +7,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const createHostel = async (req, res, next) => {
   try {
     const { name, type, address, warden } = req.body;
-    const hostel = await Hostel.create({ name, type, address, warden });
+    const hostel = await Hostel.create({ name, type, address, warden, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { hostel }, 'Hostel created successfully'));
   } catch (error) {
     next(error);
@@ -17,7 +16,9 @@ const createHostel = async (req, res, next) => {
 
 const getHostels = async (req, res, next) => {
   try {
-    const hostels = await Hostel.find().populate('warden', 'fullName');
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+    const hostels = await Hostel.find(filter).populate('warden', 'fullName');
     return res.status(200).json(new ApiResponse(200, { hostels }, 'Hostels fetched successfully'));
   } catch (error) {
     next(error);
@@ -27,7 +28,7 @@ const getHostels = async (req, res, next) => {
 const createRoom = async (req, res, next) => {
   try {
     const { hostelId, roomNumber, capacity, type, baseFee } = req.body;
-    const room = await Room.create({ hostelId, roomNumber, capacity, type, baseFee });
+    const room = await Room.create({ hostelId, roomNumber, capacity, type, baseFee, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { room }, 'Room created successfully'));
   } catch (error) {
     if (error.code === 11000) {
@@ -42,6 +43,7 @@ const getRooms = async (req, res, next) => {
   try {
     const { hostelId } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (hostelId) filter.hostelId = hostelId;
 
     const rooms = await Room.find(filter).sort({ roomNumber: 1 });
@@ -70,7 +72,7 @@ const allocateRoom = async (req, res, next) => {
       throw new ApiError(400, 'Student is already allocated a room');
     }
 
-    const allocation = await HostelAllocation.create({ studentId, roomId, startDate });
+    const allocation = await HostelAllocation.create({ studentId, roomId, startDate, collegeId: req.user.collegeId });
     
     // Increment occupancy
     room.occupancy += 1;

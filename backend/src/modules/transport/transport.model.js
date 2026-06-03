@@ -9,7 +9,8 @@ const stopSchema = new mongoose.Schema({
 
 const routeSchema = new mongoose.Schema({
   routeName: { type: String, required: true }, // e.g., "Route 1 - City Center"
-  stops: [stopSchema]
+  stops: [stopSchema],
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const vehicleSchema = new mongoose.Schema({
@@ -17,7 +18,8 @@ const vehicleSchema = new mongoose.Schema({
   capacity: { type: Number, required: true },
   driverName: { type: String, required: true },
   driverContact: { type: String, required: true },
-  routeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Route' } // Assigned route
+  routeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Route' }, // Assigned route
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const transportAllocationSchema = new mongoose.Schema({
@@ -26,11 +28,12 @@ const transportAllocationSchema = new mongoose.Schema({
   stopId: { type: mongoose.Schema.Types.ObjectId, required: true }, // Specific stop inside the route
   vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
   startDate: { type: Date, required: true, default: Date.now },
-  status: { type: String, enum: ['Active', 'Cancelled'], default: 'Active' }
+  status: { type: String, enum: ['Active', 'Cancelled'], default: 'Active' },
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const Route = mongoose.model('Route', routeSchema);
-const Vehicle = mongoose.model('Vehicle', vehicleSchema);
+const Vehicle = mongoose.models.Vehicle || mongoose.model('Vehicle', vehicleSchema);
 const TransportAllocation = mongoose.model('TransportAllocation', transportAllocationSchema);
 
 module.exports = { Route, Vehicle, TransportAllocation };

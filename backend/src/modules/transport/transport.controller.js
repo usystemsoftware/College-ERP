@@ -1,5 +1,4 @@
 const { Route, Vehicle, TransportAllocation } = require('./transport.model');
-const Invoice = require('../fees/fees.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -7,7 +6,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const createRoute = async (req, res, next) => {
   try {
     const { routeName, stops } = req.body;
-    const route = await Route.create({ routeName, stops });
+    const route = await Route.create({ routeName, stops, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { route }, 'Route created successfully'));
   } catch (error) {
     next(error);
@@ -16,7 +15,9 @@ const createRoute = async (req, res, next) => {
 
 const getRoutes = async (req, res, next) => {
   try {
-    const routes = await Route.find().sort({ routeName: 1 });
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+    const routes = await Route.find(filter).sort({ routeName: 1 });
     return res.status(200).json(new ApiResponse(200, { routes }, 'Routes fetched successfully'));
   } catch (error) {
     next(error);
@@ -27,7 +28,7 @@ const getRoutes = async (req, res, next) => {
 const addVehicle = async (req, res, next) => {
   try {
     const { vehicleNumber, capacity, driverName, driverContact, routeId } = req.body;
-    const vehicle = await Vehicle.create({ vehicleNumber, capacity, driverName, driverContact, routeId });
+    const vehicle = await Vehicle.create({ vehicleNumber, capacity, driverName, driverContact, routeId, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { vehicle }, 'Vehicle added successfully'));
   } catch (error) {
     if (error.code === 11000) {
@@ -40,7 +41,9 @@ const addVehicle = async (req, res, next) => {
 
 const getVehicles = async (req, res, next) => {
   try {
-    const vehicles = await Vehicle.find().populate('routeId', 'routeName');
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+    const vehicles = await Vehicle.find(filter).populate('routeId', 'routeName');
     return res.status(200).json(new ApiResponse(200, { vehicles }, 'Vehicles fetched successfully'));
   } catch (error) {
     next(error);
@@ -69,7 +72,7 @@ const allocateTransport = async (req, res, next) => {
     if (!stop) throw new ApiError(404, 'Stop not found in this route');
 
     const allocation = await TransportAllocation.create({
-      studentId, routeId, stopId, vehicleId, startDate
+      studentId, routeId, stopId, vehicleId, startDate, collegeId: req.user.collegeId
     });
 
     if (generateInvoice) {

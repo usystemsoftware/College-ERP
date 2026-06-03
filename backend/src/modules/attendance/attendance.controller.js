@@ -18,7 +18,7 @@ const markAttendance = async (req, res, next) => {
 
     // Create new record
     attendance = await Attendance.create({
-      batchId, subjectId, facultyId, date, slotTime, records
+      batchId, subjectId, facultyId, date, slotTime, records, collegeId: req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { attendance }, 'Attendance marked successfully'));
@@ -36,6 +36,7 @@ const getAttendance = async (req, res, next) => {
   try {
     const { batchId, subjectId, startDate, endDate } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
 
     if (batchId) filter.batchId = batchId;
     if (subjectId) filter.subjectId = subjectId;

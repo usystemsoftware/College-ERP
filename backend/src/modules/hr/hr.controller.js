@@ -6,7 +6,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const applyLeave = async (req, res, next) => {
   try {
     const { facultyId, leaveType, startDate, endDate, reason } = req.body;
-    const leave = await Leave.create({ facultyId, leaveType, startDate, endDate, reason });
+    const leave = await Leave.create({ facultyId, leaveType, startDate, endDate, reason, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { leave }, 'Leave applied successfully'));
   } catch (error) {
     next(error);
@@ -17,6 +17,7 @@ const getLeaves = async (req, res, next) => {
   try {
     const { facultyId, status } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (facultyId) filter.facultyId = facultyId;
     if (status) filter.status = status;
 
@@ -53,7 +54,7 @@ const generatePayroll = async (req, res, next) => {
     const netSalary = basicSalary + allowances - deductions;
 
     const payroll = await Payroll.create({
-      facultyId, month, basicSalary, allowances, deductions, netSalary
+      facultyId, month, basicSalary, allowances, deductions, netSalary, collegeId: req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { payroll }, 'Payroll generated successfully'));
@@ -66,6 +67,7 @@ const getPayroll = async (req, res, next) => {
   try {
     const { facultyId, month } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (facultyId) filter.facultyId = facultyId;
     if (month) filter.month = month;
 

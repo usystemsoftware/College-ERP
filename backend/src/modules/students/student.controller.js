@@ -8,6 +8,7 @@ const getStudents = async (req, res, next) => {
   try {
     const { department, course, semester } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (department) filter.department = department;
     if (course) filter.course = course;
     if (semester) filter.semester = semester;
@@ -49,7 +50,7 @@ const createStudent = async (req, res, next) => {
     const {
       user, rollNumber, enrollmentNumber,
       department, course, semester, division, batch,
-      personalDetails
+      personalDetails, collegeId
     } = req.body;
 
     const existingStudent = await Student.findOne({
@@ -63,7 +64,7 @@ const createStudent = async (req, res, next) => {
     const student = await Student.create({
       user, rollNumber, enrollmentNumber,
       department, course, semester, division, batch,
-      personalDetails
+      personalDetails, collegeId: collegeId || req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { student }, 'Student profile created successfully'));

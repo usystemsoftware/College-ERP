@@ -23,7 +23,8 @@ const createCompany = async (req, res, next) => {
 const getPlacements = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     if (type) filter.type = type;
     const skip = (parseInt(page) - 1) * parseInt(limit);

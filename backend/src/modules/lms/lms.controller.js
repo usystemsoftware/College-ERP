@@ -5,7 +5,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const uploadResource = async (req, res, next) => {
   try {
     const { title, description, type, url, subjectId, batchId, facultyId } = req.body;
-    const resource = await Resource.create({ title, description, type, url, subjectId, batchId, facultyId });
+    const resource = await Resource.create({ title, description, type, url, subjectId, batchId, facultyId, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { resource }, 'Resource uploaded successfully'));
   } catch (error) {
     next(error);
@@ -16,6 +16,7 @@ const getResources = async (req, res, next) => {
   try {
     const { subjectId, batchId } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (subjectId) filter.subjectId = subjectId;
     if (batchId) filter.batchId = batchId;
 

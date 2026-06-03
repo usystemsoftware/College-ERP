@@ -8,7 +8,7 @@ const createExam = async (req, res, next) => {
     const { title, examType, subjectId, batchId, date, totalMarks, passingMarks } = req.body;
 
     const exam = await Exam.create({
-      title, examType, subjectId, batchId, date, totalMarks, passingMarks
+      title, examType, subjectId, batchId, date, totalMarks, passingMarks, collegeId: req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { exam }, 'Exam created successfully'));
@@ -22,6 +22,7 @@ const getExams = async (req, res, next) => {
   try {
     const { batchId, subjectId } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
 
     if (batchId) filter.batchId = batchId;
     if (subjectId) filter.subjectId = subjectId;

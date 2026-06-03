@@ -39,7 +39,8 @@ const attendanceSchema = new mongoose.Schema({
   slotTime: {
     type: String // e.g. "09:00 AM - 10:00 AM"
   },
-  records: [attendanceRecordSchema]
+  records: [attendanceRecordSchema],
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 // Ensure a faculty member can only mark attendance once per subject per batch per date/slot

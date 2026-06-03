@@ -1,29 +1,38 @@
-const Invoice = require('../fees/fees.model');
+const Payment = require('../fees/payment.model');
 const User = require('../users/user.model');
 const ApiResponse = require('../../utils/apiResponse');
+
+const Student = require('../students/student.model');
+const Faculty = require('../faculty/faculty.model');
+const Application = require('../admission/application.model');
 
 // A dedicated analytics controller that aggregates data from various modules
 const getDashboardStats = async (req, res, next) => {
   try {
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
     // 1. Basic Counts
-    const totalStudents = await User.countDocuments({ role: await getRoleId('Student') });
-    const totalFaculty = await User.countDocuments({ role: await getRoleId('Faculty') });
+    const totalStudents = await Student.countDocuments(filter);
+    const totalFaculty = await Faculty.countDocuments(filter);
+    const pendingApprovals = await Application.countDocuments({ ...filter, status: 'Pending' });
     
     // 2. Financial Overview
-    const feeStats = await Invoice.aggregate([
+    const feeStats = await Payment.aggregate([
+      { $match: { ...filter, status: 'Success' } },
       {
         $group: {
           _id: null,
-          totalCollected: { $sum: '$paidAmount' },
-          totalExpected: { $sum: '$totalAmount' }
+          totalCollected: { $sum: '$amount' }
         }
       }
     ]);
 
     const stats = {
-      totalStudents: totalStudents || 1250, // Fallbacks for mock data UI if DB empty
-      totalFaculty: totalFaculty || 85,
-      revenue: feeStats.length > 0 ? feeStats[0].totalCollected : 2500000,
+      totalStudents: totalStudents,
+      totalFaculty: totalFaculty,
+      pendingApprovals: pendingApprovals,
+      revenue: feeStats.length > 0 ? feeStats[0].totalCollected : 0,
       activeCourses: 24, // Static mock for now
       revenueData: [
         { name: 'Jan', value: 400000 },

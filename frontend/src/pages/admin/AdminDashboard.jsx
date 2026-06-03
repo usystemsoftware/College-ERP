@@ -1,25 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, BookOpen, Clock, AlertTriangle, TrendingUp, DollarSign } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-
-// Mock Analytics Data
-const revenueData = [
-  { name: 'Jan', revenue: 400000, expenses: 240000 },
-  { name: 'Feb', revenue: 300000, expenses: 139800 },
-  { name: 'Mar', revenue: 200000, expenses: 980000 },
-  { name: 'Apr', revenue: 278000, expenses: 390800 },
-  { name: 'May', revenue: 189000, expenses: 480000 },
-  { name: 'Jun', revenue: 239000, expenses: 380000 },
-];
-
-const admissionData = [
-  { name: 'Week 1', students: 120 },
-  { name: 'Week 2', students: 300 },
-  { name: 'Week 3', students: 450 },
-  { name: 'Week 4', students: 200 },
-];
+import api from '../../api/axios';
 
 const AdminDashboard = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/analytics/dashboard');
+        setStats(response.data.data.stats);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Mock Data for Admission Trends (as it's not provided by API yet)
+  const admissionData = [
+    { name: 'Week 1', students: 120 },
+    { name: 'Week 2', students: 300 },
+    { name: 'Week 3', students: 450 },
+    { name: 'Week 4', students: 200 },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -33,7 +51,7 @@ const AdminDashboard = () => {
             <Users className="text-blue-500" size={20} />
             <h3 className="font-medium">Total Students</h3>
           </div>
-          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">1,250</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{stats?.totalStudents?.toLocaleString() || 0}</p>
           <p className="mt-1 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
             <TrendingUp size={14} /> +12% this year
           </p>
@@ -44,7 +62,7 @@ const AdminDashboard = () => {
             <BookOpen className="text-brand-500" size={20} />
             <h3 className="font-medium">Total Faculty</h3>
           </div>
-          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">85</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{stats?.totalFaculty?.toLocaleString() || 0}</p>
           <p className="mt-1 text-sm text-slate-500">Across 6 departments</p>
         </div>
 
@@ -53,7 +71,7 @@ const AdminDashboard = () => {
             <DollarSign className="text-green-500" size={20} />
             <h3 className="font-medium">YTD Revenue</h3>
           </div>
-          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">$2.5M</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">${((stats?.revenue || 0) / 1000000).toFixed(1)}M</p>
           <p className="mt-1 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
             <TrendingUp size={14} /> +5% vs last year
           </p>
@@ -64,7 +82,7 @@ const AdminDashboard = () => {
             <AlertTriangle className="text-amber-500" size={20} />
             <h3 className="font-medium">Pending Approvals</h3>
           </div>
-          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">14</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{stats?.pendingApprovals || 0}</p>
           <p className="mt-1 text-sm text-slate-500">Leaves & Admissions</p>
         </div>
       </div>
@@ -75,7 +93,7 @@ const AdminDashboard = () => {
           <h3 className="font-bold text-slate-900 dark:text-white mb-6">Financial Overview</h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={stats?.revenueData || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>

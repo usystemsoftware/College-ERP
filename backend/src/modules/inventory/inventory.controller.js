@@ -5,7 +5,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const addAsset = async (req, res, next) => {
   try {
     const { itemName, category, quantity, location, purchaseDate, cost, status } = req.body;
-    const asset = await Asset.create({ itemName, category, quantity, location, purchaseDate, cost, status });
+    const asset = await Asset.create({ itemName, category, quantity, location, purchaseDate, cost, status, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { asset }, 'Asset added successfully'));
   } catch (error) {
     next(error);
@@ -16,6 +16,7 @@ const getAssets = async (req, res, next) => {
   try {
     const { category, location, status } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (category) filter.category = category;
     if (location) filter.location = location;
     if (status) filter.status = status;

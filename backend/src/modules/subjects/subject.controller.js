@@ -4,7 +4,8 @@ const ApiResponse = require('../../utils/apiResponse');
 
 const getSubjects = async (req, res, next) => {
   try {
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (req.query.course) filter.course = req.query.course;
     if (req.query.semester) filter.semester = req.query.semester;
     if (req.query.department) filter.department = req.query.department;
@@ -30,11 +31,11 @@ const getSubject = async (req, res, next) => {
 
 const createSubject = async (req, res, next) => {
   try {
-    const { name, code, course, semester, department, credits, type } = req.body;
+    const { name, code, course, semester, department, credits, type, collegeId } = req.body;
     if (!name || !code || !course || !semester || !department || !credits) throw new ApiError(400, 'All required fields must be provided');
     const exists = await Subject.findOne({ code: code.toUpperCase() });
     if (exists) throw new ApiError(400, 'Subject code already exists');
-    const subject = await Subject.create({ name, code: code.toUpperCase(), course, semester, department, credits, type, collegeId: req.user.collegeId });
+    const subject = await Subject.create({ name, code: code.toUpperCase(), course, semester, department, credits, type, collegeId: collegeId || req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, subject, 'Subject created'));
   } catch (error) { next(error); }
 };

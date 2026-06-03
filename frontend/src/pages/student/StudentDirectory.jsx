@@ -1,21 +1,86 @@
-import React, { useState } from 'react';
-import { Search, Filter, Mail, Phone, MapPin, MoreVertical } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Phone, MoreVertical, Loader2 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useForm } from 'react-hook-form';
 import Modal from '../../components/common/Modal';
-
-const mockStudents = [
-  { id: 'STU-2023-001', name: 'Alex Johnson', email: 'alex@example.com', phone: '+1 234-567-8901', course: 'B.Tech CS', semester: '5th', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=1' },
-  { id: 'STU-2023-002', name: 'Priya Sharma', email: 'priya@example.com', phone: '+1 234-567-8902', course: 'B.Tech ME', semester: '3rd', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=2' },
-  { id: 'STU-2023-003', name: 'David Smith', email: 'david@example.com', phone: '+1 234-567-8903', course: 'B.Tech CS', semester: '5th', status: 'On Leave', avatar: 'https://i.pravatar.cc/150?u=3' },
-  { id: 'STU-2023-004', name: 'Emily Chen', email: 'emily@example.com', phone: '+1 234-567-8904', course: 'MBA', semester: '1st', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=4' },
-];
+import { fetchStudents, createStudent } from '../../features/students/studentSlice';
+import { getDepartments, getCourses, getSemesters } from '../../api/academic.api';
 
 const StudentDirectory = () => {
+  const dispatch = useDispatch();
+  const { list: students, loading, error } = useSelector((state) => state.students);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Academic Form Data
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [fetchingOptions, setFetchingOptions] = useState(false);
 
-  const filteredStudents = mockStudents.filter(student => 
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    student.id.toLowerCase().includes(searchTerm.toLowerCase())
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+
+  const selectedCourseId = watch('course');
+  const selectedCourse = courses.find(c => c._id === selectedCourseId);
+  const maxSemesters = selectedCourse ? selectedCourse.durationSemesters : 8;
+  const filteredSemesters = semesters.slice(0, maxSemesters);
+
+  useEffect(() => {
+    dispatch(fetchStudents());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (isModalOpen && departments.length === 0) {
+      const fetchOptions = async () => {
+        setFetchingOptions(true);
+        try {
+          const [deptRes, courseRes, semRes] = await Promise.all([
+            getDepartments(), getCourses(), getSemesters()
+          ]);
+          setDepartments(deptRes.data?.data || []);
+          setCourses(courseRes.data?.data || []);
+          setSemesters(semRes.data?.data || []);
+        } catch (err) {
+          console.error("Failed to fetch academic options", err);
+        } finally {
+          setFetchingOptions(false);
+        }
+      };
+      fetchOptions();
+    }
+  }, [isModalOpen, departments.length]);
+
+  const onSubmit = async (data) => {
+    // Transform data for backend
+    const payload = {
+      user: data.userId, // Requires an existing User ID (Mock for now, or manually input)
+      rollNumber: data.rollNumber,
+      enrollmentNumber: data.enrollmentNumber,
+      department: data.department,
+      course: data.course,
+      semester: data.semester,
+      division: data.division,
+      batch: data.batch,
+      personalDetails: {
+        fullName: data.fullName,
+        dob: data.dob,
+        gender: data.gender,
+        phone: data.phone,
+        address: data.address
+      }
+    };
+
+    const res = await dispatch(createStudent(payload));
+    if (!res.error) {
+      setIsModalOpen(false);
+      reset();
+    }
+  };
+
+  const filteredStudents = (students || []).filter(student => 
+    student.personalDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    student.enrollmentNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -27,11 +92,17 @@ const StudentDirectory = () => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-colors"
         >
           Add New Student
         </button>
       </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-500 dark:bg-red-500/10 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-dark-900">
         <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
@@ -39,13 +110,13 @@ const StudentDirectory = () => {
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search by name or ID..."
+              placeholder="Search by name or Enrollment ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
             />
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800">
+          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800 transition-colors">
             <Filter size={16} />
             Filter
           </button>
@@ -64,63 +135,161 @@ const StudentDirectory = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredStudents.map((student) => (
-                <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={student.avatar} alt={student.name} className="h-10 w-10 rounded-full object-cover" />
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
-                        <p className="text-xs text-slate-500">{student.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-sm">{student.id}</td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-slate-900 dark:text-slate-300">{student.course}</p>
-                    <p className="text-xs text-slate-500">{student.semester} Semester</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1 text-xs"><Phone size={12}/> {student.phone}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                      student.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                    }`}>
-                      {student.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400">
-                      <MoreVertical size={16} />
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-slate-500">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-500" />
+                    <p className="mt-2">Loading students...</p>
                   </td>
                 </tr>
-              ))}
+              ) : filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-slate-500">
+                    No students found.
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((student) => (
+                  <tr key={student._id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 font-bold">
+                          {student.personalDetails?.fullName?.charAt(0) || 'S'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">{student.personalDetails?.fullName}</p>
+                          <p className="text-xs text-slate-500">{student.user?.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-sm">{student.enrollmentNumber}</td>
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-slate-900 dark:text-slate-300">{student.course?.name}</p>
+                      <p className="text-xs text-slate-500">{student.semester?.name}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1 text-xs"><Phone size={12}/> {student.personalDetails?.phone}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                        student.user?.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        {student.user?.status || 'Unknown'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Student">
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-            <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter full name" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Student" hideFooter={true}>
+        {fetchingOptions ? (
+          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-brand-500" /></div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-              <input type="email" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Email address" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+              <input 
+                {...register('fullName', { required: true })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                placeholder="Enter full name" 
+              />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">User ID (Linked Account)</label>
+                <input 
+                  {...register('userId', { required: true })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  placeholder="MongoDB User ObjectId" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone</label>
+                <input 
+                  {...register('phone', { required: true })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  placeholder="Phone number" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Enrollment Number</label>
+                <input 
+                  {...register('enrollmentNumber', { required: true })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Roll Number</label>
+                <input 
+                  {...register('rollNumber', { required: true })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+                <select {...register('department', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                  <option value="">Select Dept</option>
+                  {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course</label>
+                <select {...register('course', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                  <option value="">Select Course</option>
+                  {courses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Semester</label>
+                <select {...register('semester', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                  <option value="">Select Semester</option>
+                  {filteredSemesters.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">DOB</label>
+                <input type="date" {...register('dob', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gender</label>
+                <select {...register('gender', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Division</label>
+                <input {...register('division', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. A" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch</label>
+                <input {...register('batch', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. 2023-2027" />
+              </div>
+            </div>
+            
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone</label>
-              <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Phone number" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+              <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
             </div>
-          </div>
-        </div>
+
+            <button type="submit" disabled={loading} className="w-full mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+              {loading ? 'Creating...' : 'Submit'}
+            </button>
+          </form>
+        )}
       </Modal>
     </div>
   );

@@ -4,6 +4,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import StudentsPage from '../pages/admin/StudentsPage';
+import FacultyPage from '../pages/admin/FacultyPage';
+import AttendancePage from '../pages/admin/AttendancePage';
+import FeesPage from '../pages/admin/FeesPage';
+import TimetablePage from '../pages/shared/TimetablePage';
+import LMSPage from '../pages/shared/LMSPage';
+import NotificationsPage from '../pages/shared/NotificationsPage';
+import StudentDashboard from '../pages/student/StudentDashboard';
+import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
@@ -28,27 +37,29 @@ const AppRoutes = () => {
     }
   }, [dispatch]);
 
-  // Determine home route redirect based on user role
   const getHomeRedirect = () => {
     if (!user) return <Navigate to="/login" replace />;
     switch (user.role) {
       case 'Super Admin':
       case 'College Admin':
+      case 'Principal':
         return <Navigate to="/admin/dashboard" replace />;
+      case 'Faculty':
+      case 'HOD':
+        return <Navigate to="/faculty/dashboard" replace />;
+      case 'Student':
+        return <Navigate to="/student/dashboard" replace />;
       default:
-        // Default fallback to show admin layout or mock student dashboard
         return <Navigate to="/admin/dashboard" replace />;
     }
   };
 
   return (
     <Routes>
-      {/* Public Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected Layout Routes */}
       <Route
         path="/"
         element={
@@ -61,14 +72,85 @@ const AppRoutes = () => {
         <Route
           path="admin/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin']}>
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="faculty/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Faculty', 'HOD']}>
+              <FacultyDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="student/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="students"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer', 'Faculty']}>
+              <StudentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="faculty"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
+              <FacultyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Class Coordinator']}>
+              <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="fees"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Accountant']}>
+              <FeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="timetable"
+          element={
+            <ProtectedRoute>
+              <TimetablePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="library"
+          element={
+            <ProtectedRoute>
+              <LMSPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />
       </Route>
 
-      {/* Catch-all Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -49,19 +49,51 @@ const DashboardLayout = () => {
     });
   };
 
-  const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Students', path: '/students', icon: Users },
-    { name: 'Faculty', path: '/faculty', icon: GraduationCap },
-    { name: 'Academic Setup', path: '/academics', icon: BookOpen },
+  // Determine role
+  const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  
+  // Base items everyone sees
+  let navItems = [
     { name: 'Timetable', path: '/timetable', icon: Calendar },
-    { name: 'Attendance', path: '/attendance', icon: Clock },
-    { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
-    { name: 'Library Catalog', path: '/library', icon: Library },
-    { name: 'Transport Map', path: '/transport', icon: Bus },
-    { name: 'Hostels', path: '/hostels', icon: Hotel },
-    { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+    { name: 'LMS / Library', path: '/library', icon: BookOpen },
+    { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
+
+  if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {
+    navItems = [
+      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'Students', path: '/students', icon: Users },
+      { name: 'Faculty', path: '/faculty', icon: GraduationCap },
+      { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+      ...navItems,
+      { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+    ];
+  } else if (['Faculty', 'HOD'].includes(userRole)) {
+    navItems = [
+      { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
+      { name: 'Students', path: '/students', icon: Users },
+      { name: 'Attendance', path: '/attendance', icon: Clock },
+      ...navItems,
+    ];
+  } else if (userRole === 'Student') {
+    navItems = [
+      { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
+      ...navItems,
+    ];
+  } else if (userRole === 'Accountant') {
+    navItems = [
+      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+      ...navItems,
+    ];
+  } else {
+    // Fallback
+    navItems = [
+      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      ...navItems,
+    ];
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">

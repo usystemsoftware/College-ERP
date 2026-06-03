@@ -39,7 +39,7 @@ const AppRoutes = () => {
 
   const getHomeRedirect = () => {
     if (!user) return <Navigate to="/login" replace />;
-    
+
     // Check if user.role is an object (populated) or string
     const roleName = typeof user.role === 'object' ? user.role?.name : user.role;
 

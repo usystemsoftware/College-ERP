@@ -54,19 +54,37 @@ const DashboardLayout = () => {
     });
   };
 
-  const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Students', path: '/students', icon: Users },
-    { name: 'Faculty', path: '/faculty', icon: GraduationCap },
-    { name: 'Academic Setup', path: '/academics', icon: BookOpen },
-    { name: 'Timetable', path: '/timetable', icon: Calendar },
-    { name: 'Attendance', path: '/attendance', icon: Clock },
-    { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
-    { name: 'Library Catalog', path: '/library', icon: Library },
-    { name: 'Transport Map', path: '/transport', icon: Bus },
-    { name: 'Hostels', path: '/hostels', icon: Hotel },
-    { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+  const [activeDropdown, setActiveDropdown] = useState(null);
+
+  const menuCategories = [
+    {
+      name: 'Academics',
+      icon: BookOpen,
+      items: [
+        { name: 'Students', path: '/students', icon: Users },
+        { name: 'Faculty', path: '/faculty', icon: GraduationCap },
+        { name: 'Academic Setup', path: '/academics', icon: BookOpen },
+        { name: 'Timetable', path: '/timetable', icon: Calendar },
+        { name: 'Attendance', path: '/attendance', icon: Clock },
+      ]
+    },
+    {
+      name: 'Facilities',
+      icon: Library,
+      items: [
+        { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+        { name: 'Library Catalog', path: '/library', icon: Library },
+        { name: 'Transport Map', path: '/transport', icon: Bus },
+        { name: 'Hostels', path: '/hostels', icon: Hotel },
+        { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+      ]
+    }
   ];
+
+  // Close dropdowns when clicking outside or navigating
+  useEffect(() => {
+    setActiveDropdown(null);
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">

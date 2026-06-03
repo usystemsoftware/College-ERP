@@ -49,27 +49,43 @@ const DashboardLayout = () => {
     });
   };
 
-  const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
-  const ALL_NAV_ITEMS = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['Super Admin', 'College Admin', 'Principal', 'Accountant', 'HOD'] },
-    { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard, roles: ['Student'] },
-    { name: 'Students', path: '/students/directory', icon: Users, roles: ['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer'] },
-    { name: 'Faculty', path: '/faculty/directory', icon: GraduationCap, roles: ['Super Admin', 'College Admin', 'Principal', 'HOD'] },
-    { name: 'Academic Setup', path: '/academics', icon: BookOpen, roles: ['Super Admin', 'College Admin', 'Principal'] },
-    { name: 'Timetable', path: '/timetable', icon: Calendar, roles: ['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty'] },
-    { name: 'Attendance', path: '/attendance', icon: Clock, roles: ['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty'] },
-    { name: 'Fees & Finance', path: '/fees', icon: CreditCard, roles: ['Super Admin', 'College Admin', 'Accountant', 'Student', 'Principal'] },
-    { name: 'Library Catalog', path: '/library', icon: Library, roles: ['Super Admin', 'College Admin', 'Librarian', 'Student', 'Faculty'] },
-    { name: 'Transport Map', path: '/transport', icon: Bus, roles: ['Super Admin', 'College Admin', 'Transport Manager', 'Student'] },
-    { name: 'Hostels', path: '/hostel', icon: Hotel, roles: ['Super Admin', 'College Admin', 'Hostel Warden', 'Student'] },
-    { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck, roles: ['Super Admin', 'College Admin', 'Hostel Warden', 'Student', 'Principal', 'Security'] },
+  const menuCategories = [
+    {
+      name: 'Academics',
+      icon: BookOpen,
+      items: [
+        { name: 'Students', path: '/students', icon: Users },
+        { name: 'Faculty', path: '/faculty', icon: GraduationCap },
+        { name: 'Academic Setup', path: '/academics', icon: BookOpen },
+        { name: 'Timetable', path: '/timetable', icon: Calendar },
+        { name: 'Attendance', path: '/attendance', icon: Clock },
+      ]
+    },
+    {
+      name: 'Facilities',
+      icon: Library,
+      items: [
+        { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+        { name: 'Library Catalog', path: '/library', icon: Library },
+        { name: 'Transport Map', path: '/transport', icon: Bus },
+        { name: 'Hostels', path: '/hostels', icon: Hotel },
+        { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+      ]
+    }
   ];
 
-  const navItems = ALL_NAV_ITEMS.filter(item => {
-    if (!userRole) return false;
-    return item.roles.includes(userRole) || userRole === 'Super Admin';
-  });
+  // Close dropdowns when clicking outside or navigating
+  useEffect(() => {
+    setActiveDropdown(null);
+  }, [location.pathname]);
+
+  return (
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">
+
+      {/* Header bar */}
+      <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 shadow-sm dark:border-slate-800 dark:bg-dark-800">
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">

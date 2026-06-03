@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const facultyController = require('./faculty.controller');
-const { protect, authorize } = require('../../middleware/authMiddleware');
+const { protect } = require('../../middleware/authMiddleware');
+const { authorize } = require('../../middleware/roleMiddleware');
+const { getFaculty, getFacultyMember, createFaculty, updateFaculty, deleteFaculty, getMyFacultyProfile } = require('./faculty.controller');
 
-router.use(protect);
+const ADMIN_ROLES = ['Super Admin', 'College Admin', 'Principal'];
 
-router.get('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Admission Officer', 'Student'), facultyController.getFacultyList);
-router.get('/:id', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student'), facultyController.getFacultyById);
-router.post('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD'), facultyController.createFaculty);
+router.get('/me', protect, getMyFacultyProfile);
+router.get('/', protect, authorize(...ADMIN_ROLES, 'HOD', 'Faculty', 'Class Coordinator'), getFaculty);
+router.get('/:id', protect, getFacultyMember);
+router.post('/', protect, authorize(...ADMIN_ROLES), createFaculty);
+router.put('/:id', protect, authorize(...ADMIN_ROLES, 'HOD'), updateFaculty);
+router.delete('/:id', protect, authorize('Super Admin', 'College Admin'), deleteFaculty);
 
 module.exports = router;

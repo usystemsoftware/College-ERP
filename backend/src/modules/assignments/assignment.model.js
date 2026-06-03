@@ -67,7 +67,8 @@ const assignmentSchema = new mongoose.Schema({
     name: String,
     url: String // Resources provided by faculty
   }],
-  submissions: [submissionSchema]
+  submissions: [submissionSchema],
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

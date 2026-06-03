@@ -5,7 +5,8 @@ const ApiResponse = require('../../utils/apiResponse');
 const getTimetable = async (req, res, next) => {
   try {
     const { semester, department, division, faculty } = req.query;
-    const filter = { collegeId: req.user.collegeId, isActive: true };
+    const filter = { isActive: true };
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (semester) filter.semester = semester;
     if (department) filter.department = department;
     if (division) filter.division = division;

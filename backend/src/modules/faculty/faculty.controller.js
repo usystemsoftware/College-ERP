@@ -8,6 +8,7 @@ const getFacultyList = async (req, res, next) => {
   try {
     const { department } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (department) filter.department = department;
 
     const faculty = await Faculty.find(filter)
@@ -40,7 +41,7 @@ const getFacultyById = async (req, res, next) => {
 // Create faculty profile
 const createFaculty = async (req, res, next) => {
   try {
-    const { user, employeeId, fullName, designation, department, joiningDate } = req.body;
+    const { user, employeeId, fullName, designation, department, joiningDate, collegeId } = req.body;
 
     const existingFaculty = await Faculty.findOne({ $or: [{ user }, { employeeId }] });
     if (existingFaculty) {
@@ -48,7 +49,8 @@ const createFaculty = async (req, res, next) => {
     }
 
     const faculty = await Faculty.create({
-      user, employeeId, fullName, designation, department, joiningDate
+      user, employeeId, fullName, designation, department, joiningDate,
+      collegeId: collegeId || req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { faculty }, 'Faculty profile created successfully'));

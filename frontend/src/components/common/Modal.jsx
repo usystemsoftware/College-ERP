@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, hideFooter, children }) => {
   if (!isOpen) return null;
 
   return (
@@ -19,23 +19,25 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         <div className="text-slate-600 dark:text-slate-400">
           {children}
         </div>
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              alert(`${title} action successful!`);
-              onClose();
-            }}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Save
-          </button>
-        </div>
+        {!hideFooter && (
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                alert(`${title} action successful!`);
+                onClose();
+              }}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Save
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

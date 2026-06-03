@@ -8,7 +8,7 @@ const createAssignment = async (req, res, next) => {
     const { title, description, facultyId, subjectId, batchId, dueDate, totalMarks, attachments } = req.body;
 
     const assignment = await Assignment.create({
-      title, description, facultyId, subjectId, batchId, dueDate, totalMarks, attachments
+      title, description, facultyId, subjectId, batchId, dueDate, totalMarks, attachments, collegeId: req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { assignment }, 'Assignment created successfully'));
@@ -22,6 +22,7 @@ const getAssignments = async (req, res, next) => {
   try {
     const { batchId, subjectId, facultyId } = req.query;
     let filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
 
     if (batchId) filter.batchId = batchId;
     if (subjectId) filter.subjectId = subjectId;

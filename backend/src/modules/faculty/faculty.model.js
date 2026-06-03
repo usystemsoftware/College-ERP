@@ -38,6 +38,14 @@ const facultySchema = new mongoose.Schema({
   joiningDate: {
     type: Date,
     required: true
+  },
+  phone: { type: String },
+  email: { type: String, lowercase: true },
+  specialization: { type: String },
+  collegeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'College',
+    required: true
   }
 }, {
   timestamps: true

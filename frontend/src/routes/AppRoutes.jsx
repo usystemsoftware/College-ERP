@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+<<<<<<< HEAD
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentDirectory from '../pages/student/StudentDirectory';
 import FacultyDirectory from '../pages/faculty/FacultyDirectory';
@@ -22,6 +23,17 @@ import HRDashboard from '../pages/hr/HRDashboard';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 import LMSDashboard from '../pages/lms/LMSDashboard';
 import GatepassDashboard from '../pages/gatepass/GatepassDashboard';
+=======
+import StudentsPage from '../pages/admin/StudentsPage';
+import FacultyPage from '../pages/admin/FacultyPage';
+import AttendancePage from '../pages/admin/AttendancePage';
+import FeesPage from '../pages/admin/FeesPage';
+import TimetablePage from '../pages/shared/TimetablePage';
+import LMSPage from '../pages/shared/LMSPage';
+import NotificationsPage from '../pages/shared/NotificationsPage';
+import StudentDashboard from '../pages/student/StudentDashboard';
+import FacultyDashboard from '../pages/faculty/FacultyDashboard';
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
@@ -46,7 +58,6 @@ const AppRoutes = () => {
     }
   }, [dispatch]);
 
-  // Determine home route redirect based on user role
   const getHomeRedirect = () => {
     if (!user) return <Navigate to="/login" replace />;
     
@@ -58,24 +69,36 @@ const AppRoutes = () => {
       case 'College Admin':
       case 'Principal':
         return <Navigate to="/admin/dashboard" replace />;
+<<<<<<< HEAD
       case 'Student':
         return <Navigate to="/student/dashboard" replace />;
       default:
         // Default fallback
         return <Navigate to="/student/dashboard" replace />;
+=======
+      case 'Faculty':
+      case 'HOD':
+        return <Navigate to="/faculty/dashboard" replace />;
+      case 'Student':
+        return <Navigate to="/student/dashboard" replace />;
+      default:
+        return <Navigate to="/admin/dashboard" replace />;
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
     }
   };
 
   return (
     <Routes>
-      {/* Public Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
+<<<<<<< HEAD
       <Route path="/apply" element={<AdmissionPortal />} />
 
       {/* Protected Layout Routes */}
+=======
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
       <Route
         path="/"
         element={
@@ -94,6 +117,7 @@ const AppRoutes = () => {
           }
         />
         <Route
+<<<<<<< HEAD
           path="admission/review"
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Admission Officer']}>
@@ -218,20 +242,88 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal']}>
               <AcademicStructure />
+=======
+          path="faculty/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Faculty', 'HOD']}>
+              <FacultyDashboard />
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
             </ProtectedRoute>
           }
         />
         <Route
           path="student/dashboard"
           element={
+<<<<<<< HEAD
             <ProtectedRoute allowedRoles={['Student', 'Super Admin']}>
+=======
+            <ProtectedRoute allowedRoles={['Student']}>
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
               <StudentDashboard />
             </ProtectedRoute>
           }
         />
+<<<<<<< HEAD
+=======
+        <Route
+          path="students"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer', 'Faculty']}>
+              <StudentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="faculty"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
+              <FacultyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Class Coordinator']}>
+              <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="fees"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Accountant']}>
+              <FeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="timetable"
+          element={
+            <ProtectedRoute>
+              <TimetablePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="library"
+          element={
+            <ProtectedRoute>
+              <LMSPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+>>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
       </Route>
 
-      {/* Catch-all Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

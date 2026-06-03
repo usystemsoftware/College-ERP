@@ -38,4 +38,17 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return next(new ApiError(403, 'Not authorized to access this route (Role missing)'));
+    }
+
+    if (!roles.includes(req.user.role.name) && !roles.includes('*') && req.user.role.name !== 'Super Admin') {
+      return next(new ApiError(403, `User role '${req.user.role.name}' is not authorized to access this route`));
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorize };

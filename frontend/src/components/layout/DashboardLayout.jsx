@@ -29,7 +29,10 @@ const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -38,8 +41,10 @@ const DashboardLayout = () => {
     const root = window.document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
@@ -51,15 +56,15 @@ const DashboardLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Students', path: '/students', icon: Users },
-    { name: 'Faculty', path: '/faculty', icon: GraduationCap },
+    { name: 'Students', path: '/students/directory', icon: Users },
+    { name: 'Faculty', path: '/faculty/directory', icon: GraduationCap },
     { name: 'Academic Setup', path: '/academics', icon: BookOpen },
     { name: 'Timetable', path: '/timetable', icon: Calendar },
     { name: 'Attendance', path: '/attendance', icon: Clock },
     { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
     { name: 'Library Catalog', path: '/library', icon: Library },
     { name: 'Transport Map', path: '/transport', icon: Bus },
-    { name: 'Hostels', path: '/hostels', icon: Hotel },
+    { name: 'Hostels', path: '/hostel', icon: Hotel },
     { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
   ];
 

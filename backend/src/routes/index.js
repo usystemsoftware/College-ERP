@@ -21,7 +21,6 @@ const inventoryRoutes = require('../modules/inventory/inventory.routes');
 const lmsRoutes = require('../modules/lms/lms.routes');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
-<<<<<<< HEAD
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -41,14 +40,6 @@ router.use('/hr', hrRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/lms', lmsRoutes);
 router.use('/analytics', analyticsRoutes);
-=======
-// Academic Structure
-const departmentRoutes = require('../modules/departments/department.routes');
-const courseRoutes = require('../modules/courses/course.routes');
-const subjectRoutes = require('../modules/subjects/subject.routes');
-const academicYearRoutes = require('../modules/academicYears/academicYear.routes');
-const semesterRoutes = require('../modules/semesters/semester.routes');
->>>>>>> 7b4a3a7751aa63252c46edeef69f5e1c88a642af
 
 // People
 const studentRoutes = require('../modules/students/student.routes');

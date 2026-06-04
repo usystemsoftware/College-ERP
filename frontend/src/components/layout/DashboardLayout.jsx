@@ -86,9 +86,8 @@ const DashboardLayout = () => {
       ...navItems,
     ];
   } else {
-    // Fallback
     navItems = [
-      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       ...navItems,
     ];
   }
@@ -204,7 +203,7 @@ const DashboardLayout = () => {
                     {user?.email || 'User Account'}
                   </div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-none">
-                    {userRole || 'Super Admin'}
+                    {user?.role || 'Super Admin'}
                   </div>
                 </div>
                 <ChevronDown size={14} className="text-slate-400" />

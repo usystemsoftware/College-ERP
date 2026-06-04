@@ -71,28 +71,37 @@ const createStudent = async (req, res, next) => {
     const studentRole = await Role.findOne({ name: 'Student' });
     if (!studentRole) throw new ApiError(500, 'Student role not configured');
 
-    const user = await User.create({
-      email, password,
-      role: studentRole._id,
-      collegeId: collegeId || req.user.collegeId,
-      isVerified: true,
-      status: 'Active'
-    });
+    let user;
+    try {
+      user = await User.create({
+        email, password,
+        role: studentRole._id,
+        collegeId: collegeId || req.user.collegeId,
+        isVerified: true,
+        status: 'Active'
+      });
 
-    const student = await Student.create({
-      user: user._id,
-      rollNumber, enrollmentNumber,
-      department, course, semester, division, batch,
-      personalDetails,
-      collegeId: collegeId || req.user.collegeId
-    });
+      const student = await Student.create({
+        user: user._id,
+        rollNumber, enrollmentNumber,
+        department, course, semester, division, batch,
+        personalDetails,
+        collegeId: collegeId || req.user.collegeId
+      });
 
-    const populated = await Student.findById(student._id)
-      .populate('user', 'email status')
-      .populate('department', 'name')
-      .populate('course', 'name');
+      const populated = await Student.findById(student._id)
+        .populate('user', 'email status')
+        .populate('department', 'name')
+        .populate('course', 'name');
 
-    return res.status(201).json(new ApiResponse(201, populated, 'Student created'));
+      return res.status(201).json(new ApiResponse(201, populated, 'Student created'));
+    } catch (err) {
+      if (user) {
+        await User.findByIdAndDelete(user._id);
+      }
+      console.error("Student creation failed:", err);
+      throw err;
+    }
   } catch (error) { next(error); }
 };
 

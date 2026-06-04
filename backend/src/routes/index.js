@@ -17,21 +17,27 @@ const safeRequire = (modulePath) => {
 };
 
 // Auth & Users
-const authRoutes = safeRequire('auth/auth.routes');
-const userRoutes = safeRequire('users/user.routes');
+const authRoutes = require('../modules/auth/auth.routes');
+const userRoutes = require('../modules/users/user.routes');
+const roleRoutes = require('../modules/roles/role.routes');
 
-// Core / New Academic Structure
-const admissionRoutes = safeRequire('admission/admission.routes');
-const departmentRoutes = safeRequire('departments/department.routes');
-const courseRoutes = safeRequire('courses/course.routes');
-const subjectRoutes = safeRequire('subjects/subject.routes');
-const academicYearRoutes = safeRequire('academicYears/academicYear.routes');
-const semesterRoutes = safeRequire('semesters/semester.routes');
+// Old Academic & Admission
+// const academicRoutes = require('../modules/academic/academic.routes');
+const admissionRoutes = require('../modules/admission/admission.routes');
+
+// New Academic Structure
+const collegeRoutes = require('../modules/colleges/college.routes');
+const departmentRoutes = require('../modules/departments/department.routes');
+const courseRoutes = require('../modules/courses/course.routes');
+const subjectRoutes = require('../modules/subjects/subject.routes');
+const academicYearRoutes = require('../modules/academicYears/academicYear.routes');
+const semesterRoutes = require('../modules/semesters/semester.routes');
+const batchRoutes = require('../modules/batches/batch.routes');
 
 // People
-const studentRoutes = safeRequire('students/student.routes');
-const facultyRoutes = safeRequire('faculty/faculty.routes');
-const parentRoutes = safeRequire('parents/parent.routes');
+const studentRoutes = require('../modules/students/student.routes');
+const facultyRoutes = require('../modules/faculty/faculty.routes');
+const parentRoutes = require('../modules/parents/parent.routes');
 
 // Operations
 const attendanceRoutes = safeRequire('attendance/attendance.routes');
@@ -46,25 +52,27 @@ const noteRoutes = safeRequire('lms/note.routes');
 const libraryRoutes = safeRequire('library/library.routes');
 
 // Finance & Admin
-const feeRoutes = safeRequire('fees/fee.routes');
-const feesRoutes = safeRequire('fees/fees.routes');
-const hrRoutes = safeRequire('hr/hr.routes');
-const inventoryRoutes = safeRequire('inventory/inventory.routes');
-const hostelRoutes = safeRequire('hostel/hostel.routes');
-const transportRoutes = safeRequire('transport/transport.routes');
+const feeRoutes = require('../modules/fees/fee.routes');
+const hrRoutes = require('../modules/hr/hr.routes');
+const inventoryRoutes = require('../modules/inventory/inventory.routes');
+const hostelRoutes = require('../modules/hostel/hostel.routes');
+const transportRoutes = require('../modules/transport/transport.routes');
 
 // Campus Life & Communication
-const eventRoutes = safeRequire('events/event.routes');
-const placementRoutes = safeRequire('placements/placement.routes');
-const gatepassRoutes = safeRequire('gatepasses/gatepass.routes');
-const leaveRoutes = safeRequire('leave/leave.routes');
-const notificationRoutes = safeRequire('notifications/notification.routes');
-const analyticsRoutes = safeRequire('analytics/analytics.routes');
+const eventRoutes = require('../modules/events/event.routes');
+const placementRoutes = require('../modules/placements/placement.routes');
+const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
+const leaveRoutes = require('../modules/leave/leave.routes');
+const notificationRoutes = require('../modules/notifications/notification.routes');
+// Analytics
+const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
 // --- Mount all routes ---
 
-if (authRoutes) router.use('/auth', authRoutes);
-if (userRoutes) router.use('/users', userRoutes);
+// Auth & Users
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/roles', roleRoutes);
 
 if (admissionRoutes) router.use('/admission', admissionRoutes);
 if (departmentRoutes) router.use('/departments', departmentRoutes);
@@ -73,9 +81,19 @@ if (subjectRoutes) router.use('/subjects', subjectRoutes);
 if (academicYearRoutes) router.use('/academic-years', academicYearRoutes);
 if (semesterRoutes) router.use('/semesters', semesterRoutes);
 
-if (studentRoutes) router.use('/students', studentRoutes);
-if (facultyRoutes) router.use('/faculty', facultyRoutes);
-if (parentRoutes) router.use('/parents', parentRoutes);
+// New Academic Structure
+router.use('/colleges', collegeRoutes);
+router.use('/departments', departmentRoutes);
+router.use('/courses', courseRoutes);
+router.use('/subjects', subjectRoutes);
+router.use('/academic-years', academicYearRoutes);
+router.use('/semesters', semesterRoutes);
+router.use('/batches', batchRoutes);
+
+// People
+router.use('/students', studentRoutes);
+router.use('/faculty', facultyRoutes);
+router.use('/parents', parentRoutes);
 
 if (attendanceRoutes) router.use('/attendance', attendanceRoutes);
 if (timetablesRoutes) router.use('/timetables', timetablesRoutes);
@@ -87,20 +105,21 @@ if (lmsRoutes) router.use('/lms', lmsRoutes);
 if (noteRoutes) router.use('/lms/notes', noteRoutes);
 if (libraryRoutes) router.use('/library', libraryRoutes);
 
-if (feesRoutes) router.use('/fees', feesRoutes);
-if (feeRoutes) router.use('/fee', feeRoutes);
-if (hrRoutes) router.use('/hr', hrRoutes);
-if (inventoryRoutes) router.use('/inventory', inventoryRoutes);
-if (hostelRoutes) router.use('/hostel', hostelRoutes);
-if (transportRoutes) router.use('/transport', transportRoutes);
+// Finance & Admin
+router.use('/fee', feeRoutes);
+router.use('/hr', hrRoutes);
+router.use('/inventory', inventoryRoutes);
+router.use('/hostel', hostelRoutes);
+router.use('/transport', transportRoutes);
 
-if (eventRoutes) router.use('/events', eventRoutes);
-if (placementRoutes) router.use('/placements', placementRoutes);
-if (gatepassRoutes) router.use('/gatepasses', gatepassRoutes);
-if (leaveRoutes) router.use('/leave', leaveRoutes);
+// Campus Life & Communication
+router.use('/events', eventRoutes);
+router.use('/placements', placementRoutes);
+router.use('/gatepasses', gatepassRoutes);
+router.use('/leave', leaveRoutes);
+router.use('/notifications', notificationRoutes);
 
-if (notificationRoutes) router.use('/notifications', notificationRoutes);
-if (analyticsRoutes) router.use('/analytics', analyticsRoutes);
+router.use('/analytics', analyticsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

@@ -66,6 +66,7 @@ client.interceptors.response.use(
 export const get = client.get;
 export const post = client.post;
 export const put = client.put;
+export const patch = client.patch;
 export const del = client.delete;
 
 export default client;

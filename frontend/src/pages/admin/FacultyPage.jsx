@@ -1,16 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFaculty } from '../../features/faculty/facultySlice';
+import { fetchFaculty, createFaculty } from '../../features/faculty/facultySlice';
 import { Search, Plus, Filter, MoreVertical, Mail, Phone } from 'lucide-react';
+import Modal from '../../components/common/Modal';
+import { getDepartments } from '../../api/academic.api';
 
 const FacultyPage = () => {
   const dispatch = useDispatch();
   const { list: faculty, loading, error, pagination } = useSelector((state) => state.faculty);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    employeeId: '',
+    role: 'Faculty',
+    department: ''
+  });
 
   useEffect(() => {
     dispatch(fetchFaculty({ limit: 50 }));
+    getDepartments().then(res => {
+      if (res.data?.data) {
+        setDepartments(res.data.data);
+      }
+    }).catch(console.error);
   }, [dispatch]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.department) {
+      alert("Please select a department");
+      return;
+    }
+    dispatch(createFaculty(formData)).then((res) => {
+      if (!res.error) {
+        setIsAddModalOpen(false);
+        setFormData({ fullName: '', email: '', password: '', employeeId: '', role: 'Faculty', department: '' });
+      } else {
+        alert(res.payload || 'Failed to create faculty');
+      }
+    });
+  };
 
   const filteredFaculty = faculty.filter(f => 
     f.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -25,9 +59,12 @@ const FacultyPage = () => {
           <p className="text-sm text-slate-500">Manage professors, staff assignments, and departments.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+          >
             <Plus size={16} />
-            Add Faculty
+            Add Faculty / Staff
           </button>
         </div>
       </div>
@@ -111,6 +148,63 @@ const FacultyPage = () => {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Add New Faculty or Staff"
+        hideFooter={true}
+      >
+        <form className="space-y-4 mt-2" onSubmit={handleSubmit}>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+            <input required type="text" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="Enter full name" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
+              <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="email@erp.com" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+              <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="••••••••" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Employee ID</label>
+              <input required type="text" value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="EMP001" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
+              <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+                <option value="Faculty">Faculty</option>
+                <option value="HOD">HOD</option>
+                <option value="Accountant">Accountant</option>
+                <option value="Librarian">Librarian</option>
+                <option value="Admin Staff">Admin Staff</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+            <select required value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+              <option value="">Select Department</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>{dept.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
+            <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors disabled:opacity-50">
+              {loading ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

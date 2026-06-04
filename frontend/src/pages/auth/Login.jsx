@@ -17,7 +17,7 @@ const Login = () => {
   const onSubmit = (data) => {
     dispatch(loginUser(data)).then((res) => {
       if (!res.error) {
-        navigate('/admin/dashboard');
+        navigate('/');
       }
     });
   };

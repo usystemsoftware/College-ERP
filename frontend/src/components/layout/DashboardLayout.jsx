@@ -2,49 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../features/auth/authSlice';
-import {
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  Calendar,
-  Clock,
-  GraduationCap,
-  CreditCard,
-  Library,
-  Bus,
-  Hotel,
-  ShieldCheck,
-  Bell,
-  LogOut,
-  Sun,
-  Moon,
-  Menu,
+import { toggleTheme, setSidebarOpen } from '../../features/ui/uiSlice';
+import { 
+  LayoutDashboard, 
+  Users, 
+  BookOpen, 
+  Calendar, 
+  Clock, 
+  GraduationCap, 
+  CreditCard, 
+  Library, 
+  Bus, 
+  Hotel, 
+  ShieldCheck, 
+  Bell, 
+  LogOut, 
+  Sun, 
+  Moon, 
+  Menu, 
   X,
   ChevronDown
 } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
+  const { darkMode, sidebarOpen } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme ? savedTheme === 'dark' : true;
-  });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // Sync dark class on body
+  // Sync dark class on body (initial setup)
   useEffect(() => {
     const root = window.document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
@@ -100,11 +95,12 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">
-
+      
       {/* Sidebar Section */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
         {/* Brand Header */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
@@ -116,9 +112,9 @@ const DashboardLayout = () => {
               COLL-ERP
             </span>
           </div>
-          <button
+          <button 
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => dispatch(setSidebarOpen(false))}
           >
             <X size={18} />
           </button>
@@ -133,10 +129,12 @@ const DashboardLayout = () => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${isActive
-                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                onClick={() => dispatch(setSidebarOpen(false))}
+                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+                  isActive 
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10' 
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-700/50 dark:hover:text-white'
-                  }`}
+                }`}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'} />
                 {item.name}
@@ -159,15 +157,15 @@ const DashboardLayout = () => {
 
       {/* Main Content Workspace */}
       <div className="flex flex-1 flex-col overflow-hidden">
-
+        
         {/* Header bar */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm dark:border-slate-800 dark:bg-dark-800">
-
+          
           {/* Collapse toggle */}
           <div className="flex items-center gap-4">
-            <button
+            <button 
               className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => dispatch(setSidebarOpen(true))}
             >
               <Menu size={20} />
             </button>
@@ -180,7 +178,7 @@ const DashboardLayout = () => {
           <div className="flex items-center gap-4">
             {/* Dark Mode toggle */}
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={() => dispatch(toggleTheme())}
               className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-700"
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -194,16 +192,16 @@ const DashboardLayout = () => {
 
             {/* User Dropdown */}
             <div className="relative">
-              <button
+              <button 
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-dark-700"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white font-semibold text-sm">
-                  {user?.email?.charAt(0).toUpperCase()}
+                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="hidden text-left lg:block">
                   <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    {user?.email || 'Principal Account'}
+                    {user?.email || 'User Account'}
                   </div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-none">
                     {userRole || 'Super Admin'}
@@ -216,10 +214,10 @@ const DashboardLayout = () => {
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-800 dark:bg-dark-800">
                   <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-750">
                     <p className="text-xs text-slate-400">Signed in as</p>
-                    <p className="truncate text-sm font-semibold">{user?.email}</p>
+                    <p className="truncate text-sm font-semibold">{user?.email || 'User Account'}</p>
                   </div>
-                  <Link
-                    to="/profile"
+                  <Link 
+                    to="/profile" 
                     className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-700"
                     onClick={() => setUserDropdownOpen(false)}
                   >

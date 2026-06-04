@@ -116,8 +116,6 @@ const Register = () => {
                 className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm text-white outline-none transition duration-150 focus:border-brand-500 focus:bg-slate-850"
               >
                 <option value="" className="bg-slate-900">Select Role</option>
-                <option value="Super Admin" className="bg-slate-900">Super Admin</option>
-                <option value="College Admin" className="bg-slate-900">College Admin</option>
                 <option value="Faculty" className="bg-slate-900">Faculty</option>
                 <option value="Student" className="bg-slate-900">Student</option>
               </select>

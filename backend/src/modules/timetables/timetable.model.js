@@ -24,4 +24,4 @@ const timetableSchema = new mongoose.Schema({
 timetableSchema.index({ semester: 1, department: 1, division: 1, dayOfWeek: 1 });
 timetableSchema.index({ faculty: 1, dayOfWeek: 1 });
 
-module.exports = mongoose.model('Timetable', timetableSchema);
+module.exports = mongoose.models.Timetable || mongoose.model('Timetable', timetableSchema);

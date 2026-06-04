@@ -22,11 +22,11 @@ const getCourse = async (req, res, next) => {
 
 const createCourse = async (req, res, next) => {
   try {
-    const { name, code, department, durationSemesters } = req.body;
+    const { name, code, department, durationSemesters, collegeId } = req.body;
     if (!name || !code || !department) throw new ApiError(400, 'Name, code, and department are required');
     const exists = await Course.findOne({ code: code.toUpperCase() });
     if (exists) throw new ApiError(400, 'Course code already exists');
-    const course = await Course.create({ name, code: code.toUpperCase(), department, durationSemesters: durationSemesters || 8, collegeId: req.user.collegeId });
+    const course = await Course.create({ name, code: code.toUpperCase(), department, durationSemesters: durationSemesters || 8, collegeId: collegeId || req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, course, 'Course created'));
   } catch (error) { next(error); }
 };

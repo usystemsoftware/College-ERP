@@ -15,7 +15,8 @@ const addBook = async (req, res, next) => {
     }
 
     book = await Book.create({
-      title, author, isbn, publisher, category, totalCopies, availableCopies: totalCopies, location
+      title, author, isbn, publisher, category, totalCopies, availableCopies: totalCopies, location,
+      collegeId: req.user.collegeId
     });
 
     return res.status(201).json(new ApiResponse(201, { book }, 'Book added successfully'));
@@ -27,7 +28,7 @@ const addBook = async (req, res, next) => {
 const getBooks = async (req, res, next) => {
   try {
     const { search, category } = req.query;
-    let filter = {};
+    let filter = { collegeId: req.user.collegeId };
 
     if (search) {
       filter.$or = [
@@ -60,7 +61,7 @@ const issueBook = async (req, res, next) => {
     }
 
     const record = await IssueRecord.create({
-      bookId, userId, dueDate, issuedBy: req.user._id
+      bookId, userId, dueDate, issuedBy: req.user._id, collegeId: req.user.collegeId
     });
 
     book.availableCopies -= 1;
@@ -112,7 +113,7 @@ const returnBook = async (req, res, next) => {
 const getCirculationHistory = async (req, res, next) => {
   try {
     const { userId } = req.query;
-    let filter = {};
+    let filter = { collegeId: req.user.collegeId };
 
     if (userId) filter.userId = userId;
     // If student, force their own ID

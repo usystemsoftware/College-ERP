@@ -4,24 +4,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import StudentsPage from '../pages/admin/StudentsPage';
+import FacultyPage from '../pages/admin/FacultyPage';
+import AttendancePage from '../pages/admin/AttendancePage';
+import FeesPage from '../pages/admin/FeesPage';
+import TimetablePage from '../pages/shared/TimetablePage';
+import LMSPage from '../pages/shared/LMSPage';
+import NotificationsPage from '../pages/shared/NotificationsPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
-import StudentDirectory from '../pages/student/StudentDirectory';
-import FacultyDirectory from '../pages/faculty/FacultyDirectory';
-import AcademicStructure from '../pages/academic/AcademicStructure';
-import AdmissionPortal from '../pages/admission/AdmissionPortal';
-import AdmissionReview from '../pages/admission/AdmissionReview';
-import TimetableDashboard from '../pages/timetable/TimetableDashboard';
-import AttendanceDashboard from '../pages/attendance/AttendanceDashboard';
-import AssignmentDashboard from '../pages/assignments/AssignmentDashboard';
-import ExamDashboard from '../pages/exams/ExamDashboard';
-import FeeDashboard from '../pages/fees/FeeDashboard';
-import LibraryDashboard from '../pages/library/LibraryDashboard';
-import HostelDashboard from '../pages/hostel/HostelDashboard';
-import TransportDashboard from '../pages/transport/TransportDashboard';
-import HRDashboard from '../pages/hr/HRDashboard';
-import InventoryDashboard from '../pages/inventory/InventoryDashboard';
-import LMSDashboard from '../pages/lms/LMSDashboard';
-import GatepassDashboard from '../pages/gatepass/GatepassDashboard';
+import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
@@ -57,11 +48,13 @@ const AppRoutes = () => {
       case 'College Admin':
       case 'Principal':
         return <Navigate to="/admin/dashboard" replace />;
+      case 'Faculty':
+      case 'HOD':
+        return <Navigate to="/faculty/dashboard" replace />;
       case 'Student':
         return <Navigate to="/student/dashboard" replace />;
       default:
-        // Default fallback
-        return <Navigate to="/student/dashboard" replace />;
+        return <Navigate to="/admin/dashboard" replace />;
     }
   };
 
@@ -71,9 +64,6 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      <Route path="/apply" element={<AdmissionPortal />} />
-
-      {/* Protected Layout Routes */}
       <Route
         path="/"
         element={
@@ -92,138 +82,74 @@ const AppRoutes = () => {
           }
         />
         <Route
-          path="admission/review"
+          path="faculty/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Admission Officer']}>
-              <AdmissionReview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="students/directory"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer']}>
-              <StudentDirectory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="faculty/directory"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD']}>
-              <FacultyDirectory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="timetable"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty']}>
-              <TimetableDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="attendance"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty']}>
-              <AttendanceDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="assignments"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty']}>
-              <AssignmentDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="exams"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Student', 'Faculty', 'Admission Officer']}>
-              <ExamDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="fees"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Accountant', 'Student', 'Principal']}>
-              <FeeDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="library"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Librarian', 'Student', 'Faculty']}>
-              <LibraryDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="hostel"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Hostel Warden', 'Student']}>
-              <HostelDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="gatepass"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Hostel Warden', 'Student', 'Principal', 'Security']}>
-              <GatepassDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="transport"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Transport Manager', 'Student']}>
-              <TransportDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="hr"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'HR Manager', 'Principal', 'HOD', 'Faculty']}>
-              <HRDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Inventory Manager']}>
-              <InventoryDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="lms"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student']}>
-              <LMSDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="academics"
-          element={
-            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal']}>
-              <AcademicStructure />
+            <ProtectedRoute allowedRoles={['Faculty', 'HOD']}>
+              <FacultyDashboard />
             </ProtectedRoute>
           }
         />
         <Route
           path="student/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['Student', 'Super Admin']}>
+            <ProtectedRoute allowedRoles={['Student']}>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="students"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer', 'Faculty']}>
+              <StudentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="faculty"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
+              <FacultyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Class Coordinator']}>
+              <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="fees"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Accountant']}>
+              <FeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="timetable"
+          element={
+            <ProtectedRoute>
+              <TimetablePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="library"
+          element={
+            <ProtectedRoute>
+              <LMSPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />

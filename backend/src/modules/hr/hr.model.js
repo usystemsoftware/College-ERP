@@ -7,7 +7,8 @@ const leaveSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
   reason: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
-  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // Admin/HOD
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admin/HOD
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const payrollSchema = new mongoose.Schema({
@@ -18,7 +19,8 @@ const payrollSchema = new mongoose.Schema({
   deductions: { type: Number, default: 0 },
   netSalary: { type: Number, required: true },
   status: { type: String, enum: ['Pending', 'Paid'], default: 'Pending' },
-  paidDate: { type: Date }
+  paidDate: { type: Date },
+  collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 
 const Leave = mongoose.model('Leave', leaveSchema);

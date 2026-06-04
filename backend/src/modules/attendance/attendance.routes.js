@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const attendanceController = require('./attendance.controller');
-const { protect, authorize } = require('../../middleware/authMiddleware');
+const { protect } = require('../../middleware/authMiddleware');
+const { authorize } = require('../../middleware/roleMiddleware');
+const { markAttendance, getAttendanceBySubjectDate, getStudentAttendance, getAttendanceReport } = require('./attendance.controller');
 
-router.use(protect);
-
-router.post('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), attendanceController.markAttendance);
-router.get('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), attendanceController.getAttendance);
-router.get('/student/:studentId', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student'), attendanceController.getStudentAttendance);
+router.post('/mark', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), markAttendance);
+router.get('/by-subject-date', protect, getAttendanceBySubjectDate);
+router.get('/my-summary', protect, getStudentAttendance);
+router.get('/report', protect, authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getAttendanceReport);
 
 module.exports = router;

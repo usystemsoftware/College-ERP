@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const libraryController = require('./library.controller');
-const { protect, authorize } = require('../../middleware/authMiddleware');
+const { protect } = require('../../middleware/authMiddleware');
+const { authorize } = require('../../middleware/roleMiddleware');
 
 router.use(protect);
 

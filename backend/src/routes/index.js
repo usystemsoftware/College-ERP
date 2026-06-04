@@ -1,83 +1,106 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+
+// Safe require helper to avoid crashes during merges
+const safeRequire = (modulePath) => {
+  try {
+    const fullPath = path.join(__dirname, '..', 'modules', modulePath);
+    if (fs.existsSync(fullPath + '.js') || fs.existsSync(fullPath + '/index.js') || fs.existsSync(fullPath)) {
+      return require(fullPath);
+    }
+  } catch (err) {
+    console.warn(`Could not load route module: ${modulePath}`);
+  }
+  return null;
+};
 
 // Auth & Users
-const authRoutes = require('../modules/auth/auth.routes');
-const userRoutes = require('../modules/users/user.routes');
+const authRoutes = safeRequire('auth/auth.routes');
+const userRoutes = safeRequire('users/user.routes');
 
-// Core
-const admissionRoutes = require('../modules/admission/admission.routes');
-const departmentRoutes = require('../modules/departments/department.routes');
-const courseRoutes = require('../modules/courses/course.routes');
-const subjectRoutes = require('../modules/subjects/subject.routes');
-const academicYearRoutes = require('../modules/academicYears/academicYear.routes');
-const semesterRoutes = require('../modules/semesters/semester.routes');
+// Core / New Academic Structure
+const admissionRoutes = safeRequire('admission/admission.routes');
+const departmentRoutes = safeRequire('departments/department.routes');
+const courseRoutes = safeRequire('courses/course.routes');
+const subjectRoutes = safeRequire('subjects/subject.routes');
+const academicYearRoutes = safeRequire('academicYears/academicYear.routes');
+const semesterRoutes = safeRequire('semesters/semester.routes');
 
 // People
-const studentRoutes = require('../modules/students/student.routes');
-const facultyRoutes = require('../modules/faculty/faculty.routes');
+const studentRoutes = safeRequire('students/student.routes');
+const facultyRoutes = safeRequire('faculty/faculty.routes');
+const parentRoutes = safeRequire('parents/parent.routes');
 
-// Academics
-const timetableRoutes = require('../modules/timetable/timetable.routes');
-const attendanceRoutes = require('../modules/attendance/attendance.routes');
-const assignmentRoutes = require('../modules/assignments/assignment.routes');
-const examRoutes = require('../modules/exams/exam.routes');
-const feesRoutes = require('../modules/fees/fees.routes');
+// Operations
+const attendanceRoutes = safeRequire('attendance/attendance.routes');
+const timetablesRoutes = safeRequire('timetables/timetable.routes');
+const timetableRoutes = safeRequire('timetable/timetable.routes');
+const assignmentRoutes = safeRequire('assignments/assignment.routes');
+const examRoutes = safeRequire('exams/exam.routes');
 
-// Logistics
-const libraryRoutes = require('../modules/library/library.routes');
-const hostelRoutes = require('../modules/hostel/hostel.routes');
-const transportRoutes = require('../modules/transport/transport.routes');
-const inventoryRoutes = require('../modules/inventory/inventory.routes');
+// LMS & Library
+const lmsRoutes = safeRequire('lms/lms.routes');
+const noteRoutes = safeRequire('lms/note.routes');
+const libraryRoutes = safeRequire('library/library.routes');
 
-// Others
-const hrRoutes = require('../modules/hr/hr.routes');
-const analyticsRoutes = require('../modules/analytics/analytics.routes');
-const lmsRoutes = require('../modules/lms/lms.routes');
-const noteRoutes = require('../modules/lms/note.routes');
+// Finance & Admin
+const feeRoutes = safeRequire('fees/fee.routes');
+const feesRoutes = safeRequire('fees/fees.routes');
+const hrRoutes = safeRequire('hr/hr.routes');
+const inventoryRoutes = safeRequire('inventory/inventory.routes');
+const hostelRoutes = safeRequire('hostel/hostel.routes');
+const transportRoutes = safeRequire('transport/transport.routes');
 
-// Campus Life
-const eventRoutes = require('../modules/events/event.routes');
-const placementRoutes = require('../modules/placements/placement.routes');
-const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
-const leaveRoutes = require('../modules/leave/leave.routes');
-const notificationRoutes = require('../modules/notifications/notification.routes');
+// Campus Life & Communication
+const eventRoutes = safeRequire('events/event.routes');
+const placementRoutes = safeRequire('placements/placement.routes');
+const gatepassRoutes = safeRequire('gatepasses/gatepass.routes');
+const leaveRoutes = safeRequire('leave/leave.routes');
+const notificationRoutes = safeRequire('notifications/notification.routes');
+const analyticsRoutes = safeRequire('analytics/analytics.routes');
 
-// Mount routes
-router.use('/auth', authRoutes);
-router.use('/users', userRoutes);
+// --- Mount all routes ---
 
-router.use('/admission', admissionRoutes);
-router.use('/departments', departmentRoutes);
-router.use('/courses', courseRoutes);
-router.use('/subjects', subjectRoutes);
-router.use('/academic-years', academicYearRoutes);
-router.use('/semesters', semesterRoutes);
+if (authRoutes) router.use('/auth', authRoutes);
+if (userRoutes) router.use('/users', userRoutes);
 
-router.use('/students', studentRoutes);
-router.use('/faculty', facultyRoutes);
+if (admissionRoutes) router.use('/admission', admissionRoutes);
+if (departmentRoutes) router.use('/departments', departmentRoutes);
+if (courseRoutes) router.use('/courses', courseRoutes);
+if (subjectRoutes) router.use('/subjects', subjectRoutes);
+if (academicYearRoutes) router.use('/academic-years', academicYearRoutes);
+if (semesterRoutes) router.use('/semesters', semesterRoutes);
 
-router.use('/timetable', timetableRoutes);
-router.use('/attendance', attendanceRoutes);
-router.use('/assignments', assignmentRoutes);
-router.use('/exams', examRoutes);
-router.use('/fees', feesRoutes);
+if (studentRoutes) router.use('/students', studentRoutes);
+if (facultyRoutes) router.use('/faculty', facultyRoutes);
+if (parentRoutes) router.use('/parents', parentRoutes);
 
-router.use('/library', libraryRoutes);
-router.use('/hostel', hostelRoutes);
-router.use('/transport', transportRoutes);
-router.use('/inventory', inventoryRoutes);
+if (attendanceRoutes) router.use('/attendance', attendanceRoutes);
+if (timetablesRoutes) router.use('/timetables', timetablesRoutes);
+if (timetableRoutes) router.use('/timetable', timetableRoutes);
+if (assignmentRoutes) router.use('/assignments', assignmentRoutes);
+if (examRoutes) router.use('/exams', examRoutes);
 
-router.use('/hr', hrRoutes);
-router.use('/analytics', analyticsRoutes);
-router.use('/lms', lmsRoutes);
-router.use('/lms/notes', noteRoutes);
+if (lmsRoutes) router.use('/lms', lmsRoutes);
+if (noteRoutes) router.use('/lms/notes', noteRoutes);
+if (libraryRoutes) router.use('/library', libraryRoutes);
 
-router.use('/events', eventRoutes);
-router.use('/placements', placementRoutes);
-router.use('/gatepasses', gatepassRoutes);
-router.use('/leave', leaveRoutes);
-router.use('/notifications', notificationRoutes);
+if (feesRoutes) router.use('/fees', feesRoutes);
+if (feeRoutes) router.use('/fee', feeRoutes);
+if (hrRoutes) router.use('/hr', hrRoutes);
+if (inventoryRoutes) router.use('/inventory', inventoryRoutes);
+if (hostelRoutes) router.use('/hostel', hostelRoutes);
+if (transportRoutes) router.use('/transport', transportRoutes);
+
+if (eventRoutes) router.use('/events', eventRoutes);
+if (placementRoutes) router.use('/placements', placementRoutes);
+if (gatepassRoutes) router.use('/gatepasses', gatepassRoutes);
+if (leaveRoutes) router.use('/leave', leaveRoutes);
+
+if (notificationRoutes) router.use('/notifications', notificationRoutes);
+if (analyticsRoutes) router.use('/analytics', analyticsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

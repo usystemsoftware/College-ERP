@@ -5,7 +5,8 @@ const ApiResponse = require('../../utils/apiResponse');
 const getGatePasses = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [passes, total] = await Promise.all([

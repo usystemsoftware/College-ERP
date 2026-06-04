@@ -60,7 +60,12 @@ const studentSchema = new mongoose.Schema({
   certificates: [{
     name: String,
     url: String
-  }]
+  }],
+  collegeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'College',
+    required: true
+  }
 }, {
   timestamps: true
 });

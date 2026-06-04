@@ -1,5 +1,5 @@
 const { Book, IssueRecord } = require('./library.model');
-const Invoice = require('../fees/fees.model');
+const Invoice = require('../fees/fee.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 

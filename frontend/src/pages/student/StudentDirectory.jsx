@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Phone, MoreVertical, Loader2 } from 'lucide-react';
+import { Search, Filter, Phone, MoreVertical, Loader2, Edit2, Trash2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import Modal from '../../components/common/Modal';
-import { fetchStudents, createStudent } from '../../features/students/studentSlice';
+import { fetchStudents, createStudent, updateStudent, deleteStudent } from '../../features/students/studentSlice';
 import { getDepartments, getCourses, getSemesters } from '../../api/academic.api';
 
 const StudentDirectory = () => {
@@ -12,6 +12,7 @@ const StudentDirectory = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editStudentId, setEditStudentId] = useState(null);
   
   // Academic Form Data
   const [departments, setDepartments] = useState([]);
@@ -51,6 +52,46 @@ const StudentDirectory = () => {
     }
   }, [isModalOpen, departments.length]);
 
+  const handleOpenAdd = () => {
+    setEditStudentId(null);
+    reset({
+      fullName: '', email: '', password: '', phone: '', enrollmentNumber: '', rollNumber: '',
+      department: '', course: '', semester: '', dob: '', gender: 'Male', division: '', batch: '', address: ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (student) => {
+    setEditStudentId(student._id);
+    reset({
+      fullName: student.personalDetails?.fullName || '',
+      email: student.user?.email || '',
+      password: '', // leave empty
+      phone: student.personalDetails?.phone || '',
+      enrollmentNumber: student.enrollmentNumber || '',
+      rollNumber: student.rollNumber || '',
+      department: student.department?._id || '',
+      course: student.course?._id || '',
+      semester: student.semester?._id || '',
+      dob: student.personalDetails?.dob ? new Date(student.personalDetails.dob).toISOString().split('T')[0] : '',
+      gender: student.personalDetails?.gender || 'Male',
+      division: student.division || '',
+      batch: student.batch || '',
+      address: student.personalDetails?.address || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (id) => {
+    if (window.confirm("Are you sure you want to delete this student?")) {
+      dispatch(deleteStudent(id)).then((res) => {
+        if (res.error) {
+          alert(res.payload || 'Failed to delete student');
+        }
+      });
+    }
+  };
+
   const onSubmit = async (data) => {
     // Transform data for backend
     const payload = {
@@ -72,12 +113,24 @@ const StudentDirectory = () => {
       }
     };
 
-    const res = await dispatch(createStudent(payload));
-    if (!res.error) {
-      setIsModalOpen(false);
-      reset();
+    if (editStudentId) {
+      if (!data.password) delete payload.password; // Don't send empty password on edit
+      const res = await dispatch(updateStudent({ id: editStudentId, data: payload }));
+      if (!res.error) {
+        setIsModalOpen(false);
+        setEditStudentId(null);
+        reset();
+      } else {
+        alert(res.payload || 'Failed to update student');
+      }
     } else {
-      alert(res.payload || 'Failed to create student');
+      const res = await dispatch(createStudent(payload));
+      if (!res.error) {
+        setIsModalOpen(false);
+        reset();
+      } else {
+        alert(res.payload || 'Failed to create student');
+      }
     }
   };
 
@@ -94,7 +147,7 @@ const StudentDirectory = () => {
           <p className="text-sm text-slate-500">Manage and view all enrolled students.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAdd}
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-colors"
         >
           Add New Student
@@ -183,9 +236,14 @@ const StudentDirectory = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
-                        <MoreVertical size={16} />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => handleEditClick(student)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-dark-700 dark:hover:text-slate-300 transition-colors">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteClick(student._id)} className="rounded-lg p-1 text-slate-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -195,7 +253,7 @@ const StudentDirectory = () => {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Student" hideFooter={true}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editStudentId ? "Edit Student" : "Add New Student"} hideFooter={true}>
         {fetchingOptions ? (
           <div className="flex justify-center py-8"><Loader2 className="animate-spin text-brand-500" /></div>
         ) : (
@@ -223,9 +281,9 @@ const StudentDirectory = () => {
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
                 <input 
                   type="password"
-                  {...register('password', { required: true })}
+                  {...register('password', { required: !editStudentId })}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder="Secret password" 
+                  placeholder={editStudentId ? "Leave empty to keep same" : "Secret password"} 
                 />
               </div>
               <div className="space-y-2">

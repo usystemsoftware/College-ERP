@@ -86,6 +86,18 @@ const TimetablePage = () => {
     fetchCourses();
   }, [filters.department]);
 
+  useEffect(() => {
+    if (courses.length > 0 && filters.course) {
+      const selectedCourse = courses.find(c => c._id === filters.course);
+      const maxSemesters = selectedCourse?.durationSemesters || 6;
+      const currentSemNum = parseInt(filters.semester.replace('Semester ', '')) || 1;
+      
+      if (currentSemNum > maxSemesters) {
+        setFilters(prev => ({ ...prev, semester: 'Semester 1' }));
+      }
+    }
+  }, [filters.course, courses]);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -232,12 +244,11 @@ const TimetablePage = () => {
               onChange={handleFilterChange}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900"
             >
-              <option value="Semester 1">Semester 1</option>
-              <option value="Semester 2">Semester 2</option>
-              <option value="Semester 3">Semester 3</option>
-              <option value="Semester 4">Semester 4</option>
-              <option value="Semester 5">Semester 5</option>
-              <option value="Semester 6">Semester 6</option>
+              {Array.from({ length: courses.find(c => c._id === filters.course)?.durationSemesters || 6 }, (_, i) => (
+                <option key={`sem-${i + 1}`} value={`Semester ${i + 1}`}>
+                  Semester {i + 1}
+                </option>
+              ))}
             </select>
             <select
               name="division"

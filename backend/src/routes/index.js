@@ -4,20 +4,22 @@ const router = express.Router();
 // Auth & Users
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/users/user.routes');
+const roleRoutes = require('../modules/roles/role.routes');
 
 // Old Academic & Admission
 // const academicRoutes = require('../modules/academic/academic.routes');
 const admissionRoutes = require('../modules/admission/admission.routes');
 
 // New Academic Structure
+const collegeRoutes = require('../modules/colleges/college.routes');
 const departmentRoutes = require('../modules/departments/department.routes');
 const courseRoutes = require('../modules/courses/course.routes');
 const subjectRoutes = require('../modules/subjects/subject.routes');
 const academicYearRoutes = require('../modules/academicYears/academicYear.routes');
 const semesterRoutes = require('../modules/semesters/semester.routes');
+const batchRoutes = require('../modules/batches/batch.routes');
 
 // People
-const admissionRoutes = require('../modules/admission/admission.routes');
 const studentRoutes = require('../modules/students/student.routes');
 const facultyRoutes = require('../modules/faculty/faculty.routes');
 const parentRoutes = require('../modules/parents/parent.routes');
@@ -35,7 +37,6 @@ const noteRoutes = require('../modules/lms/note.routes');
 const libraryRoutes = require('../modules/library/library.routes');
 
 // Finance & Admin
-const feesRoutes = require('../modules/fees/fees.routes');
 const feeRoutes = require('../modules/fees/fee.routes');
 const hrRoutes = require('../modules/hr/hr.routes');
 const inventoryRoutes = require('../modules/inventory/inventory.routes');
@@ -48,8 +49,6 @@ const placementRoutes = require('../modules/placements/placement.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
-const analyticsRoutes = require('../modules/analytics/analytics.routes');
-
 // Analytics
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
@@ -58,17 +57,20 @@ const analyticsRoutes = require('../modules/analytics/analytics.routes');
 // Auth & Users
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/roles', roleRoutes);
 
 // Old Academic & Admission
 // router.use('/academic', academicRoutes);
 router.use('/admission', admissionRoutes);
 
 // New Academic Structure
+router.use('/colleges', collegeRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/courses', courseRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/academic-years', academicYearRoutes);
 router.use('/semesters', semesterRoutes);
+router.use('/batches', batchRoutes);
 
 // People
 router.use('/students', studentRoutes);
@@ -87,7 +89,6 @@ router.use('/lms/notes', noteRoutes);
 router.use('/library', libraryRoutes);
 
 // Finance & Admin
-router.use('/fees', feesRoutes);
 router.use('/fee', feeRoutes);
 router.use('/hr', hrRoutes);
 router.use('/inventory', inventoryRoutes);
@@ -99,11 +100,8 @@ router.use('/events', eventRoutes);
 router.use('/placements', placementRoutes);
 router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
-
 router.use('/notifications', notificationRoutes);
-router.use('/analytics', analyticsRoutes);
 
-// Analytics
 router.use('/analytics', analyticsRoutes);
 
 // Health check

@@ -40,9 +40,15 @@ const studentSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(createStudent.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(createStudent.fulfilled, (state, action) => {
+        state.loading = false;
         state.list.unshift(action.payload);
         state.pagination.total += 1;
+      })
+      .addCase(createStudent.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   }
 });

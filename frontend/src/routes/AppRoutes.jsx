@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import StudentsPage from '../pages/admin/StudentsPage';
+import StudentsPage from '../pages/student/StudentDirectory';
 import FacultyPage from '../pages/admin/FacultyPage';
 import AttendancePage from '../pages/admin/AttendancePage';
 import FeesPage from '../pages/admin/FeesPage';

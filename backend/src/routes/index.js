@@ -90,6 +90,11 @@ router.use('/academic-years', academicYearRoutes);
 router.use('/semesters', semesterRoutes);
 router.use('/batches', batchRoutes);
 
+// People
+router.use('/students', studentRoutes);
+router.use('/faculty', facultyRoutes);
+router.use('/parents', parentRoutes);
+
 if (attendanceRoutes) router.use('/attendance', attendanceRoutes);
 if (timetablesRoutes) router.use('/timetables', timetablesRoutes);
 if (timetableRoutes) router.use('/timetable', timetableRoutes);

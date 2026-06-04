@@ -19,6 +19,24 @@ export const createStudent = createAsyncThunk('students/create', async (data, { 
   }
 });
 
+export const updateStudent = createAsyncThunk('students/update', async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const response = await updateStudentAPI(id, data);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to update student');
+  }
+});
+
+export const deleteStudent = createAsyncThunk('students/delete', async (id, { rejectWithValue }) => {
+  try {
+    await deleteStudentAPI(id);
+    return id;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to delete student');
+  }
+});
+
 const studentSlice = createSlice({
   name: 'students',
   initialState: {
@@ -49,6 +67,16 @@ const studentSlice = createSlice({
       .addCase(createStudent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(updateStudent.fulfilled, (state, action) => {
+        const index = state.list.findIndex(s => s._id === action.payload._id);
+        if (index !== -1) {
+          state.list[index] = action.payload;
+        }
+      })
+      .addCase(deleteStudent.fulfilled, (state, action) => {
+        state.list = state.list.filter(s => s._id !== action.payload);
+        state.pagination.total -= 1;
       });
   }
 });

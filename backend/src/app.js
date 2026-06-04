@@ -38,6 +38,14 @@ app.use('/api', limiter);
 // Mount API routes
 app.use('/api', routes);
 
+// Serve static uploads to force download behavior
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
+  setHeaders: (res, filePath, stat) => {
+    res.set('Content-Disposition', 'attachment');
+  }
+}));
+
 // Handle unknown API requests
 app.all('*', (req, res, next) => {
   next(new ApiError(404, `Can't find ${req.originalUrl} on this server`));

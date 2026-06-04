@@ -21,7 +21,8 @@ import {
   Moon,
   Menu,
   X,
-  ChevronDown
+  ChevronDown,
+  Building
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -60,6 +61,7 @@ const DashboardLayout = () => {
   if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'Departments', path: '/departments', icon: Building },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Faculty', path: '/faculty', icon: GraduationCap },
       { name: 'Attendance', path: '/attendance', icon: Clock },
@@ -101,7 +103,7 @@ const DashboardLayout = () => {
           }`}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex h-16 items-center justify-between px-6 bg-transparent dark:bg-transparent">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-lg">
               Ω
@@ -156,7 +158,7 @@ const DashboardLayout = () => {
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* Header bar */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm dark:border-slate-800 dark:bg-dark-800">
+        <header className="flex h-16 items-center justify-between bg-transparent px-6 dark:bg-transparent">
 
           {/* Collapse toggle */}
           <div className="flex items-center gap-4">

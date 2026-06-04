@@ -11,6 +11,7 @@ import FeesPage from '../pages/admin/FeesPage';
 import TimetablePage from '../pages/shared/TimetablePage';
 import LMSPage from '../pages/shared/LMSPage';
 import NotificationsPage from '../pages/shared/NotificationsPage';
+import Profile from '../pages/shared/Profile';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -150,6 +151,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

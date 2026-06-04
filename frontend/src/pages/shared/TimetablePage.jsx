@@ -4,12 +4,12 @@ import { get } from '../../api/client';
 import Modal from '../../components/common/Modal';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const timeslots = ['09:00', '10:00', '11:15', '12:15', '1:00', '2:00', '3:00'];
+const timeslots = ['09:00', '10:00', '11:15', '12:15', '2:00', '3:00'];
 
 const initialSchedule = [
   { id: 1, day: 'Monday', time: '09:00', subject: 'Data Structures', type: 'Theory', faculty: 'Dr. Alan Turing', room: 'L-101', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
   { id: 2, day: 'Monday', time: '10:00', subject: 'Operating Systems', type: 'Theory', faculty: 'Prof. Linus Torvalds', room: 'L-102', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-  { id: 3, day: 'Monday', time: '14:00', subject: 'OS Lab', type: 'Practical', faculty: 'Prof. Linus Torvalds', room: 'Lab-3', duration: 2, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
+  { id: 3, day: 'Monday', time: '2:00', subject: 'OS Lab', type: 'Practical', faculty: 'Prof. Linus Torvalds', room: 'Lab-3', duration: 2, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
   { id: 4, day: 'Tuesday', time: '09:00', subject: 'Computer Networks', type: 'Theory', faculty: 'Dr. Vint Cerf', room: 'L-105', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
   { id: 5, day: 'Wednesday', time: '11:15', subject: 'DBMS', type: 'Theory', faculty: 'Dr. Edgar Codd', room: 'L-201', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
 ];
@@ -284,10 +284,10 @@ const TimetablePage = () => {
               {timeslots.map((time, idx) => (
                 <React.Fragment key={time}>
                   {/* Break Row */}
-                  {(time === '11:15' || time === '14:00') && (
+                  {(time === '11:15' || time === '2:00') && (
                     <tr>
                       <td className="border border-slate-200 p-2 text-center text-xs font-medium text-slate-400 dark:border-slate-700 bg-slate-50 dark:bg-dark-900">
-                        {time === '11:15' ? '11:00' : '13:15'}
+                        {time === '11:15' ? '11:00' : '1:00'}
                       </td>
                       <td colSpan="6" className="border border-slate-200 p-2 text-center text-xs font-semibold tracking-widest text-slate-400 uppercase bg-slate-50 dark:border-slate-700 dark:bg-dark-900">
                         {time === '11:15' ? 'Short Break' : 'Lunch Break'}

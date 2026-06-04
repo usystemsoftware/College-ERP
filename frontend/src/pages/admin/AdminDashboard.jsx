@@ -63,7 +63,7 @@ const AdminDashboard = () => {
             <h3 className="font-medium">Total Faculty</h3>
           </div>
           <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{stats?.totalFaculty?.toLocaleString() || 0}</p>
-          <p className="mt-1 text-sm text-slate-500">Across 6 departments</p>
+          <p className="mt-1 text-sm text-slate-500">Across {stats?.totalDepartments || 0} departments</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-900">

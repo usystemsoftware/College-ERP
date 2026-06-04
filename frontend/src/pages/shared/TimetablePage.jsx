@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Filter, Plus, Search, MapPin, User as UserIcon, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, Filter, Plus, Search, MapPin, User as UserIcon, X, Edit2, Trash2 } from 'lucide-react';
+import { get } from '../../api/client';
+import Modal from '../../components/common/Modal';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const timeslots = ['09:00', '10:00', '11:15', '12:15', '14:00', '15:00', '16:00'];
+const timeslots = ['09:00', '10:00', '11:15', '12:15', '1:00', '2:00', '3:00'];
 
 const initialSchedule = [
   { id: 1, day: 'Monday', time: '09:00', subject: 'Data Structures', type: 'Theory', faculty: 'Dr. Alan Turing', room: 'L-101', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
@@ -14,18 +16,80 @@ const initialSchedule = [
 
 const TimetablePage = () => {
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [schedule, setSchedule] = useState(initialSchedule);
-  
+  const [schedule, setSchedule] = useState(() => {
+    const saved = localStorage.getItem('timetable_schedule');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return initialSchedule;
+      }
+    }
+    return initialSchedule;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('timetable_schedule', JSON.stringify(schedule));
+  }, [schedule]);
+
   // Filters state
   const [filters, setFilters] = useState({
-    department: 'Computer Science',
+    department: '',
+    course: '',
     semester: 'Semester 5',
     division: 'Division A'
   });
 
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const deptRes = await get('/departments');
+        if (deptRes.data?.data) {
+          setDepartments(deptRes.data.data);
+          if (deptRes.data.data.length > 0) {
+            setFilters(prev => ({ ...prev, department: deptRes.data.data[0]._id }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        if (!filters.department) {
+           setCourses([]);
+           return;
+        }
+        const courseRes = await get(`/courses?department=${filters.department}`);
+        if (courseRes.data?.data) {
+          setCourses(courseRes.data.data);
+          if (courseRes.data.data.length > 0) {
+             // only update course if it's not valid for this department
+             if (!courseRes.data.data.find(c => c._id === filters.course)) {
+                setFilters(prev => ({ ...prev, course: courseRes.data.data[0]._id }));
+             }
+          } else {
+             setFilters(prev => ({ ...prev, course: '' }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+    fetchCourses();
+  }, [filters.department]);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    id: null,
     day: 'Monday',
     time: '09:00',
     subject: '',
@@ -35,10 +99,11 @@ const TimetablePage = () => {
   });
 
   // Filter the schedule based on selected filters
-  const filteredSchedule = schedule.filter(c => 
-    c.department === filters.department &&
-    c.semester === filters.semester &&
-    c.division === filters.division
+  const filteredSchedule = schedule.filter(c =>
+    (!filters.department || c.department === filters.department) &&
+    (!filters.course || c.course === filters.course) &&
+    (!filters.semester || c.semester === filters.semester) &&
+    (!filters.division || c.division === filters.division)
   );
 
   const getClass = (day, time) => filteredSchedule.find(c => c.day === day && c.time === time);
@@ -48,14 +113,27 @@ const TimetablePage = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const openModal = (day = 'Monday', time = '09:00') => {
-    setFormData(prev => ({ ...prev, day, time }));
+  const openModal = (day = 'Monday', time = '09:00', session = null) => {
+    if (session) {
+      setFormData(session);
+    } else {
+      setFormData({
+        id: null,
+        day,
+        time,
+        subject: '',
+        type: 'Theory',
+        faculty: '',
+        room: ''
+      });
+    }
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData({
+      id: null,
       day: 'Monday',
       time: '09:00',
       subject: '',
@@ -70,20 +148,31 @@ const TimetablePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleDelete = (id, e) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this class?')) {
+      setSchedule(prev => prev.filter(c => c.id !== id));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const newClass = {
       ...formData,
-      id: Date.now(),
+      id: formData.id || Date.now(),
       duration: 1,
       department: filters.department,
+      course: filters.course,
       semester: filters.semester,
       division: filters.division
     };
-    
+
     // Replace if exists, or add new
     setSchedule(prev => {
-      const existingIdx = prev.findIndex(c => c.day === newClass.day && c.time === newClass.time && c.department === newClass.department && c.semester === newClass.semester && c.division === newClass.division);
+      if (formData.id) {
+        return prev.map(c => c.id === formData.id ? newClass : c);
+      }
+      const existingIdx = prev.findIndex(c => c.day === newClass.day && c.time === newClass.time && c.department === newClass.department && c.course === newClass.course && c.semester === newClass.semester && c.division === newClass.division);
       if (existingIdx >= 0) {
         const updated = [...prev];
         updated[existingIdx] = newClass;
@@ -102,7 +191,7 @@ const TimetablePage = () => {
           <p className="text-sm text-slate-500">View and manage schedules across departments and semesters.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => openModal()}
             className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
           >
@@ -115,26 +204,42 @@ const TimetablePage = () => {
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800">
           <div className="flex gap-4 items-center flex-wrap">
-            <select 
+            <select
               name="department"
               value={filters.department}
               onChange={handleFilterChange}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900"
             >
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Tech">Information Tech</option>
-              <option value="Electronics">Electronics</option>
+              {departments.length === 0 && <option value="">No Departments</option>}
+              {departments.map(dept => (
+                <option key={dept._id} value={dept._id}>{dept.name}</option>
+              ))}
             </select>
-            <select 
+            <select
+              name="course"
+              value={filters.course}
+              onChange={handleFilterChange}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900"
+            >
+              {courses.length === 0 && <option value="">No Courses</option>}
+              {courses.map(course => (
+                <option key={course._id} value={course._id}>{course.name}</option>
+              ))}
+            </select>
+            <select
               name="semester"
               value={filters.semester}
               onChange={handleFilterChange}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900"
             >
+              <option value="Semester 1">Semester 1</option>
+              <option value="Semester 2">Semester 2</option>
+              <option value="Semester 3">Semester 3</option>
+              <option value="Semester 4">Semester 4</option>
               <option value="Semester 5">Semester 5</option>
               <option value="Semester 6">Semester 6</option>
             </select>
-            <select 
+            <select
               name="division"
               value={filters.division}
               onChange={handleFilterChange}
@@ -142,6 +247,8 @@ const TimetablePage = () => {
             >
               <option value="Division A">Division A</option>
               <option value="Division B">Division B</option>
+              <option value="Division C">Division C</option>
+              <option value="Division D">Division D</option>
             </select>
           </div>
           <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-dark-750">
@@ -186,30 +293,36 @@ const TimetablePage = () => {
                       return (
                         <td key={`${day}-${time}`} className="border border-slate-200 p-2 align-top dark:border-slate-700 h-28 w-48">
                           {session ? (
-                            <div className={`h-full rounded-lg border p-3 flex flex-col justify-between ${
-                              session.type === 'Practical' 
-                                ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-900/10'
-                                : 'border-brand-200 bg-brand-50 dark:border-brand-900/50 dark:bg-brand-900/10'
-                            }`}>
+                            <div className={`group relative h-full rounded-lg border p-3 flex flex-col justify-between ${session.type === 'Practical'
+                              ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-900/10'
+                              : 'border-brand-200 bg-brand-50 dark:border-brand-900/50 dark:bg-brand-900/10'
+                              }`}>
+                              <div className="absolute top-2 right-2 hidden group-hover:flex gap-1 bg-white/90 dark:bg-dark-900/90 rounded p-1 shadow-sm border border-slate-200 dark:border-slate-700">
+                                <button onClick={(e) => { e.stopPropagation(); openModal(day, time, session); }} className="p-1 text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400">
+                                  <Edit2 size={14} />
+                                </button>
+                                <button onClick={(e) => handleDelete(session.id, e)} className="p-1 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                               <div>
                                 <div className="font-semibold text-slate-900 dark:text-white line-clamp-1 text-sm">{session.subject}</div>
-                                <div className={`text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded font-medium ${
-                                  session.type === 'Practical' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
-                                }`}>
+                                <div className={`text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded font-medium ${session.type === 'Practical' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
+                                  }`}>
                                   {session.type}
                                 </div>
                               </div>
                               <div className="mt-2 space-y-1">
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                                  <UserIcon size={12}/> <span className="line-clamp-1">{session.faculty}</span>
+                                  <UserIcon size={12} /> <span className="line-clamp-1">{session.faculty}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                                  <MapPin size={12}/> <span>{session.room}</span>
+                                  <MapPin size={12} /> <span>{session.room}</span>
                                 </div>
                               </div>
                             </div>
                           ) : (
-                            <div 
+                            <div
                               onClick={() => openModal(day, time)}
                               className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-700 border-2 border-dashed border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded-lg cursor-pointer transition-colors"
                             >
@@ -233,11 +346,10 @@ const TimetablePage = () => {
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`px-4 py-2 whitespace-nowrap rounded-full text-sm font-medium ${
-                  selectedDay === day 
-                    ? 'bg-brand-500 text-white shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
+                className={`px-4 py-2 whitespace-nowrap rounded-full text-sm font-medium ${selectedDay === day
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
               >
                 {day}
               </button>
@@ -252,18 +364,23 @@ const TimetablePage = () => {
                   <div className="w-16 flex-shrink-0 text-right pt-1">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{time}</span>
                   </div>
-                  <div className={`flex-1 rounded-xl border p-4 ${
-                    session.type === 'Practical' 
-                      ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10'
-                      : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'
-                  }`}>
+                  <div className={`flex-1 rounded-xl border p-4 ${session.type === 'Practical'
+                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10'
+                    : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'
+                    }`}>
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-900 dark:text-white">{session.subject}</h4>
-                      <span className="text-xs font-semibold px-2 py-1 rounded bg-white dark:bg-dark-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{session.type}</span>
+                      <h4 className="font-bold text-slate-900 dark:text-white pr-4">{session.subject}</h4>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs font-semibold px-2 py-1 rounded bg-white dark:bg-dark-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{session.type}</span>
+                        <div className="flex gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); openModal(selectedDay, time, session); }} className="p-1 text-slate-400 hover:text-brand-500 bg-white dark:bg-dark-800 rounded border border-slate-200 dark:border-slate-700"><Edit2 size={14} /></button>
+                          <button onClick={(e) => handleDelete(session.id, e)} className="p-1 text-slate-400 hover:text-red-500 bg-white dark:bg-dark-800 rounded border border-slate-200 dark:border-slate-700"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center gap-2"><UserIcon size={14}/> {session.faculty}</div>
-                      <div className="flex items-center gap-2"><MapPin size={14}/> {session.room}</div>
+                      <div className="flex items-center gap-2"><UserIcon size={14} /> {session.faculty}</div>
+                      <div className="flex items-center gap-2"><MapPin size={14} /> {session.room}</div>
                     </div>
                   </div>
                 </div>
@@ -275,107 +392,98 @@ const TimetablePage = () => {
       </div>
 
       {/* Schedule Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-dark-900">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Schedule Class</h2>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                <X size={24} />
-              </button>
+      {/* Schedule Modal */}
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Schedule Class" hideFooter={true}>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Day</label>
+              <select
+                name="day"
+                value={formData.day}
+                onChange={handleInputChange}
+                className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+              >
+                {days.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Day</label>
-                  <select 
-                    name="day" 
-                    value={formData.day} 
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                  >
-                    {days.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Time</label>
-                  <select 
-                    name="time" 
-                    value={formData.time} 
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                  >
-                    {timeslots.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Subject</label>
-                <input 
-                  type="text" 
-                  name="subject" 
-                  value={formData.subject} 
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                  placeholder="e.g. Data Structures"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
-                <select 
-                  name="type" 
-                  value={formData.type} 
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                >
-                  <option value="Theory">Theory</option>
-                  <option value="Practical">Practical</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Faculty</label>
-                <input 
-                  type="text" 
-                  name="faculty" 
-                  value={formData.faculty} 
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                  placeholder="e.g. Dr. Alan Turing"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Room</label>
-                <input 
-                  type="text" 
-                  name="room" 
-                  value={formData.room} 
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-                  placeholder="e.g. L-101"
-                />
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button 
-                  type="button" 
-                  onClick={closeModal}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-                >
-                  Save Class
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Time</label>
+              <select
+                name="time"
+                value={formData.time}
+                onChange={handleInputChange}
+                className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+              >
+                {timeslots.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Subject</label>
+            <input
+              type="text"
+              name="subject"
+              value={formData.subject}
+              onChange={handleInputChange}
+              required
+              className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+              placeholder="e.g. Data Structures"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
+            <select
+              name="type"
+              value={formData.type}
+              onChange={handleInputChange}
+              className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+            >
+              <option value="Theory">Theory</option>
+              <option value="Practical">Practical</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Faculty</label>
+            <input
+              type="text"
+              name="faculty"
+              value={formData.faculty}
+              onChange={handleInputChange}
+              required
+              className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+              placeholder="e.g. Dr. Alan Turing"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Room</label>
+            <input
+              type="text"
+              name="room"
+              value={formData.room}
+              onChange={handleInputChange}
+              required
+              className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
+              placeholder="e.g. L-101"
+            />
+          </div>
+          <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Save Class
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

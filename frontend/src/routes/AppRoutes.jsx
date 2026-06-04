@@ -12,6 +12,7 @@ import TimetablePage from '../pages/shared/TimetablePage';
 import LMSPage from '../pages/shared/LMSPage';
 import NotificationsPage from '../pages/shared/NotificationsPage';
 import Profile from '../pages/shared/Profile';
+import GatePassPage from '../pages/admin/GatePassPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -119,6 +120,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Class Coordinator']}>
               <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="gatepass"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Security Officer']}>
+              <GatePassPage />
             </ProtectedRoute>
           }
         />

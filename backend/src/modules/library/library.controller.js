@@ -1,5 +1,4 @@
-const LibraryBook = require('./libraryBook.model');
-const BookIssue = require('./bookIssue.model');
+const { Book: LibraryBook, IssueRecord: BookIssue } = require('./library.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -39,16 +38,17 @@ const updateBook = async (req, res, next) => {
 
 const issueBook = async (req, res, next) => {
   try {
-    const { userId, studentId, facultyId, dueDate } = req.body;
+    const { userId, dueDate } = req.body;
     const book = await LibraryBook.findById(req.params.bookId);
     if (!book) throw new ApiError(404, 'Book not found');
     if (book.availableCopies <= 0) throw new ApiError(400, 'No copies available');
 
     const issue = await BookIssue.create({
-      book: req.params.bookId, user: userId,
-      student: studentId, faculty: facultyId,
+      bookId: req.params.bookId, 
+      userId: userId,
       dueDate: dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      issuedBy: req.user._id, collegeId: req.user.collegeId
+      issuedBy: req.user._id, 
+      collegeId: req.user.collegeId
     });
 
     await LibraryBook.findByIdAndUpdate(req.params.bookId, { $inc: { availableCopies: -1 } });
@@ -72,15 +72,15 @@ const returnBook = async (req, res, next) => {
     issue.fineAmount = fineAmount;
     await issue.save();
 
-    await LibraryBook.findByIdAndUpdate(issue.book, { $inc: { availableCopies: 1 } });
+    await LibraryBook.findByIdAndUpdate(issue.bookId, { $inc: { availableCopies: 1 } });
     return res.json(new ApiResponse(200, { issue, fineAmount }, 'Book returned'));
   } catch (error) { next(error); }
 };
 
 const getMyIssues = async (req, res, next) => {
   try {
-    const issues = await BookIssue.find({ user: req.user._id, status: { $ne: 'Returned' } })
-      .populate('book', 'title isbn author')
+    const issues = await BookIssue.find({ userId: req.user._id, status: { $ne: 'Returned' } })
+      .populate('bookId', 'title isbn author')
       .sort({ dueDate: 1 });
     return res.json(new ApiResponse(200, issues, 'Active issues fetched'));
   } catch (error) { next(error); }

@@ -81,11 +81,12 @@ const DashboardLayout = () => {
     setActiveDropdown(null);
   }, [location.pathname]);
 
-  return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">
-
-      {/* Header bar */}
-      <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 shadow-sm dark:border-slate-800 dark:bg-dark-800">
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ...menuCategories.flatMap(c => c.items)
+  ];
+  
+  const userRole = user?.role?.name;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">

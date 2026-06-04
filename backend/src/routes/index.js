@@ -17,7 +17,6 @@ const academicYearRoutes = require('../modules/academicYears/academicYear.routes
 const semesterRoutes = require('../modules/semesters/semester.routes');
 
 // People
-const admissionRoutes = require('../modules/admission/admission.routes');
 const studentRoutes = require('../modules/students/student.routes');
 const facultyRoutes = require('../modules/faculty/faculty.routes');
 const parentRoutes = require('../modules/parents/parent.routes');
@@ -35,7 +34,6 @@ const noteRoutes = require('../modules/lms/note.routes');
 const libraryRoutes = require('../modules/library/library.routes');
 
 // Finance & Admin
-const feesRoutes = require('../modules/fees/fees.routes');
 const feeRoutes = require('../modules/fees/fee.routes');
 const hrRoutes = require('../modules/hr/hr.routes');
 const inventoryRoutes = require('../modules/inventory/inventory.routes');
@@ -49,10 +47,6 @@ const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
-
-// Analytics
-const analyticsRoutes = require('../modules/analytics/analytics.routes');
-
 // --- Mount all routes ---
 
 // Auth & Users
@@ -87,8 +81,7 @@ router.use('/lms/notes', noteRoutes);
 router.use('/library', libraryRoutes);
 
 // Finance & Admin
-router.use('/fees', feesRoutes);
-router.use('/fee', feeRoutes);
+router.use('/fees', feeRoutes);
 router.use('/hr', hrRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/hostel', hostelRoutes);
@@ -101,9 +94,6 @@ router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
 
 router.use('/notifications', notificationRoutes);
-router.use('/analytics', analyticsRoutes);
-
-// Analytics
 router.use('/analytics', analyticsRoutes);
 
 // Health check

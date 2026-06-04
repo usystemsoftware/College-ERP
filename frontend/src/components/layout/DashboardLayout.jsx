@@ -206,7 +206,7 @@ const DashboardLayout = () => {
                     {user?.email || 'Principal Account'}
                   </div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-none">
-                    {(typeof user?.role === 'object' ? user?.role?.name : user?.role) || 'Super Admin'}
+                    {userRole || 'Super Admin'}
                   </div>
                 </div>
                 <ChevronDown size={14} className="text-slate-400" />

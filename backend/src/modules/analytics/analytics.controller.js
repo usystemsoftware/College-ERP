@@ -16,6 +16,10 @@ const getDashboardStats = async (req, res, next) => {
     const totalStudents = await Student.countDocuments(filter);
     const totalFaculty = await Faculty.countDocuments(filter);
     const pendingApprovals = await Application.countDocuments({ ...filter, status: 'Pending' });
+    const Department = require('../departments/department.model');
+    const Course = require('../courses/course.model');
+    const totalDepartments = await Department.countDocuments(filter);
+    const totalCourses = await Course.countDocuments(filter);
     
     // 2. Financial Overview
     const feeStats = await Payment.aggregate([
@@ -31,9 +35,11 @@ const getDashboardStats = async (req, res, next) => {
     const stats = {
       totalStudents: totalStudents,
       totalFaculty: totalFaculty,
+      totalDepartments: totalDepartments,
+      totalCourses: totalCourses,
       pendingApprovals: pendingApprovals,
       revenue: feeStats.length > 0 ? feeStats[0].totalCollected : 0,
-      activeCourses: 24, // Static mock for now
+      activeCourses: totalCourses,
       revenueData: [
         { name: 'Jan', value: 400000 },
         { name: 'Feb', value: 300000 },

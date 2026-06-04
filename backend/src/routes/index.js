@@ -50,6 +50,7 @@ const examRoutes = safeRequire('exams/exam.routes');
 const lmsRoutes = safeRequire('lms/lms.routes');
 const noteRoutes = safeRequire('lms/note.routes');
 const libraryRoutes = safeRequire('library/library.routes');
+const materialRoutes = safeRequire('materials/material.routes');
 
 // Finance & Admin
 const feeRoutes = require('../modules/fees/fee.routes');
@@ -104,6 +105,7 @@ if (examRoutes) router.use('/exams', examRoutes);
 if (lmsRoutes) router.use('/lms', lmsRoutes);
 if (noteRoutes) router.use('/lms/notes', noteRoutes);
 if (libraryRoutes) router.use('/library', libraryRoutes);
+if (materialRoutes) router.use('/materials', materialRoutes);
 
 // Finance & Admin
 router.use('/fee', feeRoutes);

@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
-import { BookOpen, Download, FileText, Filter, PlayCircle, Search, Upload, MoreVertical, Folder } from 'lucide-react';
-
-const mockNotes = [
-  { id: 1, title: 'Introduction to Data Structures', subject: 'Data Structures', type: 'PDF', size: '2.4 MB', author: 'Dr. Alan Turing', date: '2 days ago', downloads: 145 },
-  { id: 2, title: 'Array and Linked List Implementations', subject: 'Data Structures', type: 'Video', size: '154 MB', author: 'Dr. Alan Turing', date: '4 days ago', downloads: 89 },
-  { id: 3, title: 'Process Scheduling Algorithms', subject: 'Operating Systems', type: 'PPT', size: '5.1 MB', author: 'Prof. Linus Torvalds', date: '1 week ago', downloads: 210 },
-  { id: 4, title: 'OS Lab Manual v2', subject: 'Operating Systems', type: 'PDF', size: '1.2 MB', author: 'Prof. Linus Torvalds', date: '2 weeks ago', downloads: 340 },
-  { id: 5, title: 'Network Topologies Guide', subject: 'Computer Networks', type: 'Document', size: '800 KB', author: 'Dr. Vint Cerf', date: '3 weeks ago', downloads: 56 },
-];
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Download, FileText, Filter, PlayCircle, Search, Upload, MoreVertical, Folder, Loader2 } from 'lucide-react';
+import MaterialUploadModal from '../../components/lms/MaterialUploadModal';
+import materialService from '../../features/materials/materialService';
 
 const getIconForType = (type) => {
   switch(type) {
@@ -20,6 +14,46 @@ const getIconForType = (type) => {
 
 const LMSPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSubject, setActiveSubject] = useState('All Subjects');
+  const [activeType, setActiveType] = useState('All Types');
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      const data = await materialService.getMaterials({
+        search: searchTerm,
+        subject: activeSubject !== 'All Subjects' ? activeSubject : undefined,
+        materialType: activeType !== 'All Types' ? activeType : undefined
+      });
+      setMaterials(data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch materials', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [searchTerm, activeSubject, activeType]);
+
+  const handleDownload = async (material) => {
+    try {
+      await materialService.incrementDownload(material._id);
+      setMaterials(prev => prev.map(m => 
+        m._id === material._id ? { ...m, downloadCount: (m.downloadCount || 0) + 1 } : m
+      ));
+      const baseUrl = 'http://localhost:5050';
+      const downloadUrl = material.fileUrl?.startsWith('http') ? material.fileUrl : `${baseUrl}${material.fileUrl}`;
+      window.open(downloadUrl, '_blank');
+    } catch (error) {
+      console.error('Download failed', error);
+      alert('Failed to download file.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -29,7 +63,10 @@ const LMSPage = () => {
           <p className="text-sm text-slate-500">Access study materials, lecture notes, and assignments.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+          >
             <Upload size={16} />
             Upload Material
           </button>
@@ -46,7 +83,13 @@ const LMSPage = () => {
             <div className="space-y-2">
               {['All Subjects', 'Data Structures', 'Operating Systems', 'Computer Networks', 'DBMS'].map((sub, i) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="radio" name="subject" className="w-4 h-4 text-brand-500 border-slate-300 focus:ring-brand-500" defaultChecked={i===0} />
+                  <input 
+                    type="radio" 
+                    name="subject" 
+                    className="w-4 h-4 text-brand-500 border-slate-300 focus:ring-brand-500" 
+                    checked={activeSubject === sub}
+                    onChange={() => setActiveSubject(sub)}
+                  />
                   <span className="text-sm text-slate-600 group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white">{sub}</span>
                 </label>
               ))}
@@ -56,10 +99,16 @@ const LMSPage = () => {
 
             <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Material Type</h3>
             <div className="space-y-2">
-              {['All Types', 'PDF Documents', 'Video Lectures', 'Presentations (PPT)'].map((type, i) => (
+              {['All Types', 'PDF', 'Video', 'PPT', 'DOCX', 'Notes'].map((type, i) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" className="w-4 h-4 rounded text-brand-500 border-slate-300 focus:ring-brand-500" defaultChecked={i===0} />
-                  <span className="text-sm text-slate-600 group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white">{type}</span>
+                  <input 
+                    type="radio" 
+                    name="materialType" 
+                    className="w-4 h-4 text-brand-500 border-slate-300 focus:ring-brand-500" 
+                    checked={activeType === type}
+                    onChange={() => setActiveType(type)}
+                  />
+                  <span className="text-sm text-slate-600 group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white">{type === 'All Types' ? type : type}</span>
                 </label>
               ))}
             </div>
@@ -90,38 +139,46 @@ const LMSPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockNotes.map((note) => (
-              <div key={note.id} className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-800">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-slate-50 dark:bg-dark-700 flex items-center justify-center">
-                    {getIconForType(note.type)}
+            {loading ? (
+              <div className="col-span-full flex justify-center items-center h-48">
+                <Loader2 className="animate-spin text-brand-500" size={32} />
+              </div>
+            ) : materials.length === 0 ? (
+              <div className="col-span-full flex flex-col justify-center items-center h-48 bg-white dark:bg-dark-800 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500">
+                <BookOpen size={48} className="mb-4 text-slate-300 dark:text-slate-700" />
+                <p>No materials found.</p>
+              </div>
+            ) : materials.map((note) => (
+              <div key={note._id} className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-800 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="h-10 w-10 rounded-lg bg-slate-50 dark:bg-dark-700 flex items-center justify-center">
+                      {getIconForType(note.materialType)}
+                    </div>
+                    <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                      <MoreVertical size={18} />
+                    </button>
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                    <MoreVertical size={18} />
-                  </button>
+                  
+                  <h4 className="font-semibold text-slate-900 dark:text-white line-clamp-2 min-h-[40px]">{note.title}</h4>
+                  <p className="mt-1 text-xs text-slate-500 font-medium">{note.subject}</p>
                 </div>
-                
-                <h4 className="font-semibold text-slate-900 dark:text-white line-clamp-2 min-h-[40px]">{note.title}</h4>
-                <p className="mt-1 text-xs text-slate-500 font-medium">{note.subject}</p>
                 
                 <div className="mt-6 flex items-center justify-between text-xs text-slate-400">
                   <div className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5"><Folder size={12}/> {note.size}</span>
-                    <span className="flex items-center gap-1.5"><Download size={12}/> {note.downloads} dl</span>
+                    <span className="flex items-center gap-1.5"><Folder size={12}/> {(note.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
+                    <span className="flex items-center gap-1.5"><Download size={12}/> {note.downloadCount || 0} dl</span>
                   </div>
                   <div className="flex flex-col gap-1 items-end">
-                    <span>{note.author}</span>
-                    <span>{note.date}</span>
+                    <span>{note.facultyName || 'Faculty'}</span>
+                    <span>{new Date(note.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
                 {/* Overlay Action */}
                 <div className="absolute inset-0 bg-white/60 dark:bg-dark-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-xl gap-3">
-                  <button className="h-10 w-10 rounded-full bg-brand-500 text-white shadow-lg flex items-center justify-center hover:bg-brand-600 transition hover:scale-110">
+                  <button onClick={() => handleDownload(note)} className="h-10 w-10 rounded-full bg-brand-500 text-white shadow-lg flex items-center justify-center hover:bg-brand-600 transition hover:scale-110">
                     <Download size={18} />
-                  </button>
-                  <button className="h-10 w-10 rounded-full bg-white text-brand-500 shadow-lg flex items-center justify-center hover:bg-slate-50 transition hover:scale-110">
-                    <BookOpen size={18} />
                   </button>
                 </div>
               </div>
@@ -130,6 +187,15 @@ const LMSPage = () => {
 
         </div>
       </div>
+
+      <MaterialUploadModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          fetchMaterials();
+          alert('Material uploaded successfully!');
+        }}
+      />
     </div>
   );
 };

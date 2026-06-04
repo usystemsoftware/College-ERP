@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFaculty, createFaculty } from '../../features/faculty/facultySlice';
-import { Search, Plus, Filter, MoreVertical, Mail, Phone } from 'lucide-react';
+import { fetchFaculty, createFaculty, updateFaculty, deleteFaculty } from '../../features/faculty/facultySlice';
+import { Search, Plus, Filter, MoreVertical, Mail, Phone, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import { getDepartments } from '../../api/academic.api';
 
@@ -10,6 +10,7 @@ const FacultyPage = () => {
   const { list: faculty, loading, error, pagination } = useSelector((state) => state.faculty);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editFacultyId, setEditFacultyId] = useState(null);
   const [departments, setDepartments] = useState([]);
   
   const [formData, setFormData] = useState({
@@ -30,20 +31,64 @@ const FacultyPage = () => {
     }).catch(console.error);
   }, [dispatch]);
 
+  const handleOpenAdd = () => {
+    setEditFacultyId(null);
+    setFormData({ fullName: '', email: '', password: '', employeeId: '', role: 'Faculty', department: '' });
+    setIsAddModalOpen(true);
+  };
+
+  const handleEditClick = (f) => {
+    setEditFacultyId(f._id);
+    setFormData({
+      fullName: f.fullName,
+      email: f.user?.email || '',
+      password: '', // Leave empty for edit unless they want to change it
+      employeeId: f.employeeId,
+      role: 'Faculty', // Or extract from user.role if available
+      department: f.department?._id || ''
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleDeleteClick = (id) => {
+    if (window.confirm("Are you sure you want to delete this faculty member?")) {
+      dispatch(deleteFaculty(id)).then((res) => {
+        if (res.error) {
+          alert(res.payload || 'Failed to delete faculty');
+        }
+      });
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.department) {
       alert("Please select a department");
       return;
     }
-    dispatch(createFaculty(formData)).then((res) => {
-      if (!res.error) {
-        setIsAddModalOpen(false);
-        setFormData({ fullName: '', email: '', password: '', employeeId: '', role: 'Faculty', department: '' });
-      } else {
-        alert(res.payload || 'Failed to create faculty');
-      }
-    });
+
+    if (editFacultyId) {
+      // Edit logic
+      dispatch(updateFaculty({ id: editFacultyId, data: formData })).then((res) => {
+        if (!res.error) {
+          setIsAddModalOpen(false);
+          setEditFacultyId(null);
+          setFormData({ fullName: '', email: '', password: '', employeeId: '', role: 'Faculty', department: '' });
+        } else {
+          alert(res.payload || 'Failed to update faculty');
+        }
+      });
+    } else {
+      // Create logic
+      dispatch(createFaculty(formData)).then((res) => {
+        if (!res.error) {
+          setIsAddModalOpen(false);
+          setFormData({ fullName: '', email: '', password: '', employeeId: '', role: 'Faculty', department: '' });
+        } else {
+          alert(res.payload || 'Failed to create faculty');
+        }
+      });
+    }
   };
 
   const filteredFaculty = faculty.filter(f => 
@@ -60,7 +105,7 @@ const FacultyPage = () => {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAdd}
             className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
           >
             <Plus size={16} />
@@ -130,9 +175,14 @@ const FacultyPage = () => {
                         {f.phone && <div className="flex items-center gap-1.5 text-xs text-slate-500"><Phone size={12}/> {f.phone}</div>}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-dark-700 dark:hover:text-slate-300">
-                          <MoreVertical size={18} />
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleEditClick(f)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-dark-700 dark:hover:text-slate-300 transition-colors">
+                            <Edit2 size={18} />
+                          </button>
+                          <button onClick={() => handleDeleteClick(f._id)} className="rounded-lg p-1 text-slate-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -152,7 +202,7 @@ const FacultyPage = () => {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add New Faculty or Staff"
+        title={editFacultyId ? "Edit Faculty or Staff" : "Add New Faculty or Staff"}
         hideFooter={true}
       >
         <form className="space-y-4 mt-2" onSubmit={handleSubmit}>
@@ -167,7 +217,7 @@ const FacultyPage = () => {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-              <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="••••••••" />
+              <input required={!editFacultyId} type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder={editFacultyId ? "Leave empty to keep same" : "••••••••"} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

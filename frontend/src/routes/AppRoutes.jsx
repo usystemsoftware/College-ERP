@@ -4,13 +4,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import StudentsPage from '../pages/admin/StudentsPage';
+import StudentsPage from '../pages/student/StudentDirectory';
 import FacultyPage from '../pages/admin/FacultyPage';
 import AttendancePage from '../pages/admin/AttendancePage';
 import FeesPage from '../pages/admin/FeesPage';
 import TimetablePage from '../pages/shared/TimetablePage';
 import LMSPage from '../pages/shared/LMSPage';
 import NotificationsPage from '../pages/shared/NotificationsPage';
+import Profile from '../pages/shared/Profile';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -150,6 +151,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

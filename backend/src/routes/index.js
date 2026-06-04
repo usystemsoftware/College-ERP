@@ -1,20 +1,38 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+
+// Safe require helper to avoid crashes during merges
+const safeRequire = (modulePath) => {
+  try {
+    const fullPath = path.join(__dirname, '..', 'modules', modulePath);
+    if (fs.existsSync(fullPath + '.js') || fs.existsSync(fullPath + '/index.js') || fs.existsSync(fullPath)) {
+      return require(fullPath);
+    }
+  } catch (err) {
+    console.warn(`Could not load route module: ${modulePath}`);
+  }
+  return null;
+};
 
 // Auth & Users
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/users/user.routes');
+const roleRoutes = require('../modules/roles/role.routes');
 
 // Old Academic & Admission
 // const academicRoutes = require('../modules/academic/academic.routes');
 const admissionRoutes = require('../modules/admission/admission.routes');
 
 // New Academic Structure
+const collegeRoutes = require('../modules/colleges/college.routes');
 const departmentRoutes = require('../modules/departments/department.routes');
 const courseRoutes = require('../modules/courses/course.routes');
 const subjectRoutes = require('../modules/subjects/subject.routes');
 const academicYearRoutes = require('../modules/academicYears/academicYear.routes');
 const semesterRoutes = require('../modules/semesters/semester.routes');
+const batchRoutes = require('../modules/batches/batch.routes');
 
 // People
 const studentRoutes = require('../modules/students/student.routes');
@@ -22,16 +40,16 @@ const facultyRoutes = require('../modules/faculty/faculty.routes');
 const parentRoutes = require('../modules/parents/parent.routes');
 
 // Operations
-const attendanceRoutes = require('../modules/attendance/attendance.routes');
-// const timetableRoutes = require('../modules/timetable/timetable.routes');
-const timetablesRoutes = require('../modules/timetables/timetable.routes');
-const assignmentRoutes = require('../modules/assignments/assignment.routes');
-const examRoutes = require('../modules/exams/exam.routes');
+const attendanceRoutes = safeRequire('attendance/attendance.routes');
+const timetablesRoutes = safeRequire('timetables/timetable.routes');
+const timetableRoutes = safeRequire('timetable/timetable.routes');
+const assignmentRoutes = safeRequire('assignments/assignment.routes');
+const examRoutes = safeRequire('exams/exam.routes');
 
 // LMS & Library
-const lmsRoutes = require('../modules/lms/lms.routes');
-const noteRoutes = require('../modules/lms/note.routes');
-const libraryRoutes = require('../modules/library/library.routes');
+const lmsRoutes = safeRequire('lms/lms.routes');
+const noteRoutes = safeRequire('lms/note.routes');
+const libraryRoutes = safeRequire('library/library.routes');
 
 // Finance & Admin
 const feeRoutes = require('../modules/fees/fee.routes');
@@ -46,42 +64,57 @@ const placementRoutes = require('../modules/placements/placement.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
+<<<<<<< HEAD
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
+=======
+// Analytics
+const analyticsRoutes = require('../modules/analytics/analytics.routes');
+
+>>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 // --- Mount all routes ---
 
 // Auth & Users
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/roles', roleRoutes);
 
-// Old Academic & Admission
-// router.use('/academic', academicRoutes);
-router.use('/admission', admissionRoutes);
+if (admissionRoutes) router.use('/admission', admissionRoutes);
+if (departmentRoutes) router.use('/departments', departmentRoutes);
+if (courseRoutes) router.use('/courses', courseRoutes);
+if (subjectRoutes) router.use('/subjects', subjectRoutes);
+if (academicYearRoutes) router.use('/academic-years', academicYearRoutes);
+if (semesterRoutes) router.use('/semesters', semesterRoutes);
 
 // New Academic Structure
+router.use('/colleges', collegeRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/courses', courseRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/academic-years', academicYearRoutes);
 router.use('/semesters', semesterRoutes);
+router.use('/batches', batchRoutes);
 
 // People
 router.use('/students', studentRoutes);
 router.use('/faculty', facultyRoutes);
+router.use('/parents', parentRoutes);
 
-// Operations
-router.use('/attendance', attendanceRoutes);
-// router.use('/timetable', timetableRoutes);
-router.use('/timetables', timetablesRoutes);
-router.use('/assignments', assignmentRoutes);
-router.use('/exams', examRoutes);
+if (attendanceRoutes) router.use('/attendance', attendanceRoutes);
+if (timetablesRoutes) router.use('/timetables', timetablesRoutes);
+if (timetableRoutes) router.use('/timetable', timetableRoutes);
+if (assignmentRoutes) router.use('/assignments', assignmentRoutes);
+if (examRoutes) router.use('/exams', examRoutes);
 
-// LMS & Library
-router.use('/lms', lmsRoutes);
-router.use('/lms/notes', noteRoutes);
-router.use('/library', libraryRoutes);
+if (lmsRoutes) router.use('/lms', lmsRoutes);
+if (noteRoutes) router.use('/lms/notes', noteRoutes);
+if (libraryRoutes) router.use('/library', libraryRoutes);
 
 // Finance & Admin
+<<<<<<< HEAD
 router.use('/fees', feeRoutes);
+=======
+router.use('/fee', feeRoutes);
+>>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 router.use('/hr', hrRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/hostel', hostelRoutes);
@@ -92,10 +125,13 @@ router.use('/events', eventRoutes);
 router.use('/placements', placementRoutes);
 router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
-
 router.use('/notifications', notificationRoutes);
+
+<<<<<<< HEAD
+=======
 router.use('/analytics', analyticsRoutes);
 
+>>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 // Health check
 router.get('/health', (req, res) => {
   res.status(200).json({

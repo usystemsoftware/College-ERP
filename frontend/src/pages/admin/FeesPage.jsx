@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DollarSign, Download, Filter, Plus, Search, MoreVertical, CreditCard, CheckCircle, Clock } from 'lucide-react';
+import Modal from '../../components/common/Modal';
 
 const mockFees = [
   { id: 'FEE-2023-001', student: 'John Doe', roll: 'CS2023001', type: 'Tuition Fee', amount: 45000, paid: 45000, status: 'Paid', date: '2023-08-15' },
@@ -10,6 +11,7 @@ const mockFees = [
 
 const FeesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -23,7 +25,10 @@ const FeesPage = () => {
             <Download size={16} />
             Export Data
           </button>
-          <button className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+          >
             <Plus size={16} />
             Generate Fee
           </button>
@@ -125,6 +130,36 @@ const FeesPage = () => {
           </table>
         </div>
       </div>
+
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="Generate New Fee"
+      >
+        <form className="space-y-4 mt-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Student Roll No / ID</label>
+            <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CS2023001" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Fee Type</label>
+            <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+              <option>Tuition Fee</option>
+              <option>Hostel Fee</option>
+              <option>Transport Fee</option>
+              <option>Library Fine</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Amount (₹)</label>
+            <input type="number" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="0.00" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Due Date</label>
+            <input type="date" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

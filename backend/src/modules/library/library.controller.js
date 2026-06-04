@@ -7,7 +7,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const addBook = async (req, res, next) => {
   try {
     const { title, author, isbn, publisher, category, totalCopies, location } = req.body;
-    
+
     let book = await Book.findOne({ isbn });
     if (book) {
       throw new ApiError(400, 'Book with this ISBN already exists');
@@ -60,7 +60,8 @@ const issueBook = async (req, res, next) => {
     const issue = await IssueRecord.create({
       bookId: finalBookId, userId: userId,
       dueDate: dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      issuedBy: req.user._id, collegeId: req.user.collegeId
+      issuedBy: req.user._id,
+      collegeId: req.user.collegeId
     });
 
     book.availableCopies -= 1;
@@ -78,7 +79,7 @@ const returnBook = async (req, res, next) => {
 
     const record = await IssueRecord.findById(id).populate('bookId');
     if (!record) throw new ApiError(404, 'Issue record not found');
-    
+
     if (record.status === 'Returned') {
       throw new ApiError(400, 'Book already returned');
     }
@@ -89,7 +90,7 @@ const returnBook = async (req, res, next) => {
 
     const bookId = record.bookId._id || record.bookId;
     await Book.findByIdAndUpdate(bookId, { $inc: { availableCopies: 1 } });
-    
+
     return res.json(new ApiResponse(200, { record }, 'Book returned'));
   } catch (error) { next(error); }
 };

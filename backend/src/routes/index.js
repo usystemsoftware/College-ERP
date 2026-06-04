@@ -64,13 +64,9 @@ const placementRoutes = require('../modules/placements/placement.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
-<<<<<<< HEAD
-const analyticsRoutes = require('../modules/analytics/analytics.routes');
-=======
 // Analytics
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 // --- Mount all routes ---
 
 // Auth & Users
@@ -110,11 +106,7 @@ if (noteRoutes) router.use('/lms/notes', noteRoutes);
 if (libraryRoutes) router.use('/library', libraryRoutes);
 
 // Finance & Admin
-<<<<<<< HEAD
-router.use('/fees', feeRoutes);
-=======
 router.use('/fee', feeRoutes);
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 router.use('/hr', hrRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/hostel', hostelRoutes);
@@ -127,11 +119,8 @@ router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/notifications', notificationRoutes);
 
-<<<<<<< HEAD
-=======
 router.use('/analytics', analyticsRoutes);
 
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 // Health check
 router.get('/health', (req, res) => {
   res.status(200).json({

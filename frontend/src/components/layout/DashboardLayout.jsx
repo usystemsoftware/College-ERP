@@ -3,23 +3,23 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../features/auth/authSlice';
 import { toggleTheme, setSidebarOpen } from '../../features/ui/uiSlice';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  Calendar, 
-  Clock, 
-  GraduationCap, 
-  CreditCard, 
-  Library, 
-  Bus, 
-  Hotel, 
-  ShieldCheck, 
-  Bell, 
-  LogOut, 
-  Sun, 
-  Moon, 
-  Menu, 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Calendar,
+  Clock,
+  GraduationCap,
+  CreditCard,
+  Library,
+  Bus,
+  Hotel,
+  ShieldCheck,
+  Bell,
+  LogOut,
+  Sun,
+  Moon,
+  Menu,
   X,
   ChevronDown
 } from 'lucide-react';
@@ -57,19 +57,6 @@ const DashboardLayout = () => {
     { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
-<<<<<<< HEAD
-  // Close dropdowns when clicking outside or navigating
-  useEffect(() => {
-    setActiveDropdown(null);
-  }, [location.pathname]);
-
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    ...menuCategories.flatMap(c => c.items)
-  ];
-  
-  const userRole = user?.role?.name;
-=======
   if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -104,16 +91,14 @@ const DashboardLayout = () => {
       ...navItems,
     ];
   }
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-dark-950 dark:text-slate-100">
-      
+
       {/* Sidebar Section */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Brand Header */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
@@ -125,7 +110,7 @@ const DashboardLayout = () => {
               COLL-ERP
             </span>
           </div>
-          <button 
+          <button
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
             onClick={() => dispatch(setSidebarOpen(false))}
           >
@@ -143,11 +128,10 @@ const DashboardLayout = () => {
                 key={item.name}
                 to={item.path}
                 onClick={() => dispatch(setSidebarOpen(false))}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
-                  isActive 
-                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10' 
+                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${isActive
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-700/50 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'} />
                 {item.name}
@@ -170,13 +154,13 @@ const DashboardLayout = () => {
 
       {/* Main Content Workspace */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        
+
         {/* Header bar */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm dark:border-slate-800 dark:bg-dark-800">
-          
+
           {/* Collapse toggle */}
           <div className="flex items-center gap-4">
-            <button 
+            <button
               className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
               onClick={() => dispatch(setSidebarOpen(true))}
             >
@@ -205,7 +189,7 @@ const DashboardLayout = () => {
 
             {/* User Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-dark-700"
               >
@@ -229,8 +213,8 @@ const DashboardLayout = () => {
                     <p className="text-xs text-slate-400">Signed in as</p>
                     <p className="truncate text-sm font-semibold">{user?.email || 'User Account'}</p>
                   </div>
-                  <Link 
-                    to="/profile" 
+                  <Link
+                    to="/profile"
                     className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-700"
                     onClick={() => setUserDropdownOpen(false)}
                   >
@@ -242,7 +226,7 @@ const DashboardLayout = () => {
                   >
                     Logout
                   </button>
-    
+
                 </div>
               )}
             </div>

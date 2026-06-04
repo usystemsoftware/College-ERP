@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-const { Book: LibraryBook, IssueRecord: BookIssue } = require('./library.model');
-=======
 const { Book, IssueRecord } = require('./library.model');
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -11,7 +7,7 @@ const ApiResponse = require('../../utils/apiResponse');
 const addBook = async (req, res, next) => {
   try {
     const { title, author, isbn, publisher, category, totalCopies, location } = req.body;
-    
+
     let book = await Book.findOne({ isbn });
     if (book) {
       throw new ApiError(400, 'Book with this ISBN already exists');
@@ -54,16 +50,6 @@ const getBooks = async (req, res, next) => {
 
 const issueBook = async (req, res, next) => {
   try {
-<<<<<<< HEAD
-    const { userId, dueDate } = req.body;
-    const book = await LibraryBook.findById(req.params.bookId);
-    if (!book) throw new ApiError(404, 'Book not found');
-    if (book.availableCopies <= 0) throw new ApiError(400, 'No copies available');
-
-    const issue = await BookIssue.create({
-      bookId: req.params.bookId, 
-      userId: userId,
-=======
     const { bookId, userId, dueDate } = req.body;
     const finalBookId = req.params.bookId || bookId;
 
@@ -73,9 +59,8 @@ const issueBook = async (req, res, next) => {
 
     const issue = await IssueRecord.create({
       bookId: finalBookId, userId: userId,
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
       dueDate: dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      issuedBy: req.user._id, 
+      issuedBy: req.user._id,
       collegeId: req.user.collegeId
     });
 
@@ -94,7 +79,7 @@ const returnBook = async (req, res, next) => {
 
     const record = await IssueRecord.findById(id).populate('bookId');
     if (!record) throw new ApiError(404, 'Issue record not found');
-    
+
     if (record.status === 'Returned') {
       throw new ApiError(400, 'Book already returned');
     }
@@ -103,25 +88,16 @@ const returnBook = async (req, res, next) => {
     record.status = 'Returned';
     await record.save();
 
-<<<<<<< HEAD
-    await LibraryBook.findByIdAndUpdate(issue.bookId, { $inc: { availableCopies: 1 } });
-    return res.json(new ApiResponse(200, { issue, fineAmount }, 'Book returned'));
-=======
     const bookId = record.bookId._id || record.bookId;
     await Book.findByIdAndUpdate(bookId, { $inc: { availableCopies: 1 } });
-    
+
     return res.json(new ApiResponse(200, { record }, 'Book returned'));
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
   } catch (error) { next(error); }
 };
 
 const getCirculationHistory = async (req, res, next) => {
   try {
-<<<<<<< HEAD
-    const issues = await BookIssue.find({ userId: req.user._id, status: { $ne: 'Returned' } })
-=======
     const issues = await IssueRecord.find({ userId: req.user._id, status: { $ne: 'Returned' } })
->>>>>>> 56eea22992580cf42f5a569e4d7c6a6c36230019
       .populate('bookId', 'title isbn author')
       .sort({ dueDate: 1 });
     return res.json(new ApiResponse(200, issues, 'Active issues fetched'));

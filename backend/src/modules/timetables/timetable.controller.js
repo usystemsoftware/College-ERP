@@ -1,4 +1,5 @@
 const Timetable = require('./timetable.model');
+const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -26,6 +27,21 @@ const getTimetable = async (req, res, next) => {
 const createTimetableEntry = async (req, res, next) => {
   try {
     const entry = await Timetable.create({ ...req.body, collegeId: req.user.collegeId });
+
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Timetable Entry Created',
+      message: `A new timetable entry has been successfully scheduled.`,
+      type: 'System',
+      category: 'Academic',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     return res.status(201).json(new ApiResponse(201, entry, 'Timetable entry created'));
   } catch (error) { next(error); }
 };

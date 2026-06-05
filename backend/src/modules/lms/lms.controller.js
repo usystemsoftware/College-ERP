@@ -6,6 +6,22 @@ const uploadResource = async (req, res, next) => {
   try {
     const { title, description, type, url, subjectId, batchId, facultyId } = req.body;
     const resource = await Resource.create({ title, description, type, url, subjectId, batchId, facultyId, collegeId: req.user.collegeId });
+
+    const Notification = require('../notifications/notification.model');
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'New Resource Uploaded',
+      message: `${type || 'Material'} "${title}" has been successfully uploaded to the LMS.`,
+      type: 'System',
+      category: 'Academic',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     return res.status(201).json(new ApiResponse(201, { resource }, 'Resource uploaded successfully'));
   } catch (error) {
     next(error);

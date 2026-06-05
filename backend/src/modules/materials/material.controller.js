@@ -25,6 +25,21 @@ exports.uploadMaterial = async (req, res, next) => {
       collegeId: req.user.collegeId
     });
 
+    const Notification = require('../notifications/notification.model');
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'New Study Material Uploaded',
+      message: `${materialType || 'Material'} "${title}" has been successfully added to the LMS library.`,
+      type: 'System',
+      category: 'Academic',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     res.status(201).json({
       success: true,
       data: material

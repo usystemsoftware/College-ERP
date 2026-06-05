@@ -23,4 +23,4 @@ const feeSchema = new mongoose.Schema({
 feeSchema.index({ student: 1, semester: 1, feeType: 1 });
 feeSchema.index({ status: 1, dueDate: 1 });
 
-module.exports = mongoose.model('Fee', feeSchema);
+module.exports = mongoose.model('Fee', feeSchema, 'student_fees_records');

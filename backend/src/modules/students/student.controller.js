@@ -9,7 +9,8 @@ const ApiResponse = require('../../utils/apiResponse');
 const getStudents = async (req, res, next) => {
   try {
     const { department, course, semester, division, batch, search, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (department) filter.department = department;
     if (course) filter.course = course;
     if (semester) filter.semester = semester;

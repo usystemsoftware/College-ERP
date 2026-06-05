@@ -45,7 +45,13 @@ const getAllFees = async (req, res, next) => {
 // CREATE fee
 const createFee = async (req, res, next) => {
   try {
-    const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId: req.user.collegeId });
+    let collegeId = req.user.collegeId;
+    if (!collegeId) {
+      const student = await Student.findById(req.body.student);
+      if (student) collegeId = student.collegeId;
+    }
+    
+    const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId });
 
     const Notification = require('../notifications/notification.model');
     const notification = await Notification.create({
@@ -71,9 +77,16 @@ const bulkCreateFees = async (req, res, next) => {
   try {
     const { studentIds, semester, academicYear, feeType, totalAmount, dueDate } = req.body;
     if (!studentIds?.length) throw new ApiError(400, 'Student IDs required');
+    
+    let collegeId = req.user.collegeId;
+    if (!collegeId) {
+      const student = await Student.findById(studentIds[0]);
+      if (student) collegeId = student.collegeId;
+    }
+
     const feeRecords = studentIds.map(studentId => ({
       student: studentId, semester, academicYear, feeType, totalAmount, dueDate,
-      generatedBy: req.user._id, collegeId: req.user.collegeId
+      generatedBy: req.user._id, collegeId
     }));
     const fees = await Fee.insertMany(feeRecords, { ordered: false });
     return res.status(201).json(new ApiResponse(201, { created: fees.length }, `${fees.length} fee records created`));

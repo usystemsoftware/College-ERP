@@ -1,6 +1,7 @@
 const Student = require('./student.model');
 const User = require('../users/user.model');
 const Role = require('../roles/role.model');
+const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -93,6 +94,21 @@ const createStudent = async (req, res, next) => {
         .populate('user', 'email status')
         .populate('department', 'name')
         .populate('course', 'name');
+
+      // Send instant notification to the user who added the student
+      const notification = await Notification.create({
+        recipient: req.user._id,
+        title: 'New Student Added',
+        message: `Student ${personalDetails.fullName} (${rollNumber}) has been successfully registered.`,
+        type: 'System',
+        category: 'General',
+        collegeId: collegeId || req.user.collegeId
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(req.user._id.toString()).emit('notification', notification);
+      }
 
       return res.status(201).json(new ApiResponse(201, populated, 'Student created'));
     } catch (err) {

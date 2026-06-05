@@ -24,6 +24,9 @@ import {
   ChevronDown,
   Building
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
+import { getMyNotifications } from '../../api/notifications.api';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -33,6 +36,42 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Initialize socket and fetch initial unread count
+  useEffect(() => {
+    if (user) {
+      initiateSocketConnection(user);
+      
+      const fetchUnreadCount = async () => {
+        try {
+          const res = await getMyNotifications({ status: 'Unread', limit: 1 });
+          if (res?.data?.data?.unreadCount !== undefined) {
+            setUnreadCount(res.data.data.unreadCount);
+          }
+        } catch (error) {
+          console.error('Failed to fetch unread notifications count:', error);
+        }
+      };
+      
+      fetchUnreadCount();
+
+      subscribeToNotifications((notification) => {
+        toast.success(
+          <div>
+            <b>{notification.title}</b>
+            <p className="text-sm">{notification.message}</p>
+          </div>,
+          { duration: 5000 }
+        );
+        setUnreadCount(prev => prev + 1);
+      });
+    }
+
+    return () => {
+      disconnectSocket();
+    };
+  }, [user]);
 
   // Sync dark class on body (initial setup)
   useEffect(() => {
@@ -184,10 +223,14 @@ const DashboardLayout = () => {
             </button>
 
             {/* Notification triggers */}
-            <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-700">
+            <Link to="/notifications" className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-700">
               <Bell size={18} />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-500"></span>
-            </button>
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* User Dropdown */}
             <div className="relative">

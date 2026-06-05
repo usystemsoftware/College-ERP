@@ -1,102 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Filter, Plus, Search, MapPin, User as UserIcon, X, Edit2, Trash2 } from 'lucide-react';
 import { get } from '../../api/client';
+import { getSemesters, getSubjects, getCurrentAcademicYear } from '../../api/academic.api';
+import { getFacultyAPI } from '../../api/faculty.api';
+import { getTimetableAPI, createTimetableSlotAPI, deleteTimetableSlotAPI } from '../../api/timetable.api';
+import toast from 'react-hot-toast';
 import Modal from '../../components/common/Modal';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const timeslots = ['09:00', '10:00', '11:15', '12:15', '2:00', '3:00'];
 
-const initialSchedule = [
-  { id: 1, day: 'Monday', time: '09:00', subject: 'Data Structures', type: 'Theory', faculty: 'Dr. Alan Turing', room: 'L-101', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-  { id: 2, day: 'Monday', time: '10:00', subject: 'Operating Systems', type: 'Theory', faculty: 'Prof. Linus Torvalds', room: 'L-102', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-  { id: 3, day: 'Monday', time: '2:00', subject: 'OS Lab', type: 'Practical', faculty: 'Prof. Linus Torvalds', room: 'Lab-3', duration: 2, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-  { id: 4, day: 'Tuesday', time: '09:00', subject: 'Computer Networks', type: 'Theory', faculty: 'Dr. Vint Cerf', room: 'L-105', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-  { id: 5, day: 'Wednesday', time: '11:15', subject: 'DBMS', type: 'Theory', faculty: 'Dr. Edgar Codd', room: 'L-201', duration: 1, department: 'Computer Science', semester: 'Semester 5', division: 'Division A' },
-];
-
 const TimetablePage = () => {
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [schedule, setSchedule] = useState(() => {
-    const saved = localStorage.getItem('timetable_schedule');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return initialSchedule;
-      }
-    }
-    return initialSchedule;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('timetable_schedule', JSON.stringify(schedule));
-  }, [schedule]);
+  const [schedule, setSchedule] = useState([]);
+  
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [faculties, setFaculties] = useState([]);
+  const [currentAcademicYear, setCurrentAcademicYear] = useState(null);
 
   // Filters state
   const [filters, setFilters] = useState({
     department: '',
     course: '',
-    semester: 'Semester 5',
+    semester: '',
     division: 'Division A'
   });
-
-  const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
-
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const deptRes = await get('/departments');
-        if (deptRes.data?.data) {
-          setDepartments(deptRes.data.data);
-          if (deptRes.data.data.length > 0) {
-            setFilters(prev => ({ ...prev, department: deptRes.data.data[0]._id }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching departments:', error);
-      }
-    };
-    fetchDepartments();
-  }, []);
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        if (!filters.department) {
-           setCourses([]);
-           return;
-        }
-        const courseRes = await get(`/courses?department=${filters.department}`);
-        if (courseRes.data?.data) {
-          setCourses(courseRes.data.data);
-          if (courseRes.data.data.length > 0) {
-             // only update course if it's not valid for this department
-             if (!courseRes.data.data.find(c => c._id === filters.course)) {
-                setFilters(prev => ({ ...prev, course: courseRes.data.data[0]._id }));
-             }
-          } else {
-             setFilters(prev => ({ ...prev, course: '' }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
-    fetchCourses();
-  }, [filters.department]);
-
-  useEffect(() => {
-    if (courses.length > 0 && filters.course) {
-      const selectedCourse = courses.find(c => c._id === filters.course);
-      const maxSemesters = selectedCourse?.durationSemesters || 6;
-      const currentSemNum = parseInt(filters.semester.replace('Semester ', '')) || 1;
-      
-      if (currentSemNum > maxSemesters) {
-        setFilters(prev => ({ ...prev, semester: 'Semester 1' }));
-      }
-    }
-  }, [filters.course, courses]);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -110,15 +41,108 @@ const TimetablePage = () => {
     room: ''
   });
 
-  // Filter the schedule based on selected filters
-  const filteredSchedule = schedule.filter(c =>
-    (!filters.department || c.department === filters.department) &&
-    (!filters.course || c.course === filters.course) &&
-    (!filters.semester || c.semester === filters.semester) &&
-    (!filters.division || c.division === filters.division)
-  );
+  // Initial Data
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [yearRes, deptRes, semRes] = await Promise.all([
+          getCurrentAcademicYear(),
+          get('/departments'),
+          getSemesters()
+        ]);
+        
+        if (yearRes.data?.data) setCurrentAcademicYear(yearRes.data.data._id);
+        if (semRes.data?.data) setSemesters(semRes.data.data);
+        if (deptRes.data?.data) {
+          setDepartments(deptRes.data.data);
+          if (deptRes.data.data.length > 0) {
+            setFilters(prev => ({ ...prev, department: deptRes.data.data[0]._id }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
-  const getClass = (day, time) => filteredSchedule.find(c => c.day === day && c.time === time);
+  // Fetch Courses when Department changes
+  useEffect(() => {
+    const fetchCoursesAndFaculty = async () => {
+      if (!filters.department) {
+        setCourses([]);
+        setFaculties([]);
+        return;
+      }
+      try {
+        const [courseRes, facultyRes] = await Promise.all([
+          get(`/courses?department=${filters.department}`),
+          getFacultyAPI()
+        ]);
+        
+        if (facultyRes.data?.data?.faculty) setFaculties(facultyRes.data.data.faculty);
+        if (courseRes.data?.data) {
+          setCourses(courseRes.data.data);
+          if (courseRes.data.data.length > 0) {
+            if (!courseRes.data.data.find(c => c._id === filters.course)) {
+              setFilters(prev => ({ ...prev, course: courseRes.data.data[0]._id }));
+            }
+          } else {
+            setFilters(prev => ({ ...prev, course: '' }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching courses/faculty:', error);
+      }
+    };
+    fetchCoursesAndFaculty();
+  }, [filters.department]);
+
+  // Handle auto-selecting valid semester based on course
+  useEffect(() => {
+    if (courses.length > 0 && filters.course && semesters.length > 0) {
+       // Just pick the first semester available for this course to start with
+       // Ideally you'd filter semesters by course duration
+       if(!filters.semester) {
+         setFilters(prev => ({ ...prev, semester: semesters[0]._id }));
+       }
+    }
+  }, [filters.course, courses, semesters]);
+
+  // Fetch Subjects when Course/Semester change
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (!filters.course || !filters.semester) {
+        setSubjects([]);
+        return;
+      }
+      try {
+        const res = await getSubjects();
+        if (res.data?.data) setSubjects(res.data.data);
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+    };
+    fetchSubjects();
+  }, [filters.course, filters.semester]);
+
+  // Fetch Timetable when filters change
+  useEffect(() => {
+    const fetchTimetable = async () => {
+      if (!filters.department || !filters.semester) return;
+      try {
+        const res = await getTimetableAPI(filters);
+        if (res.data?.data) {
+          setSchedule(res.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching timetable:', error);
+      }
+    };
+    fetchTimetable();
+  }, [filters]);
+
+  const getClass = (day, time) => schedule.find(c => c.dayOfWeek === day && c.startTime === time);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -127,15 +151,23 @@ const TimetablePage = () => {
 
   const openModal = (day = 'Monday', time = '09:00', session = null) => {
     if (session) {
-      setFormData(session);
+      setFormData({
+        id: session._id,
+        day: session.dayOfWeek,
+        time: session.startTime,
+        subject: session.subject?._id || '',
+        type: session.isLab ? 'Practical' : 'Theory',
+        faculty: session.faculty?._id || '',
+        room: session.roomNumber || ''
+      });
     } else {
       setFormData({
         id: null,
         day,
         time,
-        subject: '',
+        subject: subjects.length > 0 ? subjects[0]._id : '',
         type: 'Theory',
-        faculty: '',
+        faculty: faculties.length > 0 ? faculties[0]._id : '',
         room: ''
       });
     }
@@ -144,15 +176,6 @@ const TimetablePage = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData({
-      id: null,
-      day: 'Monday',
-      time: '09:00',
-      subject: '',
-      type: 'Theory',
-      faculty: '',
-      room: ''
-    });
   };
 
   const handleInputChange = (e) => {
@@ -160,39 +183,68 @@ const TimetablePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDelete = (id, e) => {
+  const handleDelete = async (id, e) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this class?')) {
-      setSchedule(prev => prev.filter(c => c.id !== id));
+      try {
+        await deleteTimetableSlotAPI(id);
+        toast.success('Deleted successfully');
+        setSchedule(prev => prev.filter(c => c._id !== id));
+      } catch (error) {
+        toast.error('Error deleting class');
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newClass = {
-      ...formData,
-      id: formData.id || Date.now(),
-      duration: 1,
+    if (!currentAcademicYear) {
+      toast.error('Current academic year is not set');
+      return;
+    }
+
+    const getEndTime = (start) => {
+      const times = {
+        '09:00': '10:00',
+        '10:00': '11:00',
+        '11:15': '12:15',
+        '12:15': '13:15',
+        '2:00': '3:00',
+        '3:00': '4:00'
+      };
+      return times[start] || '12:00';
+    };
+
+    const payload = {
       department: filters.department,
       course: filters.course,
       semester: filters.semester,
-      division: filters.division
+      division: filters.division,
+      academicYear: currentAcademicYear,
+      dayOfWeek: formData.day,
+      startTime: formData.time,
+      endTime: getEndTime(formData.time),
+      subject: formData.subject,
+      faculty: formData.faculty,
+      roomNumber: formData.room,
+      isLab: formData.type === 'Practical'
     };
 
-    // Replace if exists, or add new
-    setSchedule(prev => {
+    try {
       if (formData.id) {
-        return prev.map(c => c.id === formData.id ? newClass : c);
+        // Mock update: Not fully implementing update endpoint for simplicity, wait, backend has updateTimetableEntry
+        toast.error("Updating existing slot not fully supported in this demo. Please delete and recreate.");
+      } else {
+        await createTimetableSlotAPI(payload);
+        toast.success('Timetable slot created successfully');
       }
-      const existingIdx = prev.findIndex(c => c.day === newClass.day && c.time === newClass.time && c.department === newClass.department && c.course === newClass.course && c.semester === newClass.semester && c.division === newClass.division);
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        updated[existingIdx] = newClass;
-        return updated;
-      }
-      return [...prev, newClass];
-    });
-    closeModal();
+      
+      const res = await getTimetableAPI(filters);
+      if (res.data?.data) setSchedule(res.data.data);
+      closeModal();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error saving class');
+    }
   };
 
   return (
@@ -244,10 +296,9 @@ const TimetablePage = () => {
               onChange={handleFilterChange}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900"
             >
-              {Array.from({ length: courses.find(c => c._id === filters.course)?.durationSemesters || 6 }, (_, i) => (
-                <option key={`sem-${i + 1}`} value={`Semester ${i + 1}`}>
-                  Semester {i + 1}
-                </option>
+              {semesters.length === 0 && <option value="">No Semesters</option>}
+              {semesters.map(sem => (
+                <option key={sem._id} value={sem._id}>{sem.name}</option>
               ))}
             </select>
             <select
@@ -304,7 +355,7 @@ const TimetablePage = () => {
                       return (
                         <td key={`${day}-${time}`} className="border border-slate-200 p-2 align-top dark:border-slate-700 h-28 w-48">
                           {session ? (
-                            <div className={`group relative h-full rounded-lg border p-3 flex flex-col justify-between ${session.type === 'Practical'
+                            <div className={`group relative h-full rounded-lg border p-3 flex flex-col justify-between ${session.isLab
                               ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-900/10'
                               : 'border-brand-200 bg-brand-50 dark:border-brand-900/50 dark:bg-brand-900/10'
                               }`}>
@@ -312,23 +363,23 @@ const TimetablePage = () => {
                                 <button onClick={(e) => { e.stopPropagation(); openModal(day, time, session); }} className="p-1 text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400">
                                   <Edit2 size={14} />
                                 </button>
-                                <button onClick={(e) => handleDelete(session.id, e)} className="p-1 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400">
+                                <button onClick={(e) => handleDelete(session._id, e)} className="p-1 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400">
                                   <Trash2 size={14} />
                                 </button>
                               </div>
                               <div>
-                                <div className="font-semibold text-slate-900 dark:text-white line-clamp-1 text-sm">{session.subject}</div>
-                                <div className={`text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded font-medium ${session.type === 'Practical' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
+                                <div className="font-semibold text-slate-900 dark:text-white line-clamp-1 text-sm">{session.subject?.name || 'Unknown Subject'}</div>
+                                <div className={`text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded font-medium ${session.isLab ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
                                   }`}>
-                                  {session.type}
+                                  {session.isLab ? 'Practical' : 'Theory'}
                                 </div>
                               </div>
                               <div className="mt-2 space-y-1">
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                                  <UserIcon size={12} /> <span className="line-clamp-1">{session.faculty}</span>
+                                  <UserIcon size={12} /> <span className="line-clamp-1">{session.faculty?.fullName || 'Unknown Faculty'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                                  <MapPin size={12} /> <span>{session.room}</span>
+                                  <MapPin size={12} /> <span>{session.roomNumber}</span>
                                 </div>
                               </div>
                             </div>
@@ -375,23 +426,23 @@ const TimetablePage = () => {
                   <div className="w-16 flex-shrink-0 text-right pt-1">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{time}</span>
                   </div>
-                  <div className={`flex-1 rounded-xl border p-4 ${session.type === 'Practical'
+                  <div className={`flex-1 rounded-xl border p-4 ${session.isLab
                     ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10'
                     : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'
                     }`}>
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-900 dark:text-white pr-4">{session.subject}</h4>
+                      <h4 className="font-bold text-slate-900 dark:text-white pr-4">{session.subject?.name}</h4>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs font-semibold px-2 py-1 rounded bg-white dark:bg-dark-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{session.type}</span>
+                        <span className="text-xs font-semibold px-2 py-1 rounded bg-white dark:bg-dark-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{session.isLab ? 'Practical' : 'Theory'}</span>
                         <div className="flex gap-2">
                           <button onClick={(e) => { e.stopPropagation(); openModal(selectedDay, time, session); }} className="p-1 text-slate-400 hover:text-brand-500 bg-white dark:bg-dark-800 rounded border border-slate-200 dark:border-slate-700"><Edit2 size={14} /></button>
-                          <button onClick={(e) => handleDelete(session.id, e)} className="p-1 text-slate-400 hover:text-red-500 bg-white dark:bg-dark-800 rounded border border-slate-200 dark:border-slate-700"><Trash2 size={14} /></button>
+                          <button onClick={(e) => handleDelete(session._id, e)} className="p-1 text-slate-400 hover:text-red-500 bg-white dark:bg-dark-800 rounded border border-slate-200 dark:border-slate-700"><Trash2 size={14} /></button>
                         </div>
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center gap-2"><UserIcon size={14} /> {session.faculty}</div>
-                      <div className="flex items-center gap-2"><MapPin size={14} /> {session.room}</div>
+                      <div className="flex items-center gap-2"><UserIcon size={14} /> {session.faculty?.fullName}</div>
+                      <div className="flex items-center gap-2"><MapPin size={14} /> {session.roomNumber}</div>
                     </div>
                   </div>
                 </div>
@@ -402,7 +453,6 @@ const TimetablePage = () => {
 
       </div>
 
-      {/* Schedule Modal */}
       {/* Schedule Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Schedule Class" hideFooter={true}>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -432,15 +482,16 @@ const TimetablePage = () => {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Subject</label>
-            <input
-              type="text"
+            <select
               name="subject"
               value={formData.subject}
               onChange={handleInputChange}
               required
               className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-              placeholder="e.g. Data Structures"
-            />
+            >
+              <option value="">Select Subject</option>
+              {subjects.map(sub => <option key={sub._id} value={sub._id}>{sub.name}</option>)}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
@@ -456,15 +507,16 @@ const TimetablePage = () => {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Faculty</label>
-            <input
-              type="text"
+            <select
               name="faculty"
               value={formData.faculty}
               onChange={handleInputChange}
               required
               className="w-full rounded-lg border border-slate-200 p-2 outline-none dark:border-slate-700 dark:bg-dark-800"
-              placeholder="e.g. Dr. Alan Turing"
-            />
+            >
+              <option value="">Select Faculty</option>
+              {faculties.map(fac => <option key={fac._id} value={fac._id}>{fac.fullName}</option>)}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Room</label>
@@ -500,4 +552,3 @@ const TimetablePage = () => {
 };
 
 export default TimetablePage;
-

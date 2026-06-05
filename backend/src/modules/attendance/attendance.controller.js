@@ -14,26 +14,51 @@ const markAttendance = async (req, res, next) => {
     if (!faculty && req.user.role.name === 'Faculty') throw new ApiError(403, 'Faculty profile not found');
 
     const attendanceDate = new Date(date);
-    const ops = records.map(r => ({
-      updateOne: {
-        filter: { student: r.student, subject, date: attendanceDate },
-        update: {
-          $set: {
-            student: r.student, subject, date: attendanceDate,
-            status: r.status, markedBy: req.user._id,
-            faculty: faculty?._id,
-            lectureType: lectureType || 'Theory',
-            collegeId: req.user.collegeId,
-            remarks: r.remarks || ''
-          }
-        },
-        upsert: true
-      }
-    }));
+    const ops = records.map(r => {
+      const updateDoc = {
+        student: r.student, subject, date: attendanceDate,
+        status: r.status, markedBy: req.user._id,
+        lectureType: lectureType || 'Theory',
+        remarks: r.remarks || ''
+      };
+      if (faculty && faculty._id) updateDoc.faculty = faculty._id;
+      if (req.user.collegeId) updateDoc.collegeId = req.user.collegeId;
+
+      return {
+        updateOne: {
+          filter: { student: r.student, subject, date: attendanceDate },
+          update: { $set: updateDoc },
+          upsert: true
+        }
+      };
+    });
 
     await Attendance.bulkWrite(ops);
+
+    const Notification = require('../notifications/notification.model');
+    const subjectDoc = await require('../subjects/subject.model').findById(subject);
+    const subjectName = subjectDoc ? subjectDoc.name : 'Class';
+    const dateFormatted = new Date(date).toLocaleDateString();
+
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Attendance Marked',
+      message: `Attendance for ${subjectName} on ${dateFormatted} has been successfully recorded for ${records.length} students.`,
+      type: 'System',
+      category: 'Academic',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     return res.status(200).json(new ApiResponse(200, null, `Attendance marked for ${records.length} students`));
-  } catch (error) { next(error); }
+  } catch (error) { 
+    console.error('ATTENDANCE ERROR:', error);
+    return res.status(500).json({ success: false, message: error.message, stack: error.stack });
+  }
 };
 
 // GET attendance by subject + date

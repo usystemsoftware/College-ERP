@@ -135,7 +135,7 @@ const AttendancePage = () => {
       }
     } catch (error) {
       console.error('Error marking attendance:', error);
-      alert('Failed to mark attendance.');
+      alert(error.response?.data?.message || error.message || 'Failed to mark attendance.');
     } finally {
       setIsSubmitting(false);
     }

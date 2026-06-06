@@ -7,6 +7,9 @@ const Course = require('../courses/course.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const crypto = require('crypto');
+const Student = require('../students/student.model');
+const Batch = require('../batches/batch.model');
+const Semester = require('../semesters/semester.model');
 
 // Get initial form data for Admission Portal (Public Route)
 const getAdmissionFormData = async (req, res, next) => {
@@ -24,7 +27,7 @@ const getAdmissionFormData = async (req, res, next) => {
 // Submit a new application (Public Route)
 const submitApplication = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phone, dob, gender, collegeId, courseId } = req.body;
+    const { firstName, lastName, email, phone, address, dob, gender, collegeId, courseId } = req.body;
 
     // Check if an application already exists with this email
     const existingApp = await Application.findOne({ email });
@@ -40,7 +43,7 @@ const submitApplication = async (req, res, next) => {
     };
 
     const application = await Application.create({
-      firstName, lastName, email, phone, dob, gender, collegeId, courseId, documents
+      firstName, lastName, email, phone, address, dob, gender, collegeId, courseId, documents
     });
 
     return res.status(201).json(new ApiResponse(201, { application }, 'Application submitted successfully'));
@@ -107,7 +110,31 @@ const reviewApplication = async (req, res, next) => {
         });
       }
       
-      // We should also create a Student Profile here (linking User, Course, Batch), but we will handle that once the Student module is built. For now, the user account is created.
+      // We should also create a Student Profile here
+      const courseDetails = await Course.findById(application.courseId);
+      const batchDetails = await Batch.findById(allottedBatchId);
+      const semester = await Semester.findOne({ isCurrent: true }) || await Semester.findOne();
+      
+      const rollNumber = `R-${year}-${crypto.randomInt(1000, 9999)}`;
+      
+      await Student.create({
+        user: user._id,
+        rollNumber: rollNumber,
+        enrollmentNumber: application.enrollmentId,
+        department: courseDetails.department,
+        course: application.courseId,
+        semester: semester ? semester._id : null, // Assuming at least one semester exists
+        division: 'A',
+        batch: batchDetails ? batchDetails.name : 'Unknown',
+        personalDetails: {
+          fullName: `${application.firstName} ${application.lastName}`,
+          dob: application.dob,
+          gender: application.gender,
+          phone: application.phone,
+          address: application.address || 'Not Provided'
+        },
+        collegeId: application.collegeId
+      });
     }
 
     await application.save();

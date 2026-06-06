@@ -72,7 +72,7 @@ const MaterialUploadModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm transition-all duration-300">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm transition-all duration-300">
       <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl dark:bg-dark-900 border border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800 shrink-0">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">

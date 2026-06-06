@@ -32,7 +32,28 @@ const getTimetable = async (req, res, next) => {
       return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
     }
 
-    // ─── ADMIN / FACULTY: filter by query params ───────────────────────────────
+    // ─── FACULTY: auto-filter by their assigned classes ───
+    if (roleName === 'Faculty' && req.query.view === 'my') {
+      const facultyProfile = await require('../faculty/faculty.model').findOne({ user: req.user._id });
+      if (!facultyProfile) throw new ApiError(404, 'Faculty profile not found');
+
+      const filter = {
+        isActive: true,
+        collegeId: req.user.collegeId,
+        faculty: facultyProfile._id
+      };
+
+      const timetable = await Timetable.find(filter)
+        .populate('subject', 'name code type')
+        .populate('faculty', 'fullName employeeId')
+        .populate('semester', 'name')
+        .populate('department', 'name code')
+        .sort({ dayOfWeek: 1, startTime: 1 });
+
+      return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
+    }
+
+    // ─── ADMIN: filter by query params ───────────────────────────────
     const { semester, department, division, course, faculty } = req.query;
     const filter = { isActive: true };
 

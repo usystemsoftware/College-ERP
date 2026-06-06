@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building, BookOpen, Plus, Search, Trash2, Edit2, Calendar } from 'lucide-react';
+import { Building, BookOpen, Plus, Search, Trash2, Edit2, Calendar, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDepartments, getCourses, createDepartment, createCourse, updateDepartment, updateCourse, deleteDepartment, deleteCourse } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';

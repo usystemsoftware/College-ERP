@@ -19,6 +19,8 @@ import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
+import AdmissionReview from '../pages/admission/AdmissionReview';
+import AdmissionPortal from '../pages/admission/AdmissionPortal';
 
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
@@ -65,6 +67,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/apply" element={<AdmissionPortal />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route
@@ -81,6 +84,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admissions"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Admission Officer']}>
+              <AdmissionReview />
             </ProtectedRoute>
           }
         />

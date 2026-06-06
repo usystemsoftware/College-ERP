@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Building, BookOpen, Plus, Search, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Building, BookOpen, Plus, Search, MoreVertical, Trash2, Edit2, Users, XCircle } from 'lucide-react';
 import { getDepartments, getCourses, createDepartment, createCourse, updateDepartment, updateCourse, deleteDepartment, deleteCourse } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';
 import Modal from '../../components/common/Modal';
+import client from '../../api/client';
 
 const DepartmentsPage = () => {
   const [activeTab, setActiveTab] = useState('departments');
@@ -16,6 +17,12 @@ const DepartmentsPage = () => {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
+
+  // View Students Modal
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [selectedCourseForStudents, setSelectedCourseForStudents] = useState(null);
+  const [courseStudents, setCourseStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const [deptForm, setDeptForm] = useState({ _id: null, name: '', code: '', hod: '' });
   const [courseForm, setCourseForm] = useState({ _id: null, name: '', code: '', department: '', durationSemesters: 8 });
@@ -102,6 +109,24 @@ const DepartmentsPage = () => {
       } catch(error) {
         alert(error.response?.data?.message || 'Failed to delete');
       }
+    }
+  };
+
+  const handleViewStudents = async (course) => {
+    setSelectedCourseForStudents(course);
+    setCourseStudents([]);
+    setIsStudentsModalOpen(true);
+    setLoadingStudents(true);
+    try {
+      const response = await client.get(`/students?course=${course._id}&limit=500`);
+      if (response.data.success) {
+        setCourseStudents(response.data.data.students);
+      }
+    } catch (error) {
+      console.error('Error fetching students for course', error);
+      alert('Failed to fetch students');
+    } finally {
+      setLoadingStudents(false);
     }
   };
 
@@ -230,6 +255,13 @@ const DepartmentsPage = () => {
                           <td className="px-6 py-4">{item.durationSemesters}</td>
                           <td className="px-6 py-4 text-right">
                             <button 
+                              onClick={() => handleViewStudents(item)}
+                              title="View Students"
+                              className="rounded-lg p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 mr-2"
+                            >
+                              <Users size={16} />
+                            </button>
+                            <button 
                               onClick={() => {
                                 setEditMode(true);
                                 setCourseForm({
@@ -322,6 +354,46 @@ const DepartmentsPage = () => {
             <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{editMode ? 'Update' : 'Save'}</button>
           </div>
         </form>
+      </Modal>
+
+      {/* View Students Modal */}
+      <Modal 
+        isOpen={isStudentsModalOpen} 
+        onClose={() => setIsStudentsModalOpen(false)} 
+        title={`Enrolled Students - ${selectedCourseForStudents?.name}`} 
+        hideFooter={true}
+        maxWidth="max-w-4xl"
+      >
+        <div className="pt-2">
+          {loadingStudents ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+            </div>
+          ) : courseStudents.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <Users className="mx-auto h-12 w-12 opacity-20 mb-3" />
+              <p>No students are currently enrolled in this course.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courseStudents.map(student => (
+                <div key={student._id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-dark-800">
+                  <img 
+                    src={student.user?.profileImage || `https://ui-avatars.com/api/?name=${student.personalDetails?.fullName}&background=random`} 
+                    alt={student.personalDetails?.fullName} 
+                    className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                  />
+                  <div className="flex-1 overflow-hidden">
+                    <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">{student.personalDetails?.fullName}</div>
+                    <div className="text-xs text-slate-500 truncate">
+                      Student ID: <span className="font-mono text-slate-600 dark:text-slate-400">{student.enrollmentNumber || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

@@ -22,7 +22,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  Building
+  Building,
+  UserPlus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -97,9 +98,10 @@ const DashboardLayout = () => {
     { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
-  if (['Super Admin', 'College Admin', 'Principal'].includes(userRole)) {
+  if (['Super Admin', 'College Admin', 'Principal', 'Admission Officer'].includes(userRole)) {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'Admissions', path: '/admissions', icon: UserPlus },
       { name: 'Departments', path: '/departments', icon: Building },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Faculty', path: '/faculty', icon: GraduationCap },

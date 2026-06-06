@@ -15,6 +15,7 @@ import Profile from '../pages/shared/Profile';
 import GatePassPage from '../pages/admin/GatePassPage';
 import DepartmentsPage from '../pages/admin/DepartmentsPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
+import StudentAttendancePage from '../pages/student/StudentAttendancePage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -108,6 +109,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="student/attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentAttendancePage />
             </ProtectedRoute>
           }
         />

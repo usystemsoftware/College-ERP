@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../features/auth/authSlice';
 import { toggleTheme, setSidebarOpen } from '../../features/ui/uiSlice';
-import { useNotification } from '../../context/NotificationContext';
 import {
   LayoutDashboard,
   Users,
@@ -35,7 +34,6 @@ const DashboardLayout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const { unreadCount } = useNotification();
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);

@@ -31,6 +31,16 @@ const approveGatePass = async (req, res, next) => {
       status: action, approvedBy: req.user._id, approvedAt: new Date()
     }, { new: true });
     if (!pass) throw new ApiError(404, 'Gate pass not found');
+
+    const { emitNotification } = require('../../services/notification.service');
+    emitNotification({
+      title: 'Gate Pass Update',
+      message: `Your gate pass request has been ${action.toLowerCase()}`,
+      type: 'System',
+      category: 'Alert',
+      recipient: pass.host // Assuming host is the user ID of the student
+    });
+
     return res.json(new ApiResponse(200, pass, `Gate pass ${action}`));
   } catch (error) { next(error); }
 };

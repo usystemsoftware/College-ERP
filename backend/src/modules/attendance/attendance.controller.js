@@ -3,11 +3,10 @@ const Student = require('../students/student.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
-// Mark attendance (bulk)
+// Mark attendance (bulk) — Faculty/Admin
 const markAttendance = async (req, res, next) => {
   try {
     const { subject, date, records, lectureType } = req.body;
-    // records = [{ student: id, status: 'Present'/'Absent' }]
     if (!subject || !date || !records?.length) throw new ApiError(400, 'Subject, date and records required');
 
     const faculty = await require('../faculty/faculty.model').findOne({ user: req.user._id });
@@ -19,7 +18,8 @@ const markAttendance = async (req, res, next) => {
         student: r.student, subject, date: attendanceDate,
         status: r.status, markedBy: req.user._id,
         lectureType: lectureType || 'Theory',
-        remarks: r.remarks || ''
+        remarks: r.remarks || '',
+        selfMarked: false
       };
       if (faculty && faculty._id) updateDoc.faculty = faculty._id;
       if (req.user.collegeId) updateDoc.collegeId = req.user.collegeId;
@@ -55,7 +55,7 @@ const markAttendance = async (req, res, next) => {
     }
 
     return res.status(200).json(new ApiResponse(200, null, `Attendance marked for ${records.length} students`));
-  } catch (error) { 
+  } catch (error) {
     console.error('ATTENDANCE ERROR:', error);
     return res.status(500).json({ success: false, message: error.message, stack: error.stack });
   }
@@ -88,7 +88,7 @@ const getStudentAttendance = async (req, res, next) => {
     // Group by subject
     const summary = {};
     records.forEach(r => {
-      const key = r.subject?._id?.toString();
+      const key = r.subject?._id?.toString() || 'self';
       if (!summary[key]) summary[key] = { subject: r.subject, total: 0, present: 0, absent: 0, late: 0 };
       summary[key].total++;
       if (r.status === 'Present') summary[key].present++;
@@ -122,4 +122,211 @@ const getAttendanceReport = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { markAttendance, getAttendanceBySubjectDate, getStudentAttendance, getAttendanceReport };
+// ─────────────────────────────────────────────────
+// STUDENT SELF ATTENDANCE
+// ─────────────────────────────────────────────────
+
+// POST /attendance/student-checkin
+const studentCheckIn = async (req, res, next) => {
+  try {
+    const { location, selfieBase64 } = req.body;
+
+    // Find the Student profile for this user
+    const student = await Student.findOne({ user: req.user._id })
+      .populate('department', 'name')
+      .populate('course', 'name');
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if already checked in today
+    const existing = await Attendance.findOne({
+      student: student._id,
+      selfMarked: true,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    if (existing && existing.checkInTime) {
+      return res.status(400).json(new ApiResponse(400, null, 'Already checked in today'));
+    }
+
+    const now = new Date();
+
+    let record;
+    if (existing) {
+      existing.checkInTime = now;
+      existing.status = 'Present';
+      if (location) existing.location = location;
+      if (selfieBase64) existing.selfieBase64 = selfieBase64;
+      await existing.save();
+      record = existing;
+    } else {
+      record = await Attendance.create({
+        student: student._id,
+        date: today,
+        status: 'Present',
+        markedBy: req.user._id,
+        collegeId: req.user.collegeId,
+        selfMarked: true,
+        checkInTime: now,
+        location: location || {},
+        selfieBase64: selfieBase64 || ''
+      });
+    }
+
+    // Emit real-time event to admin/faculty rooms
+    const io = req.app.get('io');
+    if (io) {
+      const payload = {
+        type: 'student_checkin',
+        student: {
+          id: student._id,
+          name: student.personalDetails?.fullName,
+          rollNumber: student.rollNumber,
+          department: student.department?.name,
+          course: student.course?.name
+        },
+        checkInTime: now,
+        location: location || {},
+        timestamp: new Date()
+      };
+      // Broadcast to all connected admins/faculty
+      io.emit('student_checkin', payload);
+
+      // Also create a notification for admins
+      try {
+        const Notification = require('../notifications/notification.model');
+        const notification = await Notification.create({
+          recipient: req.user._id,
+          title: 'Student Check-In',
+          message: `${student.personalDetails?.fullName || 'A student'} (${student.rollNumber}) has checked in at ${now.toLocaleTimeString()}`,
+          type: 'System',
+          category: 'Academic',
+          collegeId: req.user.collegeId
+        });
+        io.to(req.user._id.toString()).emit('notification', notification);
+      } catch (notifErr) {
+        console.error('Notification error:', notifErr.message);
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, {
+      checkInTime: now,
+      status: 'Present',
+      recordId: record._id
+    }, 'Check-in successful'));
+  } catch (error) {
+    console.error('STUDENT CHECKIN ERROR:', error);
+    next(error);
+  }
+};
+
+// POST /attendance/student-checkout
+const studentCheckOut = async (req, res, next) => {
+  try {
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const record = await Attendance.findOne({
+      student: student._id,
+      selfMarked: true,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    if (!record || !record.checkInTime) {
+      return res.status(400).json(new ApiResponse(400, null, 'No check-in found for today'));
+    }
+    if (record.checkOutTime) {
+      return res.status(400).json(new ApiResponse(400, null, 'Already checked out today'));
+    }
+
+    const now = new Date();
+    record.checkOutTime = now;
+    await record.save();
+
+    // Emit checkout event
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('student_checkout', {
+        type: 'student_checkout',
+        student: {
+          id: student._id,
+          name: student.personalDetails?.fullName,
+          rollNumber: student.rollNumber
+        },
+        checkOutTime: now,
+        timestamp: new Date()
+      });
+    }
+
+    return res.status(200).json(new ApiResponse(200, {
+      checkOutTime: now,
+      recordId: record._id
+    }, 'Check-out successful'));
+  } catch (error) {
+    console.error('STUDENT CHECKOUT ERROR:', error);
+    next(error);
+  }
+};
+
+// GET /attendance/student-today — Get today's self-attendance status
+const getStudentTodayAttendance = async (req, res, next) => {
+  try {
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const record = await Attendance.findOne({
+      student: student._id,
+      selfMarked: true,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    return res.json(new ApiResponse(200, record || null, 'Today attendance fetched'));
+  } catch (error) { next(error); }
+};
+
+// GET /attendance/admin-live-feed — Admin live self-check-in feed (today)
+const getAdminLiveFeed = async (req, res, next) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const records = await Attendance.find({
+      collegeId: req.user.collegeId,
+      selfMarked: true,
+      date: { $gte: today, $lt: tomorrow }
+    })
+      .populate('student', 'rollNumber personalDetails department course')
+      .populate({ path: 'student', populate: [{ path: 'department', select: 'name' }, { path: 'course', select: 'name' }] })
+      .sort({ checkInTime: -1 })
+      .limit(50);
+
+    return res.json(new ApiResponse(200, records, 'Live feed fetched'));
+  } catch (error) { next(error); }
+};
+
+module.exports = {
+  markAttendance,
+  getAttendanceBySubjectDate,
+  getStudentAttendance,
+  getAttendanceReport,
+  studentCheckIn,
+  studentCheckOut,
+  getStudentTodayAttendance,
+  getAdminLiveFeed
+};

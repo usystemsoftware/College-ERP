@@ -120,7 +120,9 @@ const DashboardLayout = () => {
   } else if (userRole === 'Student') {
     navItems = [
       { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
-      ...navItems,
+      { name: 'Attendance', path: '/student/attendance', icon: Clock },
+      { name: 'Timetable', path: '/timetable', icon: Calendar },
+      { name: 'LMS / Library', path: '/library', icon: BookOpen },
     ];
   } else if (userRole === 'Accountant') {
     navItems = [
@@ -224,15 +226,17 @@ const DashboardLayout = () => {
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* Notification triggers */}
-            <Link to="/notifications" className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-700">
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border border-white dark:border-dark-900">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
+            {/* Notification bell — hidden for students */}
+            {userRole !== 'Student' && (
+              <Link to="/notifications" className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-700">
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border border-white dark:border-dark-900">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* User Dropdown */}
             <div className="relative">

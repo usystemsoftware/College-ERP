@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download } from 'lucide-react';
+import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio, MapPin, User, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSubjects } from '../../api/academic.api';
 import { getStudentsAPI } from '../../api/students.api';
-import { getAttendanceBySubjectDateAPI, markAttendanceAPI } from '../../api/attendance.api';
+import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI } from '../../api/attendance.api';
+import { getSocket } from '../../services/socket';
 
 const mockTrendData = [
   { name: 'Week 1', rate: 95 },
@@ -21,6 +22,11 @@ const AttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Live feed state
+  const [liveFeed, setLiveFeed] = useState([]);
+  const [liveFeedLoading, setLiveFeedLoading] = useState(true);
+  const liveFeedRef = useRef(null);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSubject, setModalSubject] = useState('');
@@ -33,6 +39,20 @@ const AttendancePage = () => {
 
   useEffect(() => {
     fetchSubjects();
+    fetchLiveFeed();
+  }, []);
+
+  // Socket listener for real-time student check-ins
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handler = (data) => {
+      setLiveFeed(prev => [data, ...prev].slice(0, 50));
+      // scroll to top of live feed
+      if (liveFeedRef.current) liveFeedRef.current.scrollTop = 0;
+    };
+    socket.on('student_checkin', handler);
+    return () => socket.off('student_checkin', handler);
   }, []);
 
   useEffect(() => {
@@ -52,6 +72,31 @@ const AttendancePage = () => {
       }
     } catch (error) {
       console.error('Error fetching subjects:', error);
+    }
+  };
+
+  const fetchLiveFeed = async () => {
+    setLiveFeedLoading(true);
+    try {
+      const res = await getAdminLiveFeedAPI();
+      const records = res.data?.data || [];
+      // Normalize to match socket payload shape
+      const normalized = records.map(r => ({
+        type: 'student_checkin',
+        student: {
+          id: r.student?._id,
+          name: r.student?.personalDetails?.fullName,
+          rollNumber: r.student?.rollNumber,
+          department: r.student?.department?.name,
+        },
+        checkInTime: r.checkInTime,
+        location: r.location || {},
+      }));
+      setLiveFeed(normalized);
+    } catch (err) {
+      console.error('Live feed error:', err);
+    } finally {
+      setLiveFeedLoading(false);
     }
   };
 
@@ -186,6 +231,60 @@ const AttendancePage = () => {
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-800">
           <div className="text-sm font-semibold text-slate-500">Total Absent</div>
           <div className="mt-2 text-3xl font-bold text-red-500">{totalStudents - presentCount}</div>
+        </div>
+      </div>
+
+      {/* ─── Live Self Check-In Feed ─── */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-dark-800 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-2">
+            <Radio size={16} className="text-rose-500 animate-pulse" />
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Live Student Self Check-Ins</span>
+            <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/30 px-2 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+              Today · {liveFeed.length}
+            </span>
+          </div>
+          <button onClick={fetchLiveFeed} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-400 transition" title="Refresh">
+            <RefreshCw size={14} />
+          </button>
+        </div>
+        <div ref={liveFeedRef} className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+          {liveFeedLoading ? (
+            <div className="flex items-center justify-center py-8 text-slate-400 text-sm gap-2">
+              <RefreshCw size={14} className="animate-spin" /> Loading feed…
+            </div>
+          ) : liveFeed.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-slate-400 text-sm gap-2">
+              <Radio size={20} className="text-slate-300" />
+              No student self check-ins yet today
+            </div>
+          ) : (
+            liveFeed.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 dark:hover:bg-dark-750/40 transition">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    {entry.student?.name?.charAt(0) || 'S'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{entry.student?.name || 'Unknown'}</p>
+                    <p className="text-xs text-slate-400">{entry.student?.rollNumber} {entry.student?.department ? `· ${entry.student.department}` : ''}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {entry.checkInTime ? new Date(entry.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}
+                  </span>
+                  {entry.location?.latitude ? (
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <MapPin size={10} /> GPS ✓
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">No GPS</span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

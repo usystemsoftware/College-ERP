@@ -88,6 +88,10 @@ connectDB().then(async () => {
     }
   });
 
+  // Inject io to notification service
+  const notificationService = require('./src/services/notification.service');
+  notificationService.setIo(io);
+
   // Socket connection handler
   io.on('connection', (socket) => {
     console.log(`[Socket.io] User connected: ${socket.id}`);

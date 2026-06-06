@@ -4,6 +4,7 @@ const Role = require('../roles/role.model');
 const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const { emitNotification } = require('../../services/notification.service');
 
 // GET all students (with pagination + filters)
 const getStudents = async (req, res, next) => {
@@ -64,6 +65,18 @@ const createStudent = async (req, res, next) => {
       throw new ApiError(400, 'Missing required fields');
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new ApiError(400, 'Invalid email format');
+    }
+
+    // Mobile number validation (10-digit Indian format)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (personalDetails?.phone && !phoneRegex.test(personalDetails.phone)) {
+      throw new ApiError(400, 'Invalid mobile number. Must be a 10-digit number starting with 6-9');
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new ApiError(400, 'Email already exists');
 
@@ -96,20 +109,12 @@ const createStudent = async (req, res, next) => {
         .populate('department', 'name')
         .populate('course', 'name');
 
-      // Send instant notification to the user who added the student
-      const notification = await Notification.create({
-        recipient: req.user._id,
+      await emitNotification({
         title: 'New Student Added',
-        message: `Student ${personalDetails.fullName} (${rollNumber}) has been successfully registered.`,
-        type: 'System',
-        category: 'General',
-        collegeId: collegeId || req.user.collegeId
+        message: `${populated.personalDetails.fullName || 'A new student'} has been added to ${populated.department?.name || 'their department'}`,
+        type: 'Academic',
+        category: 'Academic'
       });
-
-      const io = req.app.get('io');
-      if (io) {
-        io.to(req.user._id.toString()).emit('notification', notification);
-      }
 
       return res.status(201).json(new ApiResponse(201, populated, 'Student created'));
     } catch (err) {
@@ -125,11 +130,37 @@ const createStudent = async (req, res, next) => {
 // PUT update student
 const updateStudent = async (req, res, next) => {
   try {
+    const { email, personalDetails } = req.body;
+
+    // Email format validation (if being updated)
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new ApiError(400, 'Invalid email format');
+      }
+    }
+
+    // Mobile number validation (if being updated)
+    if (personalDetails?.phone !== undefined) {
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(personalDetails.phone)) {
+        throw new ApiError(400, 'Invalid mobile number. Must be a 10-digit number starting with 6-9');
+      }
+    }
+
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name')
       .populate('course', 'name');
     if (!student) throw new ApiError(404, 'Student not found');
+
+    await emitNotification({
+      title: 'Student Updated',
+      message: `${student.personalDetails?.fullName || 'A student'}'s profile was updated`,
+      type: 'Academic',
+      category: 'Academic'
+    });
+
     return res.json(new ApiResponse(200, student, 'Student updated'));
   } catch (error) { next(error); }
 };
@@ -141,6 +172,14 @@ const deleteStudent = async (req, res, next) => {
     if (!student) throw new ApiError(404, 'Student not found');
     await User.findByIdAndDelete(student.user);
     await Student.findByIdAndDelete(req.params.id);
+
+    await emitNotification({
+      title: 'Student Removed',
+      message: `A student record was removed`,
+      type: 'Academic',
+      category: 'General'
+    });
+
     return res.json(new ApiResponse(200, null, 'Student deleted'));
   } catch (error) { next(error); }
 };

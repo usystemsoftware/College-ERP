@@ -5,13 +5,27 @@ const ApiResponse = require('../../utils/apiResponse');
 const getMyNotifications = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const filter = { recipient: req.user._id };
-    if (status) filter.status = status;
+    const filter = { $or: [{ recipient: req.user._id }, { recipient: null }] };
+    
+    // Support filtering by isRead as well
+    if (status) {
+      if (status === 'Unread') filter.$or.forEach(f => { f.isRead = false; f.status = 'Unread'; });
+      else if (status === 'Read') filter.$or.forEach(f => { f.isRead = true; f.status = 'Read'; });
+      else filter.status = status;
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [notifications, total, unread] = await Promise.all([
       Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       Notification.countDocuments(filter),
-      Notification.countDocuments({ recipient: req.user._id, status: 'Unread' })
+      Notification.countDocuments({ 
+        $or: [
+          { recipient: req.user._id, status: 'Unread' },
+          { recipient: req.user._id, isRead: false },
+          { recipient: null, status: 'Unread' },
+          { recipient: null, isRead: false }
+        ]
+      })
     ]);
     return res.json(new ApiResponse(200, { notifications, unreadCount: unread, pagination: { total, pages: Math.ceil(total / parseInt(limit)) } }, 'Notifications fetched'));
   } catch (error) { next(error); }
@@ -20,8 +34,8 @@ const getMyNotifications = async (req, res, next) => {
 const markAsRead = async (req, res, next) => {
   try {
     await Notification.findOneAndUpdate(
-      { _id: req.params.id, recipient: req.user._id },
-      { status: 'Read', readAt: new Date() }
+      { _id: req.params.id },
+      { status: 'Read', isRead: true, readAt: new Date() }
     );
     return res.json(new ApiResponse(200, null, 'Marked as read'));
   } catch (error) { next(error); }
@@ -29,7 +43,10 @@ const markAsRead = async (req, res, next) => {
 
 const markAllAsRead = async (req, res, next) => {
   try {
-    await Notification.updateMany({ recipient: req.user._id, status: 'Unread' }, { status: 'Read', readAt: new Date() });
+    await Notification.updateMany(
+      { $or: [{ recipient: req.user._id }, { recipient: null }], status: 'Unread' },
+      { status: 'Read', isRead: true, readAt: new Date() }
+    );
     return res.json(new ApiResponse(200, null, 'All notifications marked as read'));
   } catch (error) { next(error); }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Phone, MoreVertical, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { Search, Filter, Phone, MoreVertical, Loader2, Edit2, Trash2, CheckCircle2, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import Modal from '../../components/common/Modal';
@@ -13,6 +13,7 @@ const StudentDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editStudentId, setEditStudentId] = useState(null);
+  const [toast, setToast] = useState(null);
   
   // Academic Form Data
   const [departments, setDepartments] = useState([]);
@@ -26,6 +27,11 @@ const StudentDirectory = () => {
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const maxSemesters = selectedCourse ? selectedCourse.durationSemesters : 8;
   const filteredSemesters = semesters.slice(0, maxSemesters);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     dispatch(fetchStudents());
@@ -86,7 +92,9 @@ const StudentDirectory = () => {
     if (window.confirm("Are you sure you want to delete this student?")) {
       dispatch(deleteStudent(id)).then((res) => {
         if (res.error) {
-          alert(res.payload || 'Failed to delete student');
+          showToast(res.payload || 'Failed to delete student', 'error');
+        } else {
+          showToast('Student deleted successfully!');
         }
       });
     }
@@ -120,16 +128,18 @@ const StudentDirectory = () => {
         setIsModalOpen(false);
         setEditStudentId(null);
         reset();
+        showToast(`Student updated successfully! ✅`);
       } else {
-        alert(res.payload || 'Failed to update student');
+        showToast(res.payload || 'Failed to update student', 'error');
       }
     } else {
       const res = await dispatch(createStudent(payload));
       if (!res.error) {
         setIsModalOpen(false);
         reset();
+        showToast(`Student "${data.fullName}" added successfully! 🎉`);
       } else {
-        alert(res.payload || 'Failed to create student');
+        showToast(res.payload || 'Failed to create student', 'error');
       }
     }
   };
@@ -141,6 +151,21 @@ const StudentDirectory = () => {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[9999] flex items-center gap-3 rounded-xl px-5 py-4 shadow-2xl text-sm font-semibold transition-all duration-300 ${
+          toast.type === 'error'
+            ? 'bg-red-600 text-white'
+            : 'bg-emerald-600 text-white'
+        }`}>
+          <CheckCircle2 size={18} />
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 opacity-75 hover:opacity-100">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Student Directory</h1>

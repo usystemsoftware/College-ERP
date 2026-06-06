@@ -10,6 +10,22 @@ const createAssignment = async (req, res, next) => {
     const assignment = await Assignment.create({
       title, description, facultyId, subjectId, batchId, dueDate, totalMarks, attachments, collegeId: req.user.collegeId
     });
+    
+    // We need faculty name and subject name for the notification
+    const populated = await Assignment.findById(assignment._id)
+      .populate('facultyId', 'personalDetails.fullName fullName')
+      .populate('subjectId', 'name');
+
+    const facultyName = populated.facultyId?.fullName || populated.facultyId?.personalDetails?.fullName || 'Faculty';
+    const subjectName = populated.subjectId?.name || 'a subject';
+
+    const { emitNotification } = require('../../services/notification.service');
+    emitNotification({
+      title: 'New Assignment Uploaded',
+      message: `${facultyName} uploaded a new assignment for ${subjectName}`,
+      type: 'Academic',
+      category: 'Academic'
+    });
 
     return res.status(201).json(new ApiResponse(201, { assignment }, 'Assignment created successfully'));
   } catch (error) {

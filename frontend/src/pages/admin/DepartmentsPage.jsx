@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Building, BookOpen, Plus, Search, MoreVertical, Trash2, Edit2, Users, XCircle } from 'lucide-react';
+import { Building, BookOpen, Plus, Search, Trash2, Edit2, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getDepartments, getCourses, createDepartment, createCourse, updateDepartment, updateCourse, deleteDepartment, deleteCourse } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';
 import Modal from '../../components/common/Modal';
 import client from '../../api/client';
 
 const DepartmentsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('departments');
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -56,7 +58,7 @@ const DepartmentsPage = () => {
       if (!payload.hod) {
         payload.hod = null; // or delete payload.hod
       }
-      
+
       if (editMode && deptForm._id) {
         await updateDepartment(deptForm._id, payload);
       } else {
@@ -91,22 +93,22 @@ const DepartmentsPage = () => {
   };
 
   const handleDeleteDept = async (id) => {
-    if(window.confirm('Are you sure you want to delete this department?')) {
+    if (window.confirm('Are you sure you want to delete this department?')) {
       try {
         await deleteDepartment(id);
         fetchData();
-      } catch(error) {
+      } catch (error) {
         alert(error.response?.data?.message || 'Failed to delete');
       }
     }
   };
 
   const handleDeleteCourse = async (id) => {
-    if(window.confirm('Are you sure you want to delete this course?')) {
+    if (window.confirm('Are you sure you want to delete this course?')) {
       try {
         await deleteCourse(id);
         fetchData();
-      } catch(error) {
+      } catch (error) {
         alert(error.response?.data?.message || 'Failed to delete');
       }
     }
@@ -130,7 +132,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const filteredData = activeTab === 'departments' 
+  const filteredData = activeTab === 'departments'
     ? departments.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.code.toLowerCase().includes(searchTerm.toLowerCase()))
     : courses.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.code.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -142,7 +144,7 @@ const DepartmentsPage = () => {
           <p className="text-sm text-slate-500">Manage departments, courses, and programs.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => {
               setEditMode(false);
               if (activeTab === 'departments') {
@@ -163,13 +165,13 @@ const DepartmentsPage = () => {
 
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
         <div className="flex items-center border-b border-slate-200 px-5 dark:border-slate-800">
-          <button 
+          <button
             onClick={() => setActiveTab('departments')}
             className={`flex items-center gap-2 border-b-2 px-4 py-4 text-sm font-medium transition-colors ${activeTab === 'departments' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
             <Building size={16} /> Departments
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('courses')}
             className={`flex items-center gap-2 border-b-2 px-4 py-4 text-sm font-medium transition-colors ${activeTab === 'courses' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
@@ -227,7 +229,7 @@ const DepartmentsPage = () => {
                           <td className="px-6 py-4 font-medium text-brand-600 dark:text-brand-400">{item.code}</td>
                           <td className="px-6 py-4">{item.hod?.fullName || 'Not Assigned'}</td>
                           <td className="px-6 py-4 text-right">
-                            <button 
+                            <button
                               onClick={() => {
                                 setEditMode(true);
                                 setDeptForm({
@@ -237,7 +239,7 @@ const DepartmentsPage = () => {
                                   hod: item.hod?._id || ''
                                 });
                                 setIsDeptModalOpen(true);
-                              }} 
+                              }}
                               className="rounded-lg p-1 text-slate-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 mr-2"
                             >
                               <Edit2 size={16} />
@@ -254,14 +256,14 @@ const DepartmentsPage = () => {
                           <td className="px-6 py-4">{item.department?.name || 'Unknown'}</td>
                           <td className="px-6 py-4">{item.durationSemesters}</td>
                           <td className="px-6 py-4 text-right">
-                            <button 
+                            <button
                               onClick={() => handleViewStudents(item)}
                               title="View Students"
                               className="rounded-lg p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 mr-2"
                             >
                               <Users size={16} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => {
                                 setEditMode(true);
                                 setCourseForm({
@@ -272,7 +274,7 @@ const DepartmentsPage = () => {
                                   durationSemesters: item.durationSemesters
                                 });
                                 setIsCourseModalOpen(true);
-                              }} 
+                              }}
                               className="rounded-lg p-1 text-slate-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 mr-2"
                             >
                               <Edit2 size={16} />
@@ -301,17 +303,56 @@ const DepartmentsPage = () => {
       {/* Add/Edit Department Modal */}
       <Modal isOpen={isDeptModalOpen} onClose={() => setIsDeptModalOpen(false)} title={editMode ? "Edit Department" : "Add Department"} hideFooter={true}>
         <form className="space-y-4 mt-2" onSubmit={handleDeptSubmit}>
+
+          {/* Existing Departments quick-view */}
+          {!editMode && departments.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Existing Departments ({departments.length})
+              </p>
+              <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                {departments.map((dept) => (
+                  <button
+                    key={dept._id}
+                    type="button"
+                    title="Click to view timetable for this department"
+                    onClick={() => {
+                      setIsDeptModalOpen(false);
+                      navigate('/timetable', { state: { departmentId: dept._id, departmentName: dept.name } });
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-900/20 group transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 w-12 items-center justify-center rounded bg-brand-100 text-[10px] font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 flex-shrink-0">
+                        {dept.code}
+                      </span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                        {dept.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[90px]">
+                        {dept.hod?.fullName || 'No HOD'}
+                      </span>
+                      <Calendar size={13} className="text-slate-300 group-hover:text-brand-400 dark:text-slate-600 dark:group-hover:text-brand-400 flex-shrink-0" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
-            <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({...deptForm, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
+            <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
-            <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({...deptForm, code: e.target.value.toUpperCase()})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
+            <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Head of Department (HOD)</label>
-            <select value={deptForm.hod} onChange={(e) => setDeptForm({...deptForm, hod: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+            <select value={deptForm.hod} onChange={(e) => setDeptForm({ ...deptForm, hod: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
               <option value="">Select HOD (Optional)</option>
               {facultyList.map((faculty) => (
                 <option key={faculty._id} value={faculty._id}>{faculty.fullName} ({faculty.employeeId})</option>
@@ -330,15 +371,15 @@ const DepartmentsPage = () => {
         <form className="space-y-4 mt-2" onSubmit={handleCourseSubmit}>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
-            <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({...courseForm, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
+            <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
-            <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({...courseForm, code: e.target.value.toUpperCase()})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
+            <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
-            <select required value={courseForm.department} onChange={(e) => setCourseForm({...courseForm, department: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+            <select required value={courseForm.department} onChange={(e) => setCourseForm({ ...courseForm, department: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
               <option value="">Select Department</option>
               {departments.map((dept) => (
                 <option key={dept._id} value={dept._id}>{dept.name}</option>
@@ -347,7 +388,7 @@ const DepartmentsPage = () => {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
-            <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({...courseForm, durationSemesters: parseInt(e.target.value)})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
+            <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({ ...courseForm, durationSemesters: parseInt(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
           </div>
           <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
             <button type="button" onClick={() => setIsCourseModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800">Cancel</button>
@@ -357,10 +398,10 @@ const DepartmentsPage = () => {
       </Modal>
 
       {/* View Students Modal */}
-      <Modal 
-        isOpen={isStudentsModalOpen} 
-        onClose={() => setIsStudentsModalOpen(false)} 
-        title={`Enrolled Students - ${selectedCourseForStudents?.name}`} 
+      <Modal
+        isOpen={isStudentsModalOpen}
+        onClose={() => setIsStudentsModalOpen(false)}
+        title={`Enrolled Students - ${selectedCourseForStudents?.name}`}
         hideFooter={true}
         maxWidth="max-w-4xl"
       >
@@ -378,9 +419,9 @@ const DepartmentsPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {courseStudents.map(student => (
                 <div key={student._id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-dark-800">
-                  <img 
-                    src={student.user?.profileImage || `https://ui-avatars.com/api/?name=${student.personalDetails?.fullName}&background=random`} 
-                    alt={student.personalDetails?.fullName} 
+                  <img
+                    src={student.user?.profileImage || `https://ui-avatars.com/api/?name=${student.personalDetails?.fullName}&background=random`}
+                    alt={student.personalDetails?.fullName}
                     className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                   />
                   <div className="flex-1 overflow-hidden">

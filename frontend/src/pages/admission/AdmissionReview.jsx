@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
 import client from '../../api/client';
 
+const getBackendUrl = (path) => {
+  const apiUrl = client.defaults.baseURL || 'http://localhost:5050/api';
+  return `${apiUrl.replace('/api', '')}${path}`;
+};
+
 const AdmissionReview = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -177,7 +182,7 @@ const AdmissionReview = () => {
 
       {/* Review Modal */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-dark-900 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Review Application</h2>
@@ -208,17 +213,17 @@ const AdmissionReview = () => {
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Uploaded Documents</h3>
                 <div className="flex gap-4">
                   {selectedApp.documents?.photoUrl && (
-                    <a href={`http://localhost:5050${selectedApp.documents.photoUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                    <a href={getBackendUrl(selectedApp.documents.photoUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
                       <ExternalLink size={16} /> Photo
                     </a>
                   )}
                   {selectedApp.documents?.idProofUrl && (
-                    <a href={`http://localhost:5050${selectedApp.documents.idProofUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                    <a href={getBackendUrl(selectedApp.documents.idProofUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
                       <ExternalLink size={16} /> ID Proof
                     </a>
                   )}
                   {selectedApp.documents?.marksheetUrl && (
-                    <a href={`http://localhost:5050${selectedApp.documents.marksheetUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                    <a href={getBackendUrl(selectedApp.documents.marksheetUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
                       <ExternalLink size={16} /> Marksheet
                     </a>
                   )}

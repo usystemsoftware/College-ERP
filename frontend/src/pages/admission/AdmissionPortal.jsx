@@ -50,9 +50,12 @@ const AdmissionPortal = () => {
       formData.append('phone', data.phone);
       formData.append('dob', data.dob);
       formData.append('gender', data.gender);
+      formData.append('address', data.address);
       
       // Use dynamic ObjectIDs
-      if (formDataList.colleges.length > 0) {
+      if (data.collegeId) {
+        formData.append('collegeId', data.collegeId);
+      } else if (formDataList.colleges.length > 0) {
         formData.append('collegeId', formDataList.colleges[0]._id);
       }
       formData.append('courseId', data.courseId);
@@ -162,6 +165,10 @@ const AdmissionPortal = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
                   <input {...register("phone", { required: true })} type="tel" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
+                  <textarea {...register("address", { required: true })} rows="2" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"></textarea>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date of Birth</label>
                   <input {...register("dob", { required: true })} type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
@@ -186,6 +193,15 @@ const AdmissionPortal = () => {
               </h3>
               
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select College *</label>
+                  <select {...register("collegeId", { required: true })} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                    <option value="">Select a college...</option>
+                    {formDataList.colleges.map(college => (
+                      <option key={college._id} value={college._id}>{college.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Department (Optional filter)</label>
                   <select 

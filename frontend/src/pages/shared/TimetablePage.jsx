@@ -65,6 +65,9 @@ const TimetablePage = () => {
   const userRole    = typeof user?.role === 'object' ? user?.role?.name : user?.role;
   const isAdmin     = ADMIN_ROLES.includes(userRole);
   const isStudent   = userRole === 'Student';
+  const isFaculty   = userRole === 'Faculty';
+  const [viewMode, setViewMode] = useState(isFaculty ? 'my' : 'master');
+  const canViewFilters = isAdmin || (isFaculty && viewMode === 'master');
 
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [schedule,    setSchedule]    = useState([]);
@@ -106,7 +109,7 @@ const TimetablePage = () => {
 
   // ── 1. Boot: fetch academic year, departments, semesters, faculty ────────
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isFaculty) return;
     (async () => {
       try {
         const [yearRes, deptRes, semRes, facRes] = await Promise.all([
@@ -116,7 +119,11 @@ const TimetablePage = () => {
           getFacultyAPI({ limit: 200 }),
         ]);
         if (yearRes.data?.data)          setCurrentAY(yearRes.data.data._id);
-        if (semRes.data?.data)           setAllSemesters(semRes.data.data);
+        if (semRes.data?.data) {
+          setAllSemesters(semRes.data.data);
+          const firstSem = semRes.data.data[0]?._id;
+          if (firstSem) setFilters(p => ({ ...p, semester: firstSem }));
+        }
         if (facRes.data?.data?.faculty)  setAllFaculties(facRes.data.data.faculty);
         if (deptRes.data?.data) {
           setAllDepts(deptRes.data.data);
@@ -127,24 +134,24 @@ const TimetablePage = () => {
         }
       } catch (e) { console.error(e); }
     })();
-  }, [isAdmin]);
+  }, [isAdmin, isFaculty, location.state]);
 
-  // ── 2. Student: auto-load own timetable ──────────────────────────────────
+  // ── 2. Student & Faculty 'my' view: auto-load own timetable ──────────────────────────────────
   useEffect(() => {
-    if (!isStudent) return;
+    if (!isStudent && !(isFaculty && viewMode === 'my')) return;
     (async () => {
       setLoading(true);
       try {
-        const res = await getTimetableAPI({});
+        const res = await getTimetableAPI(isFaculty ? { view: 'my' } : {});
         if (res.data?.data) setSchedule(res.data.data);
       } catch { toast.error('Failed to load timetable'); }
       finally { setLoading(false); }
     })();
-  }, [isStudent]);
+  }, [isStudent, isFaculty, viewMode]);
 
-  // ── 3. Admin view: reload courses when dept changes ──────────────────────
+  // ── 3. Admin/Faculty Master view: reload courses when dept changes ──────────────────────
   useEffect(() => {
-    if (!isAdmin || !filters.department) return;
+    if (!canViewFilters || !filters.department) return;
     (async () => {
       try {
         const res = await get(`/courses?department=${filters.department}`);
@@ -154,11 +161,11 @@ const TimetablePage = () => {
           setFilters(p => ({ ...p, course: list[0]?._id || '' }));
       } catch (e) { console.error(e); }
     })();
-  }, [filters.department, isAdmin]);
+  }, [filters.department, canViewFilters]);
 
-  // ── 4. Admin view: reload timetable when filters change ──────────────────
+  // ── 4. Admin/Faculty Master view: reload timetable when filters change ──────────────────
   useEffect(() => {
-    if (!isAdmin || !filters.department || !filters.semester) return;
+    if (!canViewFilters || !filters.department || !filters.semester) return;
     (async () => {
       setLoading(true);
       try {
@@ -167,7 +174,7 @@ const TimetablePage = () => {
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
-  }, [filters, isAdmin]);
+  }, [filters, canViewFilters]);
 
   // ── 5. Modal: load courses when modal dept changes ───────────────────────
   useEffect(() => {
@@ -441,26 +448,44 @@ const TimetablePage = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {isStudent ? 'My Timetable' : 'Master Timetable'}
+            {(isStudent || (isFaculty && viewMode === 'my')) ? 'My Timetable' : 'Master Timetable'}
           </h1>
           <p className="text-sm text-slate-500">
-            {isStudent
+            {(isStudent || (isFaculty && viewMode === 'my'))
               ? deptLabel ? `${deptLabel} — ${semLabel}` : 'Your class schedule'
               : 'View and manage class schedules across departments.'}
           </p>
         </div>
-        {isAdmin && (
-          <button onClick={() => openModal()}
-            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
-            <Plus size={16} /> Schedule Class
-          </button>
-        )}
+        <div className="flex gap-2">
+          {isFaculty && (
+            <div className="flex bg-slate-100 p-1 rounded-lg dark:bg-dark-800 border border-slate-200 dark:border-slate-700">
+              <button 
+                onClick={() => setViewMode('my')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'my' ? 'bg-white text-brand-600 shadow-sm dark:bg-dark-900 dark:text-brand-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                My Schedule
+              </button>
+              <button 
+                onClick={() => setViewMode('master')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'master' ? 'bg-white text-brand-600 shadow-sm dark:bg-dark-900 dark:text-brand-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                Master
+              </button>
+            </div>
+          )}
+          {isAdmin && (
+            <button onClick={() => openModal()}
+              className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
+              <Plus size={16} /> Schedule Class
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
 
-        {/* Admin view filters */}
-        {isAdmin && (
+        {/* Admin/Master view filters */}
+        {canViewFilters && (
           <div className="flex flex-wrap gap-3 p-4 border-b border-slate-200 dark:border-slate-800 items-center">
             <select value={filters.department} onChange={e => setFilters(p => ({ ...p, department: e.target.value }))}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900">
@@ -483,8 +508,8 @@ const TimetablePage = () => {
           </div>
         )}
 
-        {/* Student info bar */}
-        {isStudent && schedule.length > 0 && (
+        {/* Student/Faculty info bar */}
+        {(isStudent || (isFaculty && viewMode === 'my')) && schedule.length > 0 && (
           <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 px-5 py-3 bg-brand-50/40 dark:bg-brand-900/10">
             <BookOpen size={16} className="text-brand-500" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -495,14 +520,14 @@ const TimetablePage = () => {
           </div>
         )}
 
-        {/* Student — no timetable */}
-        {isStudent && !loading && schedule.length === 0 && (
+        {/* Student/Faculty — no timetable */}
+        {(isStudent || (isFaculty && viewMode === 'my')) && !loading && schedule.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
             <div className="rounded-full bg-slate-100 p-5 dark:bg-dark-800 mb-4">
               <BookOpen size={32} className="text-slate-400" />
             </div>
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No timetable assigned yet</h3>
-            <p className="mt-1 text-sm text-slate-500">Your timetable will appear here once your admin schedules classes for your department.</p>
+            <p className="mt-1 text-sm text-slate-500">Your timetable will appear here once your classes are scheduled.</p>
           </div>
         )}
 

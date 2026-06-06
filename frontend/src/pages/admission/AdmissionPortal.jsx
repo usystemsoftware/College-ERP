@@ -1,16 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, User, GraduationCap, MapPin, Upload, CheckCircle, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import client from '../../api/client';
 
 const AdmissionPortal = () => {
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [referenceId, setReferenceId] = useState('');
+  const [files, setFiles] = useState({
+    photo: null,
+    idProof: null,
+    marksheet: null
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formDataList, setFormDataList] = useState({ colleges: [], departments: [], courses: [] });
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        const response = await client.get('/admission/form-data');
+        if (response.data.success) {
+          setFormDataList(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching form data:', error);
+      }
+    };
+    fetchFormData();
+  }, []);
+  
   const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const onSubmit = (data) => {
-    console.log("Admission Data Submitted:", data);
-    setIsSubmitted(true);
-    // In real app, dispatch to redux or axios post here
+  const handleFileChange = (e, type) => {
+    setFiles({
+      ...files,
+      [type]: e.target.files[0]
+    });
+  };
+
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      // Add personal and academic details
+      formData.append('firstName', data.firstName);
+      formData.append('lastName', data.lastName);
+      formData.append('email', data.email);
+      formData.append('phone', data.phone);
+      formData.append('dob', data.dob);
+      formData.append('gender', data.gender);
+      
+      // Use dynamic ObjectIDs
+      if (formDataList.colleges.length > 0) {
+        formData.append('collegeId', formDataList.colleges[0]._id);
+      }
+      formData.append('courseId', data.courseId);
+
+      // Append files
+      if (files.photo) formData.append('photo', files.photo);
+      if (files.idProof) formData.append('idProof', files.idProof);
+      if (files.marksheet) formData.append('marksheet', files.marksheet);
+
+      const response = await client.post('/admission/apply', formData);
+
+      if (response.data.success) {
+        setIsSubmitted(true);
+        // Assuming the backend returns the application object with an _id
+        setReferenceId(response.data.data?.application?._id || 'APP-SUCCESS');
+      } else {
+        alert(response.data.message || 'Submission failed');
+      }
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      const errorMsg = error.response?.data?.message || 'An error occurred during submission.';
+      alert(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -22,7 +89,7 @@ const AdmissionPortal = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Application Submitted!</h2>
           <p className="text-slate-500 dark:text-slate-400 mb-6">
-            Thank you for applying to the State Institute of Technology. Your application reference number is <span className="font-mono font-bold text-brand-600 dark:text-brand-400">APP-2024-9082</span>. We will notify you via email once your documents are verified.
+            Thank you for applying. Your application reference ID is <span className="font-mono font-bold text-brand-600 dark:text-brand-400">{referenceId}</span>. We will notify you via email once your documents are verified.
           </p>
           <button 
             onClick={() => window.location.href = '/'}
@@ -120,21 +187,27 @@ const AdmissionPortal = () => {
               
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Department</label>
-                  <select {...register("department")} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
-                    <option value="">Select a department...</option>
-                    <option value="CS">Computer Science</option>
-                    <option value="ME">Mechanical Engineering</option>
-                    <option value="BA">Business Administration</option>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Department (Optional filter)</label>
+                  <select 
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                  >
+                    <option value="">All Departments</option>
+                    {formDataList.departments.map(dept => (
+                      <option key={dept._id} value={dept._id}>{dept.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Course</label>
-                  <select {...register("course")} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Course *</label>
+                  <select {...register("courseId", { required: true })} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
                     <option value="">Select a course...</option>
-                    <option value="BTECH-CE">B.Tech Computer Engineering</option>
-                    <option value="BTECH-ME">B.Tech Mechanical</option>
-                    <option value="MBA">Master of Business Administration</option>
+                    {formDataList.courses
+                      .filter(course => !selectedDepartment || course.department === selectedDepartment)
+                      .map(course => (
+                        <option key={course._id} value={course._id}>{course.name} ({course.code})</option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -158,10 +231,13 @@ const AdmissionPortal = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-900 dark:text-white">Passport Size Photo</p>
-                      <p className="text-xs text-slate-500">JPG, PNG</p>
+                      <p className="text-xs text-slate-500">{files.photo ? files.photo.name : 'JPG, PNG'}</p>
                     </div>
                   </div>
-                  <button type="button" className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">Upload</button>
+                  <label className="cursor-pointer text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">
+                    {files.photo ? 'Change' : 'Upload'}
+                    <input type="file" className="hidden" accept="image/jpeg, image/png" onChange={(e) => handleFileChange(e, 'photo')} />
+                  </label>
                 </div>
 
                 <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-dark-800/50">
@@ -171,10 +247,13 @@ const AdmissionPortal = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-900 dark:text-white">Government ID Proof</p>
-                      <p className="text-xs text-slate-500">PDF, JPG</p>
+                      <p className="text-xs text-slate-500">{files.idProof ? files.idProof.name : 'PDF, JPG'}</p>
                     </div>
                   </div>
-                  <button type="button" className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">Upload</button>
+                  <label className="cursor-pointer text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">
+                    {files.idProof ? 'Change' : 'Upload'}
+                    <input type="file" className="hidden" accept="application/pdf, image/jpeg" onChange={(e) => handleFileChange(e, 'idProof')} />
+                  </label>
                 </div>
 
                 <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-dark-800/50">
@@ -183,11 +262,14 @@ const AdmissionPortal = () => {
                       <BookOpen size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Previous Marksheets (12th / Degree)</p>
-                      <p className="text-xs text-slate-500">PDF combined</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">Previous Marksheets</p>
+                      <p className="text-xs text-slate-500">{files.marksheet ? files.marksheet.name : 'PDF combined'}</p>
                     </div>
                   </div>
-                  <button type="button" className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">Upload</button>
+                  <label className="cursor-pointer text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md shadow-sm">
+                    {files.marksheet ? 'Change' : 'Upload'}
+                    <input type="file" className="hidden" accept="application/pdf" onChange={(e) => handleFileChange(e, 'marksheet')} />
+                  </label>
                 </div>
 
               </div>
@@ -217,9 +299,10 @@ const AdmissionPortal = () => {
             ) : (
               <button
                 type="submit"
-                className="px-8 py-2.5 rounded-lg font-semibold text-white bg-brand-600 hover:bg-brand-700 transition shadow-lg shadow-brand-500/30"
+                disabled={isSubmitting}
+                className="px-8 py-2.5 rounded-lg font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 transition shadow-lg shadow-brand-500/30"
               >
-                Submit Application
+                {isSubmitting ? 'Submitting...' : 'Submit Application'}
               </button>
             )}
           </div>

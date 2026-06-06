@@ -1,26 +1,85 @@
-import React, { useState } from 'react';
-import { Search, Filter, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
-
-const mockApplications = [
-  { id: 'APP-1021', name: 'Sarah Connor', course: 'B.Tech Computer Engineering', score: 92, status: 'Pending', date: 'Oct 12, 2023' },
-  { id: 'APP-1022', name: 'John Smith', course: 'B.Tech Mechanical', score: 85, status: 'Reviewed', date: 'Oct 13, 2023' },
-  { id: 'APP-1023', name: 'Emily Davis', course: 'B.Tech Computer Engineering', score: 96, status: 'Approved', date: 'Oct 14, 2023' },
-  { id: 'APP-1024', name: 'Michael Brown', course: 'Master of Business Admin', score: 72, status: 'Rejected', date: 'Oct 15, 2023' },
-  { id: 'APP-1025', name: 'Emma Wilson', course: 'B.Tech Mechanical', score: 88, status: 'Pending', date: 'Oct 15, 2023' },
-];
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Eye, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
+import client from '../../api/client';
 
 const AdmissionReview = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState(null);
+  
+  // For Approval Modal
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [allottedBatchId, setAllottedBatchId] = useState('');
+  const [batches, setBatches] = useState([]);
 
-  const filteredApps = mockApplications.filter(app => {
-    const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) || app.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  useEffect(() => {
+    if (selectedApp?.courseId?._id) {
+      client.get(`/batches?courseId=${selectedApp.courseId._id}`)
+        .then(res => {
+          if (res.data.success) setBatches(res.data.data);
+        })
+        .catch(err => console.error('Error fetching batches', err));
+    } else {
+      setBatches([]);
+    }
+  }, [selectedApp]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [statusFilter]);
+
+  const fetchApplications = async () => {
+    setLoading(true);
+    try {
+      const url = statusFilter !== 'All' ? `/admission/applications?status=${statusFilter}` : '/admission/applications';
+      const response = await client.get(url);
+      if (response.data.success) {
+        setApplications(response.data.data.applications);
+      }
+    } catch (error) {
+      console.error('Error fetching applications', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReviewAction = async (status) => {
+    if (status === 'Approved' && !allottedBatchId) {
+      alert('Please provide an allotted batch ID to approve.');
+      return;
+    }
+    
+    try {
+      const response = await client.put(`/admission/applications/${selectedApp._id}/review`, {
+        status,
+        reviewNotes,
+        allottedBatchId: status === 'Approved' ? allottedBatchId : undefined
+      });
+      
+      if (response.data.success) {
+        alert(`Application ${status} successfully!`);
+        setSelectedApp(null);
+        setReviewNotes('');
+        setAllottedBatchId('');
+        fetchApplications();
+      }
+    } catch (error) {
+      console.error('Error reviewing application', error);
+      alert(error.response?.data?.message || 'Error updating status');
+    }
+  };
+
+  const filteredApps = applications.filter(app => {
+    const searchString = searchTerm.toLowerCase();
+    const nameMatch = `${app.firstName} ${app.lastName}`.toLowerCase().includes(searchString);
+    const idMatch = app._id.toLowerCase().includes(searchString);
+    return nameMatch || idMatch;
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admission Review</h1>
@@ -59,10 +118,6 @@ const AdmissionReview = () => {
               </select>
             </div>
           </div>
-          
-          <button className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md shadow-brand-500/20 transition">
-            Generate Merit List
-          </button>
         </div>
 
         {/* Table */}
@@ -73,46 +128,158 @@ const AdmissionReview = () => {
                 <th className="px-6 py-4">App ID</th>
                 <th className="px-6 py-4">Applicant Name</th>
                 <th className="px-6 py-4">Applied Course</th>
-                <th className="px-6 py-4">Merit Score</th>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredApps.map((app) => (
-                <tr key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50 transition">
-                  <td className="px-6 py-4 font-mono text-brand-600 dark:text-brand-400 font-medium">{app.id}</td>
-                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{app.name}</td>
-                  <td className="px-6 py-4">{app.course}</td>
-                  <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">{app.score}%</td>
-                  <td className="px-6 py-4">{app.date}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      app.status === 'Approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                      app.status === 'Pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                      app.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    }`}>
-                      {app.status === 'Approved' && <CheckCircle size={12} />}
-                      {app.status === 'Pending' && <Clock size={12} />}
-                      {app.status === 'Reviewed' && <Eye size={12} />}
-                      {app.status === 'Rejected' && <XCircle size={12} />}
-                      {app.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium text-sm">
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-8">Loading applications...</td></tr>
+              ) : filteredApps.length === 0 ? (
+                <tr><td colSpan="6" className="text-center py-8">No applications found.</td></tr>
+              ) : (
+                filteredApps.map((app) => (
+                  <tr key={app._id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50 transition">
+                    <td className="px-6 py-4 font-mono text-brand-600 dark:text-brand-400 font-medium">APP-{app._id.slice(-6).toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{app.firstName} {app.lastName}</td>
+                    <td className="px-6 py-4">{app.courseId?.name || 'Unknown Course'}</td>
+                    <td className="px-6 py-4">{new Date(app.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        app.status === 'Approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        app.status === 'Pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                        app.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {app.status === 'Approved' && <CheckCircle size={12} />}
+                        {app.status === 'Pending' && <Clock size={12} />}
+                        {app.status === 'Reviewed' && <Eye size={12} />}
+                        {app.status === 'Rejected' && <XCircle size={12} />}
+                        {app.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => setSelectedApp(app)}
+                        className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium text-sm"
+                      >
+                        Review
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        
       </div>
+
+      {/* Review Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-dark-900 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Review Application</h2>
+              <button onClick={() => setSelectedApp(null)} className="text-slate-400 hover:text-slate-600"><XCircle /></button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-500">Applicant Name</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{selectedApp.firstName} {selectedApp.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Email & Phone</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{selectedApp.email} | {selectedApp.phone}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Gender & DOB</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{selectedApp.gender} | {new Date(selectedApp.dob).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Course Applied</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{selectedApp.courseId?.name}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Uploaded Documents</h3>
+                <div className="flex gap-4">
+                  {selectedApp.documents?.photoUrl && (
+                    <a href={`http://localhost:5050${selectedApp.documents.photoUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                      <ExternalLink size={16} /> Photo
+                    </a>
+                  )}
+                  {selectedApp.documents?.idProofUrl && (
+                    <a href={`http://localhost:5050${selectedApp.documents.idProofUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                      <ExternalLink size={16} /> ID Proof
+                    </a>
+                  )}
+                  {selectedApp.documents?.marksheetUrl && (
+                    <a href={`http://localhost:5050${selectedApp.documents.marksheetUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-dark-800 rounded-lg text-sm text-brand-600 hover:underline">
+                      <ExternalLink size={16} /> Marksheet
+                    </a>
+                  )}
+                  {!selectedApp.documents?.photoUrl && !selectedApp.documents?.idProofUrl && !selectedApp.documents?.marksheetUrl && (
+                    <p className="text-sm text-slate-500">No documents uploaded.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <h3 className="font-semibold text-slate-900 dark:text-white">Admin Action</h3>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Review Notes</label>
+                  <textarea 
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2 text-sm outline-none focus:border-brand-500"
+                    rows="2"
+                    placeholder="Add notes about document verification..."
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Allotted Batch (Required for Approval)</label>
+                  <select 
+                    value={allottedBatchId}
+                    onChange={(e) => setAllottedBatchId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2 text-sm outline-none focus:border-brand-500"
+                  >
+                    <option value="">Select a batch...</option>
+                    {batches.map(b => (
+                      <option key={b._id} value={b._id}>{b.name} ({b.startYear}-{b.endYear})</option>
+                    ))}
+                  </select>
+                  {batches.length === 0 && <p className="text-xs text-amber-500 mt-1">No active batches found for this course. Please create one first.</p>}
+                </div>
+                
+                <div className="flex justify-end gap-3 pt-4">
+                  <button 
+                    onClick={() => handleReviewAction('Rejected')}
+                    className="px-4 py-2 rounded-lg font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 transition"
+                  >
+                    Reject
+                  </button>
+                  <button 
+                    onClick={() => handleReviewAction('Reviewed')}
+                    className="px-4 py-2 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-200 dark:bg-dark-800 dark:hover:bg-dark-700 transition"
+                  >
+                    Mark as Reviewed
+                  </button>
+                  <button 
+                    onClick={() => handleReviewAction('Approved')}
+                    className="px-4 py-2 rounded-lg font-medium text-white bg-green-600 hover:bg-green-700 transition"
+                  >
+                    Approve & Allot Seat
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDepartments, getCourses, createDepartment, createCourse, updateDepartment, updateCourse, deleteDepartment, deleteCourse } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';
 import Modal from '../../components/common/Modal';
+import client from '../../api/client';
 
 const DepartmentsPage = () => {
   const navigate = useNavigate();
@@ -18,6 +19,12 @@ const DepartmentsPage = () => {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
+
+  // View Students Modal
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [selectedCourseForStudents, setSelectedCourseForStudents] = useState(null);
+  const [courseStudents, setCourseStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const [deptForm, setDeptForm] = useState({ _id: null, name: '', code: '', hod: '' });
   const [courseForm, setCourseForm] = useState({ _id: null, name: '', code: '', department: '', durationSemesters: 8 });
@@ -51,7 +58,7 @@ const DepartmentsPage = () => {
       if (!payload.hod) {
         payload.hod = null; // or delete payload.hod
       }
-      
+
       if (editMode && deptForm._id) {
         await updateDepartment(deptForm._id, payload);
       } else {
@@ -86,28 +93,46 @@ const DepartmentsPage = () => {
   };
 
   const handleDeleteDept = async (id) => {
-    if(window.confirm('Are you sure you want to delete this department?')) {
+    if (window.confirm('Are you sure you want to delete this department?')) {
       try {
         await deleteDepartment(id);
         fetchData();
-      } catch(error) {
+      } catch (error) {
         alert(error.response?.data?.message || 'Failed to delete');
       }
     }
   };
 
   const handleDeleteCourse = async (id) => {
-    if(window.confirm('Are you sure you want to delete this course?')) {
+    if (window.confirm('Are you sure you want to delete this course?')) {
       try {
         await deleteCourse(id);
         fetchData();
-      } catch(error) {
+      } catch (error) {
         alert(error.response?.data?.message || 'Failed to delete');
       }
     }
   };
 
-  const filteredData = activeTab === 'departments' 
+  const handleViewStudents = async (course) => {
+    setSelectedCourseForStudents(course);
+    setCourseStudents([]);
+    setIsStudentsModalOpen(true);
+    setLoadingStudents(true);
+    try {
+      const response = await client.get(`/students?course=${course._id}&limit=500`);
+      if (response.data.success) {
+        setCourseStudents(response.data.data.students);
+      }
+    } catch (error) {
+      console.error('Error fetching students for course', error);
+      alert('Failed to fetch students');
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const filteredData = activeTab === 'departments'
     ? departments.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.code.toLowerCase().includes(searchTerm.toLowerCase()))
     : courses.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.code.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -119,7 +144,7 @@ const DepartmentsPage = () => {
           <p className="text-sm text-slate-500">Manage departments, courses, and programs.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => {
               setEditMode(false);
               if (activeTab === 'departments') {
@@ -140,13 +165,13 @@ const DepartmentsPage = () => {
 
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
         <div className="flex items-center border-b border-slate-200 px-5 dark:border-slate-800">
-          <button 
+          <button
             onClick={() => setActiveTab('departments')}
             className={`flex items-center gap-2 border-b-2 px-4 py-4 text-sm font-medium transition-colors ${activeTab === 'departments' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
             <Building size={16} /> Departments
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('courses')}
             className={`flex items-center gap-2 border-b-2 px-4 py-4 text-sm font-medium transition-colors ${activeTab === 'courses' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
@@ -204,7 +229,7 @@ const DepartmentsPage = () => {
                           <td className="px-6 py-4 font-medium text-brand-600 dark:text-brand-400">{item.code}</td>
                           <td className="px-6 py-4">{item.hod?.fullName || 'Not Assigned'}</td>
                           <td className="px-6 py-4 text-right">
-                            <button 
+                            <button
                               onClick={() => {
                                 setEditMode(true);
                                 setDeptForm({
@@ -214,7 +239,7 @@ const DepartmentsPage = () => {
                                   hod: item.hod?._id || ''
                                 });
                                 setIsDeptModalOpen(true);
-                              }} 
+                              }}
                               className="rounded-lg p-1 text-slate-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 mr-2"
                             >
                               <Edit2 size={16} />
@@ -231,7 +256,14 @@ const DepartmentsPage = () => {
                           <td className="px-6 py-4">{item.department?.name || 'Unknown'}</td>
                           <td className="px-6 py-4">{item.durationSemesters}</td>
                           <td className="px-6 py-4 text-right">
-                            <button 
+                            <button
+                              onClick={() => handleViewStudents(item)}
+                              title="View Students"
+                              className="rounded-lg p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 mr-2"
+                            >
+                              <Users size={16} />
+                            </button>
+                            <button
                               onClick={() => {
                                 setEditMode(true);
                                 setCourseForm({
@@ -242,7 +274,7 @@ const DepartmentsPage = () => {
                                   durationSemesters: item.durationSemesters
                                 });
                                 setIsCourseModalOpen(true);
-                              }} 
+                              }}
                               className="rounded-lg p-1 text-slate-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 mr-2"
                             >
                               <Edit2 size={16} />
@@ -312,15 +344,15 @@ const DepartmentsPage = () => {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
-            <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({...deptForm, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
+            <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
-            <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({...deptForm, code: e.target.value.toUpperCase()})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
+            <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Head of Department (HOD)</label>
-            <select value={deptForm.hod} onChange={(e) => setDeptForm({...deptForm, hod: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+            <select value={deptForm.hod} onChange={(e) => setDeptForm({ ...deptForm, hod: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
               <option value="">Select HOD (Optional)</option>
               {facultyList.map((faculty) => (
                 <option key={faculty._id} value={faculty._id}>{faculty.fullName} ({faculty.employeeId})</option>
@@ -339,15 +371,15 @@ const DepartmentsPage = () => {
         <form className="space-y-4 mt-2" onSubmit={handleCourseSubmit}>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
-            <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({...courseForm, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
+            <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
-            <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({...courseForm, code: e.target.value.toUpperCase()})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
+            <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
-            <select required value={courseForm.department} onChange={(e) => setCourseForm({...courseForm, department: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+            <select required value={courseForm.department} onChange={(e) => setCourseForm({ ...courseForm, department: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
               <option value="">Select Department</option>
               {departments.map((dept) => (
                 <option key={dept._id} value={dept._id}>{dept.name}</option>
@@ -356,13 +388,53 @@ const DepartmentsPage = () => {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
-            <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({...courseForm, durationSemesters: parseInt(e.target.value)})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
+            <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({ ...courseForm, durationSemesters: parseInt(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
           </div>
           <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
             <button type="button" onClick={() => setIsCourseModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800">Cancel</button>
             <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{editMode ? 'Update' : 'Save'}</button>
           </div>
         </form>
+      </Modal>
+
+      {/* View Students Modal */}
+      <Modal
+        isOpen={isStudentsModalOpen}
+        onClose={() => setIsStudentsModalOpen(false)}
+        title={`Enrolled Students - ${selectedCourseForStudents?.name}`}
+        hideFooter={true}
+        maxWidth="max-w-4xl"
+      >
+        <div className="pt-2">
+          {loadingStudents ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+            </div>
+          ) : courseStudents.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <Users className="mx-auto h-12 w-12 opacity-20 mb-3" />
+              <p>No students are currently enrolled in this course.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courseStudents.map(student => (
+                <div key={student._id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-dark-800">
+                  <img
+                    src={student.user?.profileImage || `https://ui-avatars.com/api/?name=${student.personalDetails?.fullName}&background=random`}
+                    alt={student.personalDetails?.fullName}
+                    className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                  />
+                  <div className="flex-1 overflow-hidden">
+                    <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">{student.personalDetails?.fullName}</div>
+                    <div className="text-xs text-slate-500 truncate">
+                      Student ID: <span className="font-mono text-slate-600 dark:text-slate-400">{student.enrollmentNumber || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

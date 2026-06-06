@@ -1,20 +1,43 @@
 const Application = require('./application.model');
 const User = require('../users/user.model');
 const Role = require('../roles/role.model');
+const College = require('../colleges/college.model');
+const Department = require('../departments/department.model');
+const Course = require('../courses/course.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const crypto = require('crypto');
 
+// Get initial form data for Admission Portal (Public Route)
+const getAdmissionFormData = async (req, res, next) => {
+  try {
+    const colleges = await College.find({ status: 'Active' }).select('name code');
+    const departments = await Department.find({}).select('name code');
+    const courses = await Course.find({}).select('name code department');
+
+    return res.status(200).json(new ApiResponse(200, { colleges, departments, courses }, 'Form data fetched successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Submit a new application (Public Route)
 const submitApplication = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phone, dob, gender, collegeId, courseId, documents } = req.body;
+    const { firstName, lastName, email, phone, dob, gender, collegeId, courseId } = req.body;
 
     // Check if an application already exists with this email
     const existingApp = await Application.findOne({ email });
     if (existingApp) {
       throw new ApiError(400, 'An application with this email already exists');
     }
+
+    // Process uploaded documents
+    const documents = {
+      photoUrl: req.files?.photo ? `/uploads/admissions/${req.files.photo[0].filename}` : null,
+      idProofUrl: req.files?.idProof ? `/uploads/admissions/${req.files.idProof[0].filename}` : null,
+      marksheetUrl: req.files?.marksheet ? `/uploads/admissions/${req.files.marksheet[0].filename}` : null,
+    };
 
     const application = await Application.create({
       firstName, lastName, email, phone, dob, gender, collegeId, courseId, documents
@@ -72,14 +95,17 @@ const reviewApplication = async (req, res, next) => {
       const studentRole = await Role.findOne({ name: 'Student' });
       
       const tempPassword = `student@${year}`;
-      const newUser = await User.create({
-        email: application.email,
-        password: tempPassword,
-        role: studentRole._id,
-        collegeId: application.collegeId,
-        status: 'Active',
-        isVerified: true
-      });
+      let user = await User.findOne({ email: application.email });
+      if (!user) {
+        user = await User.create({
+          email: application.email,
+          password: tempPassword,
+          role: studentRole._id,
+          collegeId: application.collegeId,
+          status: 'Active',
+          isVerified: true
+        });
+      }
       
       // We should also create a Student Profile here (linking User, Course, Batch), but we will handle that once the Student module is built. For now, the user account is created.
     }
@@ -93,6 +119,7 @@ const reviewApplication = async (req, res, next) => {
 };
 
 module.exports = {
+  getAdmissionFormData,
   submitApplication,
   getApplications,
   reviewApplication

@@ -45,7 +45,29 @@ const getAllFees = async (req, res, next) => {
 // CREATE fee
 const createFee = async (req, res, next) => {
   try {
-    const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId: req.user.collegeId });
+    let collegeId = req.user.collegeId;
+    if (!collegeId) {
+      const student = await Student.findById(req.body.student);
+      if (student) collegeId = student.collegeId;
+    }
+    
+    const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId });
+
+    const Notification = require('../notifications/notification.model');
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Fee Generated',
+      message: `A new fee of ₹${fee.totalAmount} has been generated.`,
+      type: 'System',
+      category: 'Fee',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     return res.status(201).json(new ApiResponse(201, fee, 'Fee created'));
   } catch (error) { next(error); }
 };
@@ -55,9 +77,16 @@ const bulkCreateFees = async (req, res, next) => {
   try {
     const { studentIds, semester, academicYear, feeType, totalAmount, dueDate } = req.body;
     if (!studentIds?.length) throw new ApiError(400, 'Student IDs required');
+    
+    let collegeId = req.user.collegeId;
+    if (!collegeId) {
+      const student = await Student.findById(studentIds[0]);
+      if (student) collegeId = student.collegeId;
+    }
+
     const feeRecords = studentIds.map(studentId => ({
       student: studentId, semester, academicYear, feeType, totalAmount, dueDate,
-      generatedBy: req.user._id, collegeId: req.user.collegeId
+      generatedBy: req.user._id, collegeId
     }));
     const fees = await Fee.insertMany(feeRecords, { ordered: false });
     return res.status(201).json(new ApiResponse(201, { created: fees.length }, `${fees.length} fee records created`));
@@ -84,6 +113,21 @@ const recordPayment = async (req, res, next) => {
     if (fee.paidAmount >= fee.totalAmount) fee.status = 'Paid';
     else if (fee.paidAmount > 0) fee.status = 'Partial';
     await fee.save();
+
+    const Notification = require('../notifications/notification.model');
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Payment Recorded',
+      message: `A payment of ₹${amount} has been successfully recorded for receipt ${payment.receiptNumber}.`,
+      type: 'System',
+      category: 'Fee',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
 
     return res.status(201).json(new ApiResponse(201, { payment, fee }, 'Payment recorded'));
   } catch (error) { next(error); }

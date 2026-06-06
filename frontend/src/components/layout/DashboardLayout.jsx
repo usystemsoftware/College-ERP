@@ -25,6 +25,9 @@ import {
   ChevronDown,
   Building
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
+import { getMyNotifications } from '../../api/notifications.api';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -35,6 +38,42 @@ const DashboardLayout = () => {
   const { unreadCount } = useNotification();
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Initialize socket and fetch initial unread count
+  useEffect(() => {
+    if (user) {
+      initiateSocketConnection(user);
+      
+      const fetchUnreadCount = async () => {
+        try {
+          const res = await getMyNotifications({ status: 'Unread', limit: 1 });
+          if (res?.data?.data?.unreadCount !== undefined) {
+            setUnreadCount(res.data.data.unreadCount);
+          }
+        } catch (error) {
+          console.error('Failed to fetch unread notifications count:', error);
+        }
+      };
+      
+      fetchUnreadCount();
+
+      subscribeToNotifications((notification) => {
+        toast.success(
+          <div>
+            <b>{notification.title}</b>
+            <p className="text-sm">{notification.message}</p>
+          </div>,
+          { duration: 5000 }
+        );
+        setUnreadCount(prev => prev + 1);
+      });
+    }
+
+    return () => {
+      disconnectSocket();
+    };
+  }, [user]);
 
   // Sync dark class on body (initial setup)
   useEffect(() => {

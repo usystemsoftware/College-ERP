@@ -1,4 +1,5 @@
 const Department = require('./department.model');
+const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -44,6 +45,20 @@ const createDepartment = async (req, res, next) => {
       hod: hod || null,
       collegeId: collegeId || req.user.collegeId
     });
+
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Department Created',
+      message: `Department ${name} (${code.toUpperCase()}) has been successfully created.`,
+      type: 'System',
+      category: 'General',
+      collegeId: collegeId || req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
 
     return res.status(201).json(new ApiResponse(201, dept, 'Department created'));
   } catch (error) { next(error); }

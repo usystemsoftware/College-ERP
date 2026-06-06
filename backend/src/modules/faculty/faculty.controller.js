@@ -65,6 +65,21 @@ const createFaculty = async (req, res, next) => {
       collegeId: collegeId || req.user.collegeId
     });
 
+    const Notification = require('../notifications/notification.model');
+    const notification = await Notification.create({
+      recipient: req.user._id,
+      title: 'Faculty Added',
+      message: `Faculty member ${fullName} (${employeeId}) has been successfully added.`,
+      type: 'System',
+      category: 'General',
+      collegeId: req.user.collegeId
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit('notification', notification);
+    }
+
     return res.status(201).json(new ApiResponse(201, faculty, 'Faculty created'));
   } catch (error) { next(error); }
 };

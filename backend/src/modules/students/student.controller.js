@@ -1,6 +1,7 @@
 const Student = require('./student.model');
 const User = require('../users/user.model');
 const Role = require('../roles/role.model');
+const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const { emitNotification } = require('../../services/notification.service');
@@ -9,7 +10,8 @@ const { emitNotification } = require('../../services/notification.service');
 const getStudents = async (req, res, next) => {
   try {
     const { department, course, semester, division, batch, search, page = 1, limit = 20 } = req.query;
-    const filter = { collegeId: req.user.collegeId };
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (department) filter.department = department;
     if (course) filter.course = course;
     if (semester) filter.semester = semester;

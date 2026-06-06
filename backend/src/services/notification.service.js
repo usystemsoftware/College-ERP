@@ -1,4 +1,11 @@
 const nodemailer = require('nodemailer');
+const Notification = require('../modules/notifications/notification.model');
+
+let ioInstance = null;
+
+const setIo = (io) => {
+  ioInstance = io;
+};
 
 // Preconfigured mock transporter or standard transport
 const transporter = nodemailer.createTransport({
@@ -38,8 +45,45 @@ const sendWhatsApp = async (to, message) => {
   return true;
 };
 
+const emitNotification = async ({ title, message, type, category = 'General', recipient = null }) => {
+  try {
+    console.log('[emitNotification] Called with:', { title, message, type, category, recipient });
+    console.log('[emitNotification] ioInstance set?', !!ioInstance);
+
+    const notification = await Notification.create({
+      title,
+      message,
+      type,
+      category,
+      recipient, // Can be null for broadcast
+      isRead: false,
+      status: 'Unread'
+    });
+
+    console.log('[emitNotification] Notification saved to DB:', notification._id);
+
+    if (ioInstance) {
+      if (recipient) {
+        // Emit to specific user if they joined a room with their user ID
+        ioInstance.to(recipient.toString()).emit('new_notification', notification);
+        console.log('[emitNotification] Emitted to room:', recipient.toString());
+      } else {
+        // Broadcast to all connected clients
+        ioInstance.emit('new_notification', notification);
+        console.log('[emitNotification] Broadcast to all clients');
+      }
+    } else {
+      console.warn('[emitNotification] ⚠️  ioInstance is NULL — socket not initialized yet!');
+    }
+  } catch (error) {
+    console.error('[emitNotification] ❌ Failed to emit notification:', error.message, error);
+  }
+};
+
 module.exports = {
+  setIo,
   sendEmail,
   sendSMS,
-  sendWhatsApp
+  sendWhatsApp,
+  emitNotification
 };

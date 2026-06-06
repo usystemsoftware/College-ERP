@@ -50,6 +50,19 @@ const getPlacement = async (req, res, next) => {
 const createPlacement = async (req, res, next) => {
   try {
     const placement = await Placement.create({ ...req.body, postedBy: req.user._id, collegeId: req.user.collegeId });
+    
+    const populated = await Placement.findById(placement._id).populate('company', 'name');
+    const companyName = populated.company?.name || 'A company';
+    const lastDate = placement.lastApplyDate ? new Date(placement.lastApplyDate).toLocaleDateString() : 'the deadline';
+
+    const { emitNotification } = require('../../services/notification.service');
+    emitNotification({
+      title: 'New Placement Drive',
+      message: `${companyName} campus drive registered. Eligible students must apply before ${lastDate}`,
+      type: 'Placement',
+      category: 'Placement'
+    });
+
     return res.status(201).json(new ApiResponse(201, placement, 'Placement drive created'));
   } catch (error) { next(error); }
 };

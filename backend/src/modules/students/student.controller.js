@@ -3,6 +3,7 @@ const User = require('../users/user.model');
 const Role = require('../roles/role.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const { emitNotification } = require('../../services/notification.service');
 
 // GET all students (with pagination + filters)
 const getStudents = async (req, res, next) => {
@@ -94,6 +95,13 @@ const createStudent = async (req, res, next) => {
         .populate('department', 'name')
         .populate('course', 'name');
 
+      await emitNotification({
+        title: 'New Student Added',
+        message: `${populated.personalDetails.fullName || 'A new student'} has been added to ${populated.department?.name || 'their department'}`,
+        type: 'Academic',
+        category: 'Academic'
+      });
+
       return res.status(201).json(new ApiResponse(201, populated, 'Student created'));
     } catch (err) {
       if (user) {
@@ -113,6 +121,14 @@ const updateStudent = async (req, res, next) => {
       .populate('department', 'name')
       .populate('course', 'name');
     if (!student) throw new ApiError(404, 'Student not found');
+
+    await emitNotification({
+      title: 'Student Updated',
+      message: `${student.personalDetails?.fullName || 'A student'}'s profile was updated`,
+      type: 'Academic',
+      category: 'Academic'
+    });
+
     return res.json(new ApiResponse(200, student, 'Student updated'));
   } catch (error) { next(error); }
 };
@@ -124,6 +140,14 @@ const deleteStudent = async (req, res, next) => {
     if (!student) throw new ApiError(404, 'Student not found');
     await User.findByIdAndDelete(student.user);
     await Student.findByIdAndDelete(req.params.id);
+
+    await emitNotification({
+      title: 'Student Removed',
+      message: `A student record was removed`,
+      type: 'Academic',
+      category: 'General'
+    });
+
     return res.json(new ApiResponse(200, null, 'Student deleted'));
   } catch (error) { next(error); }
 };

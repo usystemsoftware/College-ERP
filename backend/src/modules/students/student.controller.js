@@ -65,6 +65,18 @@ const createStudent = async (req, res, next) => {
       throw new ApiError(400, 'Missing required fields');
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new ApiError(400, 'Invalid email format');
+    }
+
+    // Mobile number validation (10-digit Indian format)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (personalDetails?.phone && !phoneRegex.test(personalDetails.phone)) {
+      throw new ApiError(400, 'Invalid mobile number. Must be a 10-digit number starting with 6-9');
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new ApiError(400, 'Email already exists');
 
@@ -118,6 +130,24 @@ const createStudent = async (req, res, next) => {
 // PUT update student
 const updateStudent = async (req, res, next) => {
   try {
+    const { email, personalDetails } = req.body;
+
+    // Email format validation (if being updated)
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new ApiError(400, 'Invalid email format');
+      }
+    }
+
+    // Mobile number validation (if being updated)
+    if (personalDetails?.phone !== undefined) {
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(personalDetails.phone)) {
+        throw new ApiError(400, 'Invalid mobile number. Must be a 10-digit number starting with 6-9');
+      }
+    }
+
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name')

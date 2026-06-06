@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Building, BookOpen, Plus, Search, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Building, BookOpen, Plus, Search, Trash2, Edit2, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getDepartments, getCourses, createDepartment, createCourse, updateDepartment, updateCourse, deleteDepartment, deleteCourse } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';
 import Modal from '../../components/common/Modal';
 
 const DepartmentsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('departments');
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -269,6 +271,45 @@ const DepartmentsPage = () => {
       {/* Add/Edit Department Modal */}
       <Modal isOpen={isDeptModalOpen} onClose={() => setIsDeptModalOpen(false)} title={editMode ? "Edit Department" : "Add Department"} hideFooter={true}>
         <form className="space-y-4 mt-2" onSubmit={handleDeptSubmit}>
+
+          {/* Existing Departments quick-view */}
+          {!editMode && departments.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Existing Departments ({departments.length})
+              </p>
+              <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                {departments.map((dept) => (
+                  <button
+                    key={dept._id}
+                    type="button"
+                    title="Click to view timetable for this department"
+                    onClick={() => {
+                      setIsDeptModalOpen(false);
+                      navigate('/timetable', { state: { departmentId: dept._id, departmentName: dept.name } });
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-900/20 group transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 w-12 items-center justify-center rounded bg-brand-100 text-[10px] font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 flex-shrink-0">
+                        {dept.code}
+                      </span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                        {dept.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[90px]">
+                        {dept.hod?.fullName || 'No HOD'}
+                      </span>
+                      <Calendar size={13} className="text-slate-300 group-hover:text-brand-400 dark:text-slate-600 dark:group-hover:text-brand-400 flex-shrink-0" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
             <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({...deptForm, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />

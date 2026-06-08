@@ -46,6 +46,8 @@ const AttendancePage = () => {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrToken, setQrToken] = useState('');
   const [generatingQR, setGeneratingQR] = useState(false);
+  const [qrTimeLeft, setQrTimeLeft] = useState(0);
+  const [isLateQR, setIsLateQR] = useState(false);
 
   // Send QR Modal State
   const [sendQRModalOpen, setSendQRModalOpen] = useState(false);
@@ -250,7 +252,7 @@ const AttendancePage = () => {
     }
   };
 
-  const handleGenerateQR = async () => {
+  const handleGenerateQR = async (isLate = false) => {
     if (!subject || !date) {
       toast.error('Please select a subject and date first');
       return;
@@ -260,17 +262,52 @@ const AttendancePage = () => {
       const res = await generateQRAPI({
         subject: subject,
         date: date,
-        lectureType: 'Theory'
+        lectureType: 'Theory',
+        isLate: isLate === true
       });
-      setQrToken(res.data.data.token);
+      const newToken = res.data.data.token;
+      setQrToken(newToken);
+      setIsLateQR(isLate === true);
+      setQrTimeLeft(res.data.data.expiresIn || 600);
       setQrModalOpen(true);
-      toast.success('QR Token generated');
+      toast.success(isLate ? 'Late QR Token generated' : 'QR Token generated');
+
+      if (isLate === true && sentFacultyIds.length > 0) {
+        await sendQRToStudentsAPI({
+          qrSessionId: newToken,
+          subjectId: subject,
+          facultyIds: sentFacultyIds
+        });
+        toast.success(`Late QR auto-pushed to ${sentFacultyIds.length} faculty and class.`);
+      }
     } catch (error) {
       toast.error('Failed to generate QR Code. ' + (error.response?.data?.message || error.message));
     } finally {
       setGeneratingQR(false);
     }
   };
+
+  useEffect(() => {
+    let interval;
+    if (qrModalOpen && qrTimeLeft > 0) {
+      interval = setInterval(() => {
+        setQrTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            if (!isLateQR) {
+              handleGenerateQR(true);
+            } else {
+              toast.error('Late Check-in Window Expired');
+              setQrModalOpen(false);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [qrModalOpen, qrTimeLeft, isLateQR]); // Add dependencies to keep closure fresh
 
   const handleSendQRToStudents = async () => {
     if (selectedFacultyIds.length === 0) {
@@ -630,33 +667,45 @@ const AttendancePage = () => {
       {/* QR Modal */}
       <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Lecture QR Attendance">
         <div className="flex flex-col items-center justify-center p-6 space-y-6">
-          <div className="w-full bg-brand-50 text-brand-700 border border-brand-200 rounded-lg p-3 text-sm flex items-start gap-3 dark:bg-brand-900/30 dark:border-brand-800/50 dark:text-brand-300">
+          <div className={`w-full ${isLateQR ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800/50 dark:text-amber-300' : 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-900/30 dark:border-brand-800/50 dark:text-brand-300'} border rounded-lg p-3 text-sm flex items-start gap-3`}>
             <CheckCircle className="shrink-0 mt-0.5" size={18} />
             <p>
-              <strong className="block mb-1 text-brand-800 dark:text-brand-200">You have received this active QR from the Superadmin!</strong>
-              Display this QR code to your students. They can scan it from their portal to instantly mark their attendance for this session.
+              <strong className={`block mb-1 ${isLateQR ? 'text-amber-800 dark:text-amber-200' : 'text-brand-800 dark:text-brand-200'}`}>
+                {isLateQR ? 'Late Check-in Window Active!' : 'You have received this active QR from the Superadmin!'}
+              </strong>
+              {isLateQR 
+                ? 'Students scanning this QR will be marked as Late. Display this QR code to your students.' 
+                : 'Display this QR code to your students. They can scan it from their portal to instantly mark their attendance for this session.'}
             </p>
           </div>
-          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className={`p-4 bg-white rounded-xl shadow-sm border ${isLateQR ? 'border-amber-300 shadow-amber-100 dark:border-amber-700 dark:shadow-none' : 'border-slate-200'}`}>
             {qrToken && (
               <QRCodeSVG
                 value={qrToken}
                 size={256}
                 level="H"
                 includeMargin={true}
+                fgColor={isLateQR ? "#d97706" : "#000000"}
               />
             )}
           </div>
           <div className="w-full rounded-lg bg-slate-50 p-4 border border-slate-100 dark:bg-dark-800 dark:border-slate-700">
             <div className="flex items-center gap-3">
-              <QrCode className="text-brand-500" size={24} />
+              <QrCode className={isLateQR ? "text-amber-500" : "text-brand-500"} size={24} />
               <div className="flex-1">
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Session</h4>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{isLateQR ? 'Late Session' : 'Active Session'}</h4>
                 <p className="text-xs text-slate-500">Date: {date} | Subject: {subjects.find(s => s._id === subject)?.name}</p>
+              </div>
+              <div className="flex flex-col items-end mr-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expires In</span>
+                <span className="text-lg font-bold text-rose-500 flex items-center gap-1">
+                  <Clock size={16} /> 
+                  {Math.floor(qrTimeLeft / 60).toString().padStart(2, '0')}:{(qrTimeLeft % 60).toString().padStart(2, '0')}
+                </span>
               </div>
               <button
                 onClick={() => setSendQRModalOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-brand-500 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${isLateQR ? 'border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'border-brand-500 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30'}`}
               >
                 <Send size={16} />
                 Push to Class

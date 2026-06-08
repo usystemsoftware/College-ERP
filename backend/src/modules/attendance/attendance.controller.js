@@ -467,7 +467,7 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
 // POST /attendance/qr/generate
 const generateQRToken = async (req, res, next) => {
   try {
-    const { subject, date, lectureType } = req.body;
+    const { subject, date, lectureType, isLate } = req.body;
     if (!subject || !date) throw new ApiError(400, 'Subject and date required');
 
     const faculty = await require('../faculty/faculty.model').findOne({ user: req.user._id });
@@ -483,6 +483,7 @@ const generateQRToken = async (req, res, next) => {
       facultyId,
       collegeId: req.user.collegeId,
       sessionId,
+      isLate: isLate === true,
       type: 'lecture_qr'
     };
 
@@ -570,7 +571,7 @@ const markQRAttendance = async (req, res, next) => {
       student: student._id,
       subject: decoded.subject,
       date: attendanceDate,
-      status: 'Present',
+      status: decoded.isLate ? 'Late' : 'Present',
       markedBy: req.user._id, // the student themselves
       lectureType: decoded.lectureType,
       selfMarked: true,

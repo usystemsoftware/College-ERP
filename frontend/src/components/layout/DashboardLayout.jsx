@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../features/auth/authSlice';
@@ -39,6 +39,25 @@ const DashboardLayout = () => {
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const hoverTimeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
 
   // Initialize socket and fetch initial unread count
   useEffect(() => {
@@ -146,21 +165,22 @@ const DashboardLayout = () => {
 
       {/* Sidebar Section */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden border-r border-slate-200 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-dark-800 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isHovered ? 'lg:w-64' : 'lg:w-20'}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-6 bg-transparent dark:bg-transparent">
+        <div className={`flex h-16 items-center transition-all duration-300 ${isHovered || sidebarOpen ? 'justify-between px-6' : 'justify-center lg:px-0 px-6'} bg-transparent dark:bg-transparent`}>
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-lg">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-lg">
               Ω
             </div>
-            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-brand-500 to-indigo-500 bg-clip-text text-transparent">
+            <span className={`font-extrabold text-xl whitespace-nowrap tracking-tight bg-gradient-to-r from-brand-500 to-indigo-500 bg-clip-text text-transparent transition-all duration-300 ${isHovered || sidebarOpen ? 'opacity-100 w-auto' : 'lg:opacity-0 lg:w-0 overflow-hidden'}`}>
               COLL-ERP
             </span>
           </div>
           <button
-            className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
+            className="rounded-lg shrink-0 p-1.5 hover:bg-slate-100 dark:hover:bg-dark-700 lg:hidden"
             onClick={() => dispatch(setSidebarOpen(false))}
           >
             <X size={18} />
@@ -168,7 +188,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -176,27 +196,33 @@ const DashboardLayout = () => {
               <Link
                 key={item.name}
                 to={item.path}
+                title={(!isHovered && !sidebarOpen) ? item.name : undefined}
                 onClick={() => dispatch(setSidebarOpen(false))}
                 className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${isActive
                     ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-700/50 dark:hover:text-white'
                   }`}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'} />
-                {item.name}
+                <Icon size={18} className={`shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                <span className={`whitespace-nowrap transition-all duration-300 ${isHovered || sidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:w-0'}`}>
+                  {item.name}
+                </span>
               </Link>
             );
           })}
         </nav>
 
         {/* Footer actions */}
-        <div className="border-t border-slate-200 p-4 dark:border-slate-800">
+        <div className="border-t border-slate-200 p-4 dark:border-slate-800 overflow-hidden">
           <button
             onClick={handleLogout}
+            title={(!isHovered && !sidebarOpen) ? 'Sign Out' : undefined}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20"
           >
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={18} className="shrink-0" />
+            <span className={`whitespace-nowrap transition-all duration-300 ${isHovered || sidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:w-0'}`}>
+              Sign Out
+            </span>
           </button>
         </div>
       </aside>

@@ -5,6 +5,7 @@ const Faculty = require('../faculty/faculty.model');
 const Timetable = require('../timetables/timetable.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const jwt = require('jsonwebtoken');
 
 // Mark attendance (bulk) — Faculty/Admin
 const markAttendance = async (req, res, next) => {

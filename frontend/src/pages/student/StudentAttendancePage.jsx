@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import {
   MapPin, Camera, CheckCircle, Clock, LogIn, LogOut,
-  RefreshCw, Shield, AlertTriangle, Loader2, User, Calendar, Wifi
+  RefreshCw, Shield, AlertTriangle, Loader2, User, Calendar, Wifi, QrCode
 } from 'lucide-react';
-import { studentCheckInAPI, studentCheckOutAPI, getStudentTodayAPI } from '../../api/attendance.api';
+import { studentCheckInAPI, studentCheckOutAPI, getStudentTodayAPI, markQRAttendanceAPI } from '../../api/attendance.api';
 import { toast } from 'react-hot-toast';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import Modal from '../../components/common/Modal';
 
 // ─── Utilities ────────────────────────────────────
 const formatTime = (date) => {
@@ -45,6 +47,10 @@ const StudentAttendancePage = () => {
   const [loadingToday, setLoadingToday] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+
+  // QR Scanner state
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   // ── Fetch today's status ─────────────────────────
   const fetchTodayStatus = useCallback(async () => {
@@ -170,6 +176,23 @@ const StudentAttendancePage = () => {
     }
   };
 
+  // ── QR Scanner Handler ───────────────────────────
+  const handleQRScan = async (result) => {
+    if (!result || !result[0] || !result[0].rawValue) return;
+    const token = result[0].rawValue;
+    setScanning(true);
+    try {
+      await markQRAttendanceAPI({ token });
+      toast.success('✅ Lecture attendance marked via QR!');
+      setQrScannerOpen(false);
+      await fetchTodayStatus(); // Optionally refresh today's status or another specific lecture list
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to verify QR Code.');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const canCheckIn = location && capturedPhoto && !todayRecord?.checkInTime;
   const hasCheckedIn = !!todayRecord?.checkInTime;
   const hasCheckedOut = !!todayRecord?.checkOutTime;
@@ -188,9 +211,17 @@ const StudentAttendancePage = () => {
             Daily log with Location &amp; Photo verification.
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-700 dark:bg-dark-800">
-          <Calendar size={16} className="text-brand-500" />
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{formatDate()}</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setQrScannerOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-violet-500/30 hover:bg-violet-700 transition"
+          >
+            <QrCode size={16} /> Scan Lecture QR
+          </button>
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-700 dark:bg-dark-800">
+            <Calendar size={16} className="text-brand-500" />
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{formatDate()}</span>
+          </div>
         </div>
       </div>
 
@@ -484,6 +515,29 @@ const StudentAttendancePage = () => {
           </p>
         </div>
       </div>
+
+      {/* ── QR Scanner Modal ── */}
+      <Modal isOpen={qrScannerOpen} onClose={() => setQrScannerOpen(false)} title="Scan Lecture QR Code">
+        <div className="flex flex-col items-center justify-center p-6 space-y-4">
+          <p className="text-sm text-center text-slate-500 dark:text-slate-400">
+            Point your camera at the QR code displayed by your faculty to instantly mark your attendance for this lecture.
+          </p>
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-black border border-slate-200 dark:border-slate-700">
+            {qrScannerOpen && !scanning && (
+              <Scanner
+                onScan={handleQRScan}
+                onError={(err) => console.log('QR Scanner Error:', err)}
+              />
+            )}
+            {scanning && (
+              <div className="h-64 flex flex-col items-center justify-center text-white space-y-3">
+                <Loader2 className="animate-spin" size={32} />
+                <p>Verifying Attendance...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -27,6 +27,7 @@ const getTimetable = async (req, res, next) => {
         .populate('faculty', 'fullName employeeId')
         .populate('semester', 'name')
         .populate('department', 'name code')
+        .populate('course', 'name code')
         .sort({ dayOfWeek: 1, startTime: 1 });
 
       return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
@@ -48,6 +49,7 @@ const getTimetable = async (req, res, next) => {
         .populate('faculty', 'fullName employeeId')
         .populate('semester', 'name')
         .populate('department', 'name code')
+        .populate('course', 'name code')
         .sort({ dayOfWeek: 1, startTime: 1 });
 
       return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
@@ -69,6 +71,7 @@ const getTimetable = async (req, res, next) => {
       .populate('faculty', 'fullName employeeId')
       .populate('semester', 'name')
       .populate('department', 'name code')
+      .populate('course', 'name code')
       .sort({ dayOfWeek: 1, startTime: 1 });
 
     return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));

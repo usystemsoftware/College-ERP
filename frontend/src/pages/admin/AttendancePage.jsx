@@ -142,7 +142,7 @@ const AttendancePage = () => {
         studentList = res.data?.data?.students || [];
       }
       setStudents(studentList);
-      
+
       const initialStatus = {};
       studentList.forEach(s => {
         initialStatus[s._id] = 'Present'; // default to Present
@@ -220,8 +220,8 @@ const AttendancePage = () => {
   const totalStudents = attendanceRecords.length;
   const presentCount = attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
   const overallRate = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : 0;
-  
-  const filteredRecords = attendanceRecords.filter(r => 
+
+  const filteredRecords = attendanceRecords.filter(r =>
     r.student?.personalDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.student?.rollNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -238,15 +238,15 @@ const AttendancePage = () => {
             <Download size={16} />
             Export Report
           </button>
-          <button 
+          <button
             onClick={handleGenerateQR}
             disabled={generatingQR}
             className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-800/30 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/40 transition disabled:opacity-50"
           >
-            {generatingQR ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />} 
+            {generatingQR ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
             Generate QR
           </button>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
           >
@@ -331,14 +331,14 @@ const AttendancePage = () => {
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
           <div className="flex flex-col sm:flex-row gap-4 border-b border-slate-200 p-5 dark:border-slate-800 sm:items-center justify-between">
             <div className="flex gap-4 items-center">
-              <input 
-                type="date" 
-                value={date} 
+              <input
+                type="date"
+                value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white"
               />
-              <select 
-                value={subject} 
+              <select
+                value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white"
               >
@@ -349,16 +349,16 @@ const AttendancePage = () => {
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search student..." 
+              <input
+                type="text"
+                placeholder="Search student..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-48 rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                className="w-48 rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white"
               />
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 dark:bg-dark-850 dark:text-slate-400">
@@ -381,11 +381,10 @@ const AttendancePage = () => {
                       <td className="px-6 py-4 dark:text-slate-300">{record.student?.rollNumber}</td>
                       <td className="px-6 py-4 dark:text-slate-300">{record.lectureType}</td>
                       <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          record.status === 'Present' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
-                          record.status === 'Late' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
-                        }`}>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${record.status === 'Present' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
+                            record.status === 'Late' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400' :
+                              'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                          }`}>
                           {record.status}
                         </span>
                       </td>
@@ -405,8 +404,8 @@ const AttendancePage = () => {
               <AreaChart data={mockTrendData}>
                 <defs>
                   <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -430,11 +429,11 @@ const AttendancePage = () => {
                 <XCircle size={24} />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Subject</label>
-                <select 
+                <select
                   value={modalSubject}
                   onChange={(e) => setModalSubject(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-dark-900 dark:text-white"
@@ -446,7 +445,7 @@ const AttendancePage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
-                <input 
+                <input
                   type="date"
                   value={modalDate}
                   onChange={(e) => setModalDate(e.target.value)}
@@ -455,7 +454,7 @@ const AttendancePage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Lecture Type</label>
-                <select 
+                <select
                   value={modalLectureType}
                   onChange={(e) => setModalLectureType(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-dark-900 dark:text-white"
@@ -490,31 +489,28 @@ const AttendancePage = () => {
                           <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-1 bg-slate-50 dark:bg-dark-900 gap-1">
                             <button
                               onClick={() => handleStatusChange(student._id, 'Present')}
-                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                                attendanceStatus[student._id] === 'Present' 
-                                  ? 'bg-green-500 text-white shadow-sm' 
+                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${attendanceStatus[student._id] === 'Present'
+                                  ? 'bg-green-500 text-white shadow-sm'
                                   : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                              }`}
+                                }`}
                             >
                               Present
                             </button>
                             <button
                               onClick={() => handleStatusChange(student._id, 'Absent')}
-                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                                attendanceStatus[student._id] === 'Absent' 
-                                  ? 'bg-red-500 text-white shadow-sm' 
+                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${attendanceStatus[student._id] === 'Absent'
+                                  ? 'bg-red-500 text-white shadow-sm'
                                   : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                              }`}
+                                }`}
                             >
                               Absent
                             </button>
                             <button
                               onClick={() => handleStatusChange(student._id, 'Late')}
-                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                                attendanceStatus[student._id] === 'Late' 
-                                  ? 'bg-yellow-500 text-white shadow-sm' 
+                              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${attendanceStatus[student._id] === 'Late'
+                                  ? 'bg-yellow-500 text-white shadow-sm'
                                   : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                              }`}
+                                }`}
                             >
                               Late
                             </button>
@@ -528,13 +524,13 @@ const AttendancePage = () => {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={submitAttendance}
                 disabled={isSubmitting || students.length === 0}
                 className="rounded-lg bg-brand-500 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50 flex items-center gap-2"
@@ -544,22 +540,22 @@ const AttendancePage = () => {
             </div>
           </div>
         </div>
-      , document.body)}
+        , document.body)}
 
       {/* QR Modal */}
       <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Lecture QR Attendance">
         <div className="flex flex-col items-center justify-center p-6 space-y-6">
           <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            Ask students to scan this QR code from their portal to instantly mark their attendance. 
+            Ask students to scan this QR code from their portal to instantly mark their attendance.
             This code will expire in 10 minutes.
           </p>
           <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
             {qrToken && (
-              <QRCodeSVG 
-                value={qrToken} 
-                size={256} 
-                level="H" 
-                includeMargin={true} 
+              <QRCodeSVG
+                value={qrToken}
+                size={256}
+                level="H"
+                includeMargin={true}
               />
             )}
           </div>

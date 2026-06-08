@@ -15,5 +15,7 @@ export const getAdminLiveFeedAPI = () => api.get('/attendance/admin-live-feed');
 
 // QR Attendance
 export const generateQRAPI = (data) => api.post('/attendance/qr/generate', data);
+export const verifyQRTokenAPI = (data) => api.post('/attendance/qr/verify', data);
 export const markQRAttendanceAPI = (data) => api.post('/attendance/qr/mark', data);
 export const sendQRToFacultyAPI = (data) => api.post('/attendance/qr/send-to-faculty', data);
+export const sendQRToStudentsAPI = (data) => api.post('/attendance/qr/send-to-students', data);

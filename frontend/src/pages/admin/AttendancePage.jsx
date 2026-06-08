@@ -4,7 +4,8 @@ import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio,
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSubjects } from '../../api/academic.api';
 import { getStudentsAPI } from '../../api/students.api';
-import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI, sendQRToFacultyAPI } from '../../api/attendance.api';
+import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI, sendQRToStudentsAPI } from '../../api/attendance.api';
+import { getFacultyAPI } from '../../api/faculty.api';
 import { getSocket } from '../../services/socket';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
@@ -17,16 +18,6 @@ const mockTrendData = [
   { name: 'Week 4', rate: 94 },
 ];
 
-const dummyFacultyList = [
-  { id: "f1", name: "Dr. Priya Sharma", dept: "CSE", subject: "DBMS", online: true },
-  { id: "f2", name: "Prof. Rajan Mehta", dept: "IT", subject: "CN", online: false },
-  { id: "f3", name: "Dr. Sneha Patil", dept: "CSE", subject: "OS", online: true },
-  { id: "f4", name: "Prof. Amit Kulkarni", dept: "MECH", subject: "Thermodynamics", online: false },
-  { id: "f5", name: "Dr. Neha Joshi", dept: "ECE", subject: "VLSI", online: true },
-  { id: "f6", name: "Prof. Sanjay Desai", dept: "CIVIL", subject: "Structures", online: false },
-  { id: "f7", name: "Dr. Pooja Rane", dept: "IT", subject: "Web Tech", online: true },
-  { id: "f8", name: "Prof. Vikas More", dept: "CSE", subject: "AI/ML", online: true }
-];
 
 const AttendancePage = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -65,11 +56,22 @@ const AttendancePage = () => {
   const [sendMessage, setSendMessage] = useState('');
   const [sendingQR, setSendingQR] = useState(false);
   const [sentFacultyIds, setSentFacultyIds] = useState([]);
+  const [facultyList, setFacultyList] = useState([]);
 
   useEffect(() => {
     fetchSubjects();
     fetchLiveFeed();
+    fetchFaculties();
   }, []);
+
+  const fetchFaculties = async () => {
+    try {
+      const res = await getFacultyAPI({ limit: 1000 });
+      setFacultyList(res.data?.data?.faculty || []);
+    } catch (err) {
+      console.error('Error fetching faculties:', err);
+    }
+  };
 
   // Socket listener for real-time student check-ins
   useEffect(() => {
@@ -237,23 +239,23 @@ const AttendancePage = () => {
     }
   };
 
-  const handleSendQRToFaculty = async () => {
-    if (selectedFacultyIds.length === 0) return;
+  const handleSendQRToStudents = async () => {
+    if (selectedFacultyIds.length === 0) {
+      toast.error('Please select at least one faculty');
+      return;
+    }
     setSendingQR(true);
     try {
-      await sendQRToFacultyAPI({
+      const res = await sendQRToStudentsAPI({
         qrSessionId: qrToken,
-        facultyIds: selectedFacultyIds,
-        sendMethod,
-        message: sendMessage
+        subjectId: subject,
+        facultyIds: selectedFacultyIds
       });
-      toast.success(`✅ QR sent to ${selectedFacultyIds.length} faculty members via ${sendMethod === 'both' ? 'Portal & Email' : sendMethod === 'portal' ? 'Portal' : 'Email'}`);
+      toast.success(`✅ QR pushed to ${res.data.data.sentTo} students`);
       setSentFacultyIds(prev => [...prev, ...selectedFacultyIds]);
       setSelectedFacultyIds([]);
-      setSendMessage('');
-      setSendQRModalOpen(false);
     } catch (error) {
-      toast.error('Failed to send QR: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to push QR: ' + (error.response?.data?.message || error.message));
     } finally {
       setSendingQR(false);
     }
@@ -269,10 +271,12 @@ const AttendancePage = () => {
     r.student?.rollNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredFaculty = dummyFacultyList.filter(f => 
-    (facultyDeptFilter === 'All' || f.dept === facultyDeptFilter) &&
-    (f.name.toLowerCase().includes(facultySearch.toLowerCase()) || f.dept.toLowerCase().includes(facultySearch.toLowerCase()))
-  );
+  const filteredFaculty = facultyList.filter(f => {
+    const deptName = f.department?.name || 'General';
+    const fName = f.fullName || 'Unknown Faculty';
+    return (facultyDeptFilter === 'All' || deptName === facultyDeptFilter) &&
+           (fName.toLowerCase().includes(facultySearch.toLowerCase()) || deptName.toLowerCase().includes(facultySearch.toLowerCase()));
+  });
 
   return (
     <div className="space-y-6">
@@ -623,19 +627,21 @@ const AttendancePage = () => {
                 className="flex items-center gap-2 rounded-lg border border-brand-500 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
               >
                 <Send size={16} />
-                Send to Faculty
+                Push to Class
               </button>
             </div>
           </div>
         </div>
       </Modal>
 
-      {/* Send QR to Faculty Modal */}
-      <Modal isOpen={sendQRModalOpen} onClose={() => setSendQRModalOpen(false)} title="Send QR to Faculty">
+      {/* Push QR to Class Modal */}
+      <Modal isOpen={sendQRModalOpen} onClose={() => setSendQRModalOpen(false)} title="Push QR to Class">
         <div className="p-6 flex flex-col max-h-[85vh]">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Select faculty members to receive this QR code for attendance.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Select faculty members to push this QR to their enrolled students in real-time.
+          </p>
           
-          {/* Section 1 — Lecture Info Card */}
+          {/* Lecture Info Card */}
           <div className="flex items-center justify-between p-3 mb-6 bg-slate-50 border border-slate-200 rounded-lg dark:bg-dark-800 dark:border-slate-700">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lecture Session</p>
@@ -691,71 +697,42 @@ const AttendancePage = () => {
             </div>
 
             <div className="overflow-y-auto max-h-[300px] border border-slate-200 rounded-lg divide-y divide-slate-100 dark:border-slate-700 dark:divide-slate-800">
-              {filteredFaculty.map(faculty => (
-                <label key={faculty.id} className="flex items-center p-3 hover:bg-slate-50 dark:hover:bg-dark-750/50 cursor-pointer transition-colors">
+              {filteredFaculty.map(faculty => {
+                const fName = faculty.fullName || 'Unknown Faculty';
+                const deptName = faculty.department?.name || 'General';
+                const isOnline = faculty.user?.status === 'active' || faculty.user?.status === 'Active';
+                return (
+                <label key={faculty._id} className="flex items-center p-3 hover:bg-slate-50 dark:hover:bg-dark-750/50 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
-                    checked={selectedFacultyIds.includes(faculty.id)}
+                    checked={selectedFacultyIds.includes(faculty._id)}
                     onChange={(e) => {
-                      if (e.target.checked) setSelectedFacultyIds(prev => [...prev, faculty.id]);
-                      else setSelectedFacultyIds(prev => prev.filter(id => id !== faculty.id));
+                      if (e.target.checked) setSelectedFacultyIds(prev => [...prev, faculty._id]);
+                      else setSelectedFacultyIds(prev => prev.filter(id => id !== faculty._id));
                     }}
                     className="rounded text-brand-500 focus:ring-brand-500 mt-1"
                   />
                   <div className="ml-3 relative">
                     <div className="h-8 w-8 rounded-full bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
-                      {faculty.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                      {fName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                     </div>
-                    <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-dark-800 ${faculty.online ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                    <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-dark-800 ${isOnline ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
                   </div>
                   <div className="ml-3 flex-1">
                     <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      {faculty.name}
-                      {sentFacultyIds.includes(faculty.id) && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold dark:bg-green-900/30 dark:text-green-400">Sent ✓</span>}
+                      {fName}
+                      {sentFacultyIds.includes(faculty._id) && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold dark:bg-green-900/30 dark:text-green-400">Sent ✓</span>}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      <span className="inline-block bg-slate-100 dark:bg-dark-700 px-1.5 py-0.5 rounded mr-2">{faculty.dept}</span>
-                      {faculty.subject}
+                      <span className="inline-block bg-slate-100 dark:bg-dark-700 px-1.5 py-0.5 rounded mr-2">{deptName}</span>
+                      {faculty.designation || 'Faculty'}
                     </p>
                   </div>
                 </label>
-              ))}
+              )})}
               {filteredFaculty.length === 0 && (
                 <div className="p-8 text-center text-slate-500 text-sm">No faculty members found.</div>
               )}
-            </div>
-          </div>
-
-          {/* Section 3 & 4 — Send Method & Message */}
-          <div className="mt-6 space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Send Method</p>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                  <input type="radio" name="sendMethod" value="portal" checked={sendMethod === 'portal'} onChange={() => setSendMethod('portal')} className="text-brand-500 focus:ring-brand-500" />
-                  🔔 Portal Only
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                  <input type="radio" name="sendMethod" value="email" checked={sendMethod === 'email'} onChange={() => setSendMethod('email')} className="text-brand-500 focus:ring-brand-500" />
-                  📧 Email Only
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                  <input type="radio" name="sendMethod" value="both" checked={sendMethod === 'both'} onChange={() => setSendMethod('both')} className="text-brand-500 focus:ring-brand-500" />
-                  📱 Both
-                </label>
-              </div>
-            </div>
-            
-            <div>
-              <textarea
-                placeholder="Add a note to faculty... (optional, e.g., Please display this QR at the start of lecture)"
-                value={sendMessage}
-                onChange={(e) => setSendMessage(e.target.value)}
-                maxLength={200}
-                className="w-full p-3 text-sm border border-slate-200 rounded-lg bg-white dark:bg-dark-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                rows="2"
-              ></textarea>
-              <div className="text-right text-xs text-slate-400 mt-1">{sendMessage.length}/200</div>
             </div>
           </div>
 
@@ -768,12 +745,12 @@ const AttendancePage = () => {
               Cancel
             </button>
             <button
-              onClick={handleSendQRToFaculty}
+              onClick={handleSendQRToStudents}
               disabled={selectedFacultyIds.length === 0 || sendingQR}
               className="px-6 py-2 text-sm font-semibold text-white bg-brand-500 rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
             >
               {sendingQR ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              Send to Selected ({selectedFacultyIds.length})
+              Push to Students ({selectedFacultyIds.length})
             </button>
           </div>
         </div>

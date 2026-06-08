@@ -218,9 +218,13 @@ const FacultyDashboard = () => {
       {/* View QR Modal */}
       <Modal isOpen={viewQRModalOpen} onClose={() => setViewQRModalOpen(false)} title="Lecture QR Attendance">
         <div className="flex flex-col items-center justify-center p-6 space-y-6">
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            Display this QR code to your students. They can scan it from their portal to instantly mark their attendance.
-          </p>
+          <div className="w-full bg-brand-50 text-brand-700 border border-brand-200 rounded-lg p-3 text-sm flex items-start gap-3 dark:bg-brand-900/30 dark:border-brand-800/50 dark:text-brand-300">
+            <CheckCircle className="shrink-0 mt-0.5" size={18} />
+            <p>
+              <strong className="block mb-1 text-brand-800 dark:text-brand-200">You have received this active QR from the Superadmin!</strong>
+              Display this QR code to your students. They can scan it from their portal to instantly mark their attendance for this session.
+            </p>
+          </div>
           <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
             {activeQRData?.qrSessionId && (
               <QRCodeSVG 

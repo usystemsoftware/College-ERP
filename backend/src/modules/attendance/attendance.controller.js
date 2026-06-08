@@ -655,7 +655,7 @@ const sendQRToFaculty = async (req, res, next) => {
 // POST /attendance/qr/send-to-students
 const sendQRToStudents = async (req, res, next) => {
   try {
-    const { qrSessionId, subjectId } = req.body;
+    const { qrSessionId, subjectId, facultyIds } = req.body;
     if (!qrSessionId || !subjectId) {
       throw new ApiError(400, 'qrSessionId and subjectId are required');
     }
@@ -709,7 +709,32 @@ const sendQRToStudents = async (req, res, next) => {
       }
     }
 
-    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount }, 'QR pushed to students successfully'));
+    // Also send to selected faculties if provided
+    if (facultyIds && facultyIds.length > 0) {
+      const Faculty = require('../faculty/faculty.model');
+      const faculties = await Faculty.find({ _id: { $in: facultyIds } });
+      for (const faculty of faculties) {
+        try {
+          await notificationService.emitNotification({
+            title: `📋 New QR Attendance for ${subject.name || 'Class'}`,
+            message: 'You can display this to the students.',
+            type: 'QR_ATTENDANCE',
+            category: 'Attendance',
+            recipient: faculty.user,
+            metadata: {
+              type: 'QR_ATTENDANCE',
+              qrSessionId,
+              subject: subject.name,
+              expiresAt: new Date(decoded.exp * 1000)
+            }
+          });
+        } catch (err) {
+          console.error('Error sending QR to faculty:', err);
+        }
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount }, 'QR pushed to students and faculties successfully'));
   } catch (error) { next(error); }
 };
 

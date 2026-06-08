@@ -41,6 +41,21 @@ const SessionCard = ({ session, onEdit, onDelete, isAdmin }) => (
       <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
         <UserIcon size={12} /> <span className="line-clamp-1">{session.faculty?.fullName || 'Unknown Faculty'}</span>
       </div>
+      {(session.department || session.course || session.semester) && (
+        <div className="flex flex-wrap items-center text-[10px] text-slate-500 dark:text-slate-400 mt-1 gap-x-1">
+          {[
+            session.department ? (session.department.code || session.department.name) : null,
+            session.course ? (session.course.code || session.course.name) : null,
+            session.semester ? session.semester.name : null,
+            session.division ? session.division : null
+          ].filter(Boolean).map((text, idx, arr) => (
+            <React.Fragment key={idx}>
+              <span className={idx < 2 ? "font-medium" : ""}>{text}</span>
+              {idx < arr.length - 1 && <span className="opacity-40">•</span>}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
       <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
         <MapPin size={12} /> <span>{session.roomNumber}</span>
       </div>
@@ -418,6 +433,19 @@ const TimetablePage = () => {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
                   <div className="flex items-center gap-2"><UserIcon size={14} /> {session.faculty?.fullName}</div>
                   <div className="flex items-center gap-2"><MapPin size={14} /> {session.roomNumber}</div>
+                  <div className="col-span-2 flex flex-wrap gap-x-1 text-xs mt-1">
+                    {[
+                      session.department ? (session.department.code || session.department.name) : null,
+                      session.course ? (session.course.code || session.course.name) : null,
+                      session.semester ? session.semester.name : null,
+                      session.division ? session.division : null
+                    ].filter(Boolean).map((text, idx, arr) => (
+                      <React.Fragment key={idx}>
+                        <span className={idx < 2 ? "font-medium" : ""}>{text}</span>
+                        {idx < arr.length - 1 && <span className="opacity-40">•</span>}
+                      </React.Fragment>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -440,6 +468,7 @@ const TimetablePage = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   const deptLabel = schedule[0]?.department?.name || '';
+  const courseLabel = schedule[0]?.course?.name || '';
   const semLabel  = schedule[0]?.semester?.name  || '';
 
   return (
@@ -451,9 +480,11 @@ const TimetablePage = () => {
             {(isStudent || (isFaculty && viewMode === 'my')) ? 'My Timetable' : 'Master Timetable'}
           </h1>
           <p className="text-sm text-slate-500">
-            {(isStudent || (isFaculty && viewMode === 'my'))
+            {isStudent
               ? deptLabel ? `${deptLabel} — ${semLabel}` : 'Your class schedule'
-              : 'View and manage class schedules across departments.'}
+              : (isFaculty && viewMode === 'my')
+                ? 'Your assigned lectures across all departments'
+                : 'View and manage class schedules across departments.'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -509,11 +540,12 @@ const TimetablePage = () => {
         )}
 
         {/* Student/Faculty info bar */}
-        {(isStudent || (isFaculty && viewMode === 'my')) && schedule.length > 0 && (
+        {isStudent && schedule.length > 0 && (
           <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 px-5 py-3 bg-brand-50/40 dark:bg-brand-900/10">
             <BookOpen size={16} className="text-brand-500" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {deptLabel && <span className="mr-3">Dept: <strong>{deptLabel}</strong></span>}
+              {courseLabel && <span className="mr-3">Course: <strong>{courseLabel}</strong></span>}
               {semLabel  && <span className="mr-3">Semester: <strong>{semLabel}</strong></span>}
               {schedule[0]?.division && <span>Division: <strong>{schedule[0].division}</strong></span>}
             </span>

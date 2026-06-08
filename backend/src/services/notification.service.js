@@ -45,9 +45,9 @@ const sendWhatsApp = async (to, message) => {
   return true;
 };
 
-const emitNotification = async ({ title, message, type, category = 'General', recipient = null }) => {
+const emitNotification = async ({ title, message, type, category = 'General', recipient = null, metadata = null }) => {
   try {
-    console.log('[emitNotification] Called with:', { title, message, type, category, recipient });
+    console.log('[emitNotification] Called with:', { title, message, type, category, recipient, metadata });
     console.log('[emitNotification] ioInstance set?', !!ioInstance);
 
     const notification = await Notification.create({
@@ -56,6 +56,7 @@ const emitNotification = async ({ title, message, type, category = 'General', re
       type,
       category,
       recipient, // Can be null for broadcast
+      metadata,
       isRead: false,
       status: 'Unread'
     });

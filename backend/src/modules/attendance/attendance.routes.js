@@ -13,7 +13,8 @@ const {
   getAdminLiveFeed,
   getAttendanceDashboardStats,
   generateQRToken,
-  markQRAttendance
+  markQRAttendance,
+  sendQRToFaculty
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
@@ -34,5 +35,6 @@ router.get('/student-today', protect, authorize('Student'), getStudentTodayAtten
 // QR Attendance routes
 router.post('/qr/generate', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), generateQRToken);
 router.post('/qr/mark', protect, authorize('Student'), markQRAttendance);
+router.post('/qr/send-to-faculty', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), sendQRToFaculty);
 
 module.exports = router;

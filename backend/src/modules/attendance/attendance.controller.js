@@ -454,6 +454,67 @@ const markQRAttendance = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// POST /attendance/qr/send-to-faculty
+const sendQRToFaculty = async (req, res, next) => {
+  try {
+    const { qrSessionId, facultyIds, sendMethod, message } = req.body;
+    if (!qrSessionId || !facultyIds?.length || !sendMethod) {
+      throw new ApiError(400, 'qrSessionId, facultyIds, and sendMethod are required');
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(qrSessionId, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+
+    const notificationService = require('../../services/notification.service');
+    const User = require('../users/user.model');
+
+    let sentCount = 0;
+    const failedList = [];
+
+    for (const facultyId of facultyIds) {
+      try {
+        if (sendMethod === 'portal' || sendMethod === 'both') {
+          await notificationService.emitNotification({
+            title: 'QR Code for Lecture Attendance',
+            message: message || `Please display this QR code to your students.`,
+            type: 'System',
+            category: 'Attendance',
+            recipient: facultyId,
+            metadata: { 
+              type: 'QR_ATTENDANCE', 
+              qrSessionId, 
+              subject: decoded.subject, 
+              expiresAt: new Date(decoded.exp * 1000) 
+            }
+          });
+        }
+        if (sendMethod === 'email' || sendMethod === 'both') {
+          const userDoc = await User.findById(facultyId);
+          if (userDoc?.email) {
+            await notificationService.sendEmail({
+              to: userDoc.email,
+              subject: 'QR Code for Lecture Attendance',
+              html: `<p>${message || 'Please display this QR code to your students for attendance:'}</p><p><b>${qrSessionId}</b></p>`
+            });
+          }
+        }
+        sentCount++;
+      } catch (err) {
+        console.error('Error sending QR to faculty:', err);
+        failedList.push(facultyId);
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount, failed: failedList }, 'QR sent successfully'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -465,5 +526,6 @@ module.exports = {
   getAdminLiveFeed,
   getAttendanceDashboardStats,
   generateQRToken,
-  markQRAttendance
+  markQRAttendance,
+  sendQRToFaculty
 };

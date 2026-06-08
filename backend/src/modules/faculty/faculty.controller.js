@@ -133,19 +133,38 @@ const getFacultyDashboardStats = async (req, res, next) => {
         isActive: true
       }).populate('subject', 'name').sort({ startTime: 1 }).lean();
       
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      let attendanceMap = {};
+      try {
+        const FacultyAttendance = require('../attendance/facultyAttendance.model');
+        const attendanceRecords = await FacultyAttendance.find({
+          faculty: faculty._id,
+          date: startOfDay
+        });
+        attendanceRecords.forEach(att => {
+          attendanceMap[att.timetableId.toString()] = att.status;
+        });
+      } catch (e) {
+        console.error("Error fetching faculty attendance", e);
+      }
+      
       formattedClasses = todaysClasses.map(cls => ({
+        _id: cls._id,
         time: `${cls.startTime} - ${cls.endTime}`,
         subject: cls.subject?.name || 'Unknown Subject',
         room: cls.roomNumber,
         type: cls.isLab ? 'Practical' : 'Theory',
-        done: false
+        done: attendanceMap[cls._id.toString()] === 'Present',
+        attendanceStatus: attendanceMap[cls._id.toString()] || null
       }));
     }
 
     if (formattedClasses.length === 0) {
       formattedClasses = [
-        { time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true },
-        { time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false }
+        { _id: '6663edfa328b067d0cf0c091', time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true, attendanceStatus: 'Present' },
+        { _id: '6663edfa328b067d0cf0c092', time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false, attendanceStatus: null }
       ];
     }
 

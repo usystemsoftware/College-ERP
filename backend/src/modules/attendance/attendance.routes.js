@@ -11,7 +11,9 @@ const {
   studentCheckOut,
   getStudentTodayAttendance,
   getAdminLiveFeed,
-  getAttendanceDashboardStats
+  getAttendanceDashboardStats,
+  markFacultyLectureAttendance,
+  getFacultyLecturesWithAttendance
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
@@ -28,5 +30,9 @@ router.get('/admin-live-feed', protect, authorize('Super Admin', 'College Admin'
 router.post('/student-checkin', protect, authorize('Student'), studentCheckIn);
 router.post('/student-checkout', protect, authorize('Student'), studentCheckOut);
 router.get('/student-today', protect, authorize('Student'), getStudentTodayAttendance);
+
+// Faculty Lecture Attendance routes
+router.post('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), markFacultyLectureAttendance);
+router.get('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyLecturesWithAttendance);
 
 module.exports = router;

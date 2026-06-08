@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle } from 'lucide-react';
+import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../api/axios';
 
@@ -22,6 +22,29 @@ const FacultyDashboard = () => {
     };
     fetchStats();
   }, []);
+
+  const handleMarkAttendance = async (timetableId, status) => {
+    try {
+      await api.post('/attendance/faculty-lecture', {
+        timetableId,
+        date: new Date().toISOString().split('T')[0],
+        status
+      });
+      // update local stats
+      setStats(prev => {
+        if(!prev) return prev;
+        const newClasses = prev.todaysClasses.map(cls => {
+          if(cls._id === timetableId) {
+            return { ...cls, done: status === 'Present', attendanceStatus: status };
+          }
+          return cls;
+        });
+        return { ...prev, todaysClasses: newClasses };
+      });
+    } catch(err) {
+      console.error("Failed to mark attendance", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -96,18 +119,38 @@ const FacultyDashboard = () => {
           </h3>
           <div className="space-y-4">
             {todaysClasses.map((cls, i) => (
-              <div key={i} className={`flex items-center justify-between rounded-lg border p-4 ${cls.done ? 'border-slate-200 bg-slate-50 opacity-70 dark:border-slate-800 dark:bg-dark-900' : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'}`}>
+              <div key={i} className={`flex items-center justify-between rounded-lg border p-4 ${cls.done ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10' : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'}`}>
                 <div className="flex items-center gap-4">
-                  <div className={`h-12 w-2 rounded-full ${cls.done ? 'bg-slate-300' : 'bg-brand-500'}`}></div>
+                  <div className={`h-12 w-2 rounded-full ${cls.done ? 'bg-emerald-500' : 'bg-brand-500'}`}></div>
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">{cls.subject}</p>
                     <p className="text-xs text-slate-500">{cls.time} • Room {cls.room}</p>
                   </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-4">
                   <span className={`text-xs font-semibold px-2 py-1 rounded ${cls.type === 'Theory' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
                     {cls.type}
                   </span>
+                  
+                  {/* Self-attendance marking buttons */}
+                  {cls._id && (
+                    <div className="flex gap-1 border-l pl-4 dark:border-slate-700">
+                      <button 
+                        onClick={() => handleMarkAttendance(cls._id, 'Present')}
+                        className={`p-1.5 rounded-md transition-colors ${cls.attendanceStatus === 'Present' ? 'bg-emerald-500 text-white' : 'text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/50'}`}
+                        title="Mark Present"
+                      >
+                        <CheckCircle size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleMarkAttendance(cls._id, 'Absent')}
+                        className={`p-1.5 rounded-md transition-colors ${cls.attendanceStatus === 'Absent' ? 'bg-red-500 text-white' : 'text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50'}`}
+                        title="Mark Absent"
+                      >
+                        <XCircle size={18} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

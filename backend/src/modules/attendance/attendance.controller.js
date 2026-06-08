@@ -327,13 +327,13 @@ const getAdminLiveFeed = async (req, res, next) => {
 const getAttendanceDashboardStats = async (req, res, next) => {
   try {
     const isStudent = req.user.role.name === 'Student';
-    
+
     if (isStudent) {
       let studentId = req.user._id;
       try {
         const student = await Student.findOne({ user: req.user._id });
         if (student) studentId = student._id;
-      } catch (e) {}
+      } catch (e) { }
 
       const records = await Attendance.find({ student: studentId });
       let present = 0;
@@ -357,7 +357,7 @@ const getAttendanceDashboardStats = async (req, res, next) => {
     } else {
       // Faculty view: return some students for the initial view
       const studentsList = await Student.find({ collegeId: req.user.collegeId }).limit(10).lean();
-      
+
       const formattedStudents = studentsList.map(s => ({
         id: s._id,
         name: s.personalDetails?.fullName || 'Unknown Student',
@@ -390,8 +390,8 @@ const markFacultyLectureAttendance = async (req, res, next) => {
       throw new ApiError(400, 'facultyId, timetableId, date, and status are required');
     }
 
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = date.split('-');
+    const attendanceDate = new Date(year, month - 1, day);
 
     let record = await FacultyAttendance.findOne({ faculty: facultyId, timetableId, date: attendanceDate });
     if (record) {
@@ -422,8 +422,8 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
     const { facultyId, date } = req.query;
     if (!facultyId || !date) throw new ApiError(400, 'facultyId and date are required');
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = date.split('-');
+    const queryDate = new Date(year, month - 1, day);
 
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayOfWeek = days[queryDate.getDay()];
@@ -464,279 +464,37 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
   }
 };
 
-// POST /attendance/qr/generate
-const generateQRToken = async (req, res, next) => {
+const getFacultyAttendanceSummary = async (req, res, next) => {
   try {
-    const { subject, date, lectureType, isLate } = req.body;
-    if (!subject || !date) throw new ApiError(400, 'Subject and date required');
+    const { facultyId } = req.query;
+    if (!facultyId) throw new ApiError(400, 'facultyId is required');
 
-    const faculty = await require('../faculty/faculty.model').findOne({ user: req.user._id });
-    if (!faculty && req.user.role.name === 'Faculty') throw new ApiError(403, 'Faculty profile not found');
+    const records = await FacultyAttendance.find({ faculty: facultyId })
+      .populate({ path: 'timetableId', populate: { path: 'subject', select: 'name code' } })
+      .sort({ date: -1 });
 
-    const facultyId = faculty ? faculty._id : null;
-    const sessionId = Math.random().toString(36).substring(2, 10);
-
-    const payload = {
-      subject,
-      date,
-      lectureType: lectureType || 'Theory',
-      facultyId,
-      collegeId: req.user.collegeId,
-      sessionId,
-      isLate: isLate === true,
-      type: 'lecture_qr'
+    const summary = {
+      totalLectures: records.length,
+      present: 0,
+      absent: 0,
+      history: []
     };
 
-    // Token expires in 10 minutes
-    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
-
-    return res.json(new ApiResponse(200, { token, expiresIn: 600 }, 'QR Token generated'));
-  } catch (error) { next(error); }
-};
-
-// POST /attendance/qr/verify
-const verifyQRToken = async (req, res, next) => {
-  try {
-    const { token } = req.body;
-    if (!token) throw new ApiError(400, 'QR Token is required');
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    } catch (err) {
-      throw new ApiError(400, 'Invalid or expired QR Token');
-    }
-
-    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
-
-    const student = await Student.findOne({ user: req.user._id });
-    if (!student) throw new ApiError(404, 'Student profile not found');
-
-    const attendanceDate = new Date(decoded.date);
-    
-    // Check if already marked for this subject and date
-    const existing = await Attendance.findOne({
-      student: student._id,
-      subject: decoded.subject,
-      date: attendanceDate
+    summary.history = records.map(r => {
+      if (r.status === 'Present') summary.present++;
+      else if (r.status === 'Absent') summary.absent++;
+      return {
+        date: r.date,
+        status: r.status,
+        subject: r.timetableId?.subject?.name || 'Unknown',
+        time: r.timetableId ? `${r.timetableId.startTime} - ${r.timetableId.endTime}` : 'Unknown'
+      };
     });
 
-    if (existing && existing.status === 'Present') {
-      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
-    }
-
-    const subjectDoc = await require('../subjects/subject.model').findById(decoded.subject);
-
-    return res.status(200).json(new ApiResponse(200, {
-      subject: decoded.subject,
-      subjectName: subjectDoc ? subjectDoc.name : 'Unknown Subject',
-      date: decoded.date,
-      lectureType: decoded.lectureType
-    }, 'QR Token is valid'));
-  } catch (error) { next(error); }
-};
-
-// POST /attendance/qr/mark
-const markQRAttendance = async (req, res, next) => {
-  try {
-    const { token } = req.body;
-    if (!token) throw new ApiError(400, 'QR Token is required');
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    } catch (err) {
-      throw new ApiError(400, 'Invalid or expired QR Token');
-    }
-
-    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
-
-    const student = await Student.findOne({ user: req.user._id });
-    if (!student) throw new ApiError(404, 'Student profile not found');
-
-    const attendanceDate = new Date(decoded.date);
-    
-    // Check if already marked for this subject and date
-    const existing = await Attendance.findOne({
-      student: student._id,
-      subject: decoded.subject,
-      date: attendanceDate
-    });
-
-    if (existing && existing.status === 'Present') {
-      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
-    }
-
-    const updateDoc = {
-      student: student._id,
-      subject: decoded.subject,
-      date: attendanceDate,
-      status: decoded.isLate ? 'Late' : 'Present',
-      markedBy: req.user._id, // the student themselves
-      lectureType: decoded.lectureType,
-      selfMarked: true,
-      collegeId: decoded.collegeId
-    };
-    if (decoded.facultyId) updateDoc.faculty = decoded.facultyId;
-
-    let record;
-    if (existing) {
-      Object.assign(existing, updateDoc);
-      await existing.save();
-      record = existing;
-    } else {
-      record = await Attendance.create(updateDoc);
-    }
-
-    return res.status(200).json(new ApiResponse(200, { recordId: record._id }, 'Attendance successfully marked via QR'));
-  } catch (error) { next(error); }
-};
-
-// POST /attendance/qr/send-to-faculty
-const sendQRToFaculty = async (req, res, next) => {
-  try {
-    const { qrSessionId, facultyIds, sendMethod, message } = req.body;
-    if (!qrSessionId || !facultyIds?.length || !sendMethod) {
-      throw new ApiError(400, 'qrSessionId, facultyIds, and sendMethod are required');
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(qrSessionId, process.env.JWT_ACCESS_SECRET);
-    } catch (err) {
-      throw new ApiError(400, 'Invalid or expired QR Token');
-    }
-
-    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
-
-    const notificationService = require('../../services/notification.service');
-    const User = require('../users/user.model');
-
-    let sentCount = 0;
-    const failedList = [];
-
-    for (const facultyId of facultyIds) {
-      try {
-        if (sendMethod === 'portal' || sendMethod === 'both') {
-          await notificationService.emitNotification({
-            title: 'QR Code for Lecture Attendance',
-            message: message || `Please display this QR code to your students.`,
-            type: 'System',
-            category: 'Attendance',
-            recipient: facultyId,
-            metadata: { 
-              type: 'QR_ATTENDANCE', 
-              qrSessionId, 
-              subject: decoded.subject, 
-              expiresAt: new Date(decoded.exp * 1000) 
-            }
-          });
-        }
-        if (sendMethod === 'email' || sendMethod === 'both') {
-          const userDoc = await User.findById(facultyId);
-          if (userDoc?.email) {
-            await notificationService.sendEmail({
-              to: userDoc.email,
-              subject: 'QR Code for Lecture Attendance',
-              html: `<p>${message || 'Please display this QR code to your students for attendance:'}</p><p><b>${qrSessionId}</b></p>`
-            });
-          }
-        }
-        sentCount++;
-      } catch (err) {
-        console.error('Error sending QR to faculty:', err);
-        failedList.push(facultyId);
-      }
-    }
-
-    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount, failed: failedList }, 'QR sent successfully'));
-  } catch (error) { next(error); }
-};
-
-// POST /attendance/qr/send-to-students
-const sendQRToStudents = async (req, res, next) => {
-  try {
-    const { qrSessionId, subjectId, facultyIds } = req.body;
-    if (!qrSessionId || !subjectId) {
-      throw new ApiError(400, 'qrSessionId and subjectId are required');
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(qrSessionId, process.env.JWT_ACCESS_SECRET);
-    } catch (err) {
-      throw new ApiError(400, 'Invalid or expired QR Token');
-    }
-
-    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
-
-    const notificationService = require('../../services/notification.service');
-    const Subject = require('../subjects/subject.model');
-    const Student = require('../students/student.model');
-
-    const subject = await Subject.findById(subjectId);
-    if (!subject) throw new ApiError(404, 'Subject not found');
-
-    let students = await Student.find({
-      department: subject.department,
-      course: subject.course,
-      semester: subject.semester
-    });
-
-    if (!students.length) {
-      // Fallback: push to all students if mapping is loose
-      students = await Student.find({});
-    }
-
-    let sentCount = 0;
-    for (const student of students) {
-      try {
-        await notificationService.emitNotification({
-          title: `📋 ${subject.name || 'Lecture'} QR received`,
-          message: 'Mark Now',
-          type: 'STUDENT_QR_ATTENDANCE',
-          category: 'Attendance',
-          recipient: student.user, // User ID for socket room
-          metadata: { 
-            type: 'STUDENT_QR_ATTENDANCE', 
-            qrSessionId, 
-            subjectName: subject.name,
-            expiresAt: new Date(decoded.exp * 1000) 
-          }
-        });
-        sentCount++;
-      } catch (err) {
-        console.error('Error sending QR to student:', err);
-      }
-    }
-
-    // Also send to selected faculties if provided
-    if (facultyIds && facultyIds.length > 0) {
-      const Faculty = require('../faculty/faculty.model');
-      const faculties = await Faculty.find({ _id: { $in: facultyIds } });
-      for (const faculty of faculties) {
-        try {
-          await notificationService.emitNotification({
-            title: `📋 New QR Attendance for ${subject.name || 'Class'}`,
-            message: 'You can display this to the students.',
-            type: 'QR_ATTENDANCE',
-            category: 'Attendance',
-            recipient: faculty.user,
-            metadata: {
-              type: 'QR_ATTENDANCE',
-              qrSessionId,
-              subject: subject.name,
-              expiresAt: new Date(decoded.exp * 1000)
-            }
-          });
-        } catch (err) {
-          console.error('Error sending QR to faculty:', err);
-        }
-      }
-    }
-
-    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount }, 'QR pushed to students and faculties successfully'));
-  } catch (error) { next(error); }
+    return res.status(200).json(new ApiResponse(200, summary, 'Faculty attendance summary fetched'));
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
@@ -755,5 +513,6 @@ module.exports = {
   sendQRToFaculty,
   sendQRToStudents,
   markFacultyLectureAttendance,
-  getFacultyLecturesWithAttendance
+  getFacultyLecturesWithAttendance,
+  getFacultyAttendanceSummary
 };

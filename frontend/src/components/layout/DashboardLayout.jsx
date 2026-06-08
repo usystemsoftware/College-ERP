@@ -24,7 +24,8 @@ import {
   ChevronDown,
   Building,
   UserPlus,
-  Archive
+  Archive,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -127,6 +128,7 @@ const DashboardLayout = () => {
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Faculty', path: '/faculty', icon: GraduationCap },
       { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
       { name: 'Inventory', path: '/inventory', icon: Archive },
       ...navItems,
@@ -138,6 +140,7 @@ const DashboardLayout = () => {
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       ...navItems,
     ];
   } else if (userRole === 'Student') {

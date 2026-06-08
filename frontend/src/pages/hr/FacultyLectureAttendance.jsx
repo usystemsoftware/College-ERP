@@ -12,7 +12,9 @@ const FacultyLectureAttendance = () => {
   const [facultyList, setFacultyList] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState(isFaculty ? user.profileId : ''); // Assumes user.profileId points to Faculty ID
   const [lectures, setLectures] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('Daily'); // 'Daily' or 'History'
 
   useEffect(() => {
     if (!isFaculty) {
@@ -20,7 +22,9 @@ const FacultyLectureAttendance = () => {
       const fetchFaculties = async () => {
         try {
           const response = await api.get('/faculty');
-          if (response.data?.data) {
+          if (response.data?.data?.faculty) {
+            setFacultyList(response.data.data.faculty);
+          } else if (Array.isArray(response.data?.data)) {
             setFacultyList(response.data.data);
           }
         } catch (error) {
@@ -53,7 +57,19 @@ const FacultyLectureAttendance = () => {
         setLoading(false);
       }
     };
+    const fetchSummary = async () => {
+      if (!selectedFaculty) return;
+      try {
+        const response = await api.get(`/attendance/faculty-summary?facultyId=${selectedFaculty}`);
+        if (response.data?.data) {
+          setSummary(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch faculty summary", error);
+      }
+    };
     fetchLectures();
+    fetchSummary();
   }, [selectedFaculty, date]);
 
   const markAttendance = async (timetableId, status) => {
@@ -91,9 +107,10 @@ const FacultyLectureAttendance = () => {
               </div>
               <input
                 type="date"
+                disabled={activeTab === 'History'}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="pl-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white"
+                className="pl-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white disabled:opacity-50"
               />
             </div>
           </div>
@@ -112,7 +129,7 @@ const FacultyLectureAttendance = () => {
                 >
                   <option value="">Select Faculty</option>
                   {facultyList.map(f => (
-                    <option key={f._id} value={f._id}>{f.user?.personalDetails?.fullName || f._id}</option>
+                    <option key={f._id} value={f._id}>{f.fullName || f.user?.email || f._id}</option>
                   ))}
                 </select>
               </div>
@@ -120,11 +137,26 @@ const FacultyLectureAttendance = () => {
           )}
         </div>
 
+        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
+          <button
+            onClick={() => setActiveTab('Daily')}
+            className={`pb-3 px-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Daily' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+          >
+            Daily Attendance
+          </button>
+          <button
+            onClick={() => setActiveTab('History')}
+            className={`pb-3 px-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'History' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+          >
+            Lecture History
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
           </div>
-        ) : (
+        ) : activeTab === 'Daily' ? (
           <div>
             {!selectedFaculty ? (
               <p className="text-sm text-slate-500 text-center py-4">Please select a faculty member to view their lectures.</p>
@@ -204,6 +236,60 @@ const FacultyLectureAttendance = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            {!selectedFaculty || !summary ? (
+              <p className="text-sm text-slate-500 text-center py-4">Please select a faculty member to view history.</p>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-dark-800">
+                    <div className="text-sm text-slate-500">Total Lectures</div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">{summary.totalLectures}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-dark-800">
+                    <div className="text-sm text-slate-500">Present</div>
+                    <div className="text-2xl font-bold text-green-600">{summary.present}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-dark-800">
+                    <div className="text-sm text-slate-500">Absent</div>
+                    <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
+                  </div>
+                </div>
+                
+                {summary.history && summary.history.length > 0 ? (
+                  <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                      <thead className="bg-slate-50 font-semibold text-slate-500 dark:bg-dark-800">
+                        <tr>
+                          <th className="px-6 py-4">Date</th>
+                          <th className="px-6 py-4">Subject</th>
+                          <th className="px-6 py-4">Time Slot</th>
+                          <th className="px-6 py-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-dark-900">
+                        {summary.history.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-dark-800/50">
+                            <td className="px-6 py-4">{new Date(item.date).toLocaleDateString()}</td>
+                            <td className="px-6 py-4 font-medium dark:text-white">{item.subject}</td>
+                            <td className="px-6 py-4">{item.time}</td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${item.status === 'Present' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">No past lectures found for this faculty.</p>
+                )}
               </div>
             )}
           </div>

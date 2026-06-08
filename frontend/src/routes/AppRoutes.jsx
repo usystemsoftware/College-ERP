@@ -24,6 +24,7 @@ import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
+import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
 
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
@@ -159,6 +160,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Class Coordinator']}>
               <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="faculty-attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
+              <FacultyLectureAttendance />
             </ProtectedRoute>
           }
         />

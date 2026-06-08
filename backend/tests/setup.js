@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+require('dotenv').config();
+
 
 jest.setTimeout(60000); // 60 seconds to allow for initial MongoDB binary download
 

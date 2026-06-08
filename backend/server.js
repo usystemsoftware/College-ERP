@@ -73,6 +73,14 @@ const seedDatabaseIfEmpty = async () => {
   }
 };
 
+// Global error handlers to prevent silent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
 // Connect to MongoDB
 connectDB().then(async () => {
   const server = http.createServer(app);

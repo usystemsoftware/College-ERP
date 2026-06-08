@@ -1,5 +1,8 @@
 const Attendance = require('./attendance.model');
+const FacultyAttendance = require('./facultyAttendance.model');
 const Student = require('../students/student.model');
+const Faculty = require('../faculty/faculty.model');
+const Timetable = require('../timetables/timetable.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const jwt = require('jsonwebtoken');
@@ -369,89 +372,96 @@ const getAttendanceDashboardStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// POST /attendance/qr/generate
-const generateQRToken = async (req, res, next) => {
+// ─────────────────────────────────────────────────
+// FACULTY LECTURE ATTENDANCE
+// ─────────────────────────────────────────────────
+
+const markFacultyLectureAttendance = async (req, res, next) => {
   try {
-    const { subject, date, lectureType } = req.body;
-    if (!subject || !date) throw new ApiError(400, 'Subject and date required');
+    let { facultyId, timetableId, date, status, remarks } = req.body;
 
-    const faculty = await require('../faculty/faculty.model').findOne({ user: req.user._id });
-    if (!faculty && req.user.role.name === 'Faculty') throw new ApiError(403, 'Faculty profile not found');
+    // Auto-resolve facultyId for logged-in faculty
+    if (!facultyId) {
+      const faculty = await Faculty.findOne({ user: req.user._id });
+      if (faculty) facultyId = faculty._id;
+    }
 
-    const facultyId = faculty ? faculty._id : null;
-    const sessionId = Math.random().toString(36).substring(2, 10);
+    if (!facultyId || !timetableId || !date || !status) {
+      throw new ApiError(400, 'facultyId, timetableId, date, and status are required');
+    }
 
-    const payload = {
-      subject,
-      date,
-      lectureType: lectureType || 'Theory',
-      facultyId,
-      collegeId: req.user.collegeId,
-      sessionId,
-      type: 'lecture_qr'
-    };
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0);
 
-    // Token expires in 10 minutes
-    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
+    let record = await FacultyAttendance.findOne({ faculty: facultyId, timetableId, date: attendanceDate });
+    if (record) {
+      record.status = status;
+      record.remarks = remarks || record.remarks;
+      record.markedBy = req.user._id;
+      await record.save();
+    } else {
+      record = await FacultyAttendance.create({
+        faculty: facultyId,
+        timetableId,
+        date: attendanceDate,
+        status,
+        markedBy: req.user._id,
+        collegeId: req.user.collegeId,
+        remarks: remarks || ''
+      });
+    }
 
-    return res.json(new ApiResponse(200, { token, expiresIn: 600 }, 'QR Token generated'));
-  } catch (error) { next(error); }
+    return res.status(200).json(new ApiResponse(200, record, 'Faculty lecture attendance marked successfully'));
+  } catch (error) {
+    next(error);
+  }
 };
 
-// POST /attendance/qr/mark
-const markQRAttendance = async (req, res, next) => {
+const getFacultyLecturesWithAttendance = async (req, res, next) => {
   try {
-    const { token } = req.body;
-    if (!token) throw new ApiError(400, 'QR Token is required');
+    const { facultyId, date } = req.query;
+    if (!facultyId || !date) throw new ApiError(400, 'facultyId and date are required');
 
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    } catch (err) {
-      throw new ApiError(400, 'Invalid or expired QR Token');
-    }
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
 
-    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[queryDate.getDay()];
 
-    const student = await Student.findOne({ user: req.user._id });
-    if (!student) throw new ApiError(404, 'Student profile not found');
+    // 1. Get all timetable slots for this faculty on this day
+    const timetables = await Timetable.find({
+      faculty: facultyId,
+      dayOfWeek: dayOfWeek,
+      isActive: true
+    }).populate('subject', 'name code').populate('course', 'name');
 
-    const attendanceDate = new Date(decoded.date);
-    
-    // Check if already marked for this subject and date
-    const existing = await Attendance.findOne({
-      student: student._id,
-      subject: decoded.subject,
-      date: attendanceDate
+    // 2. Get attendance records for these slots on this date
+    const attendanceRecords = await FacultyAttendance.find({
+      faculty: facultyId,
+      date: queryDate
     });
 
-    if (existing && existing.status === 'Present') {
-      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
-    }
+    const attendanceMap = {};
+    attendanceRecords.forEach(record => {
+      attendanceMap[record.timetableId.toString()] = record;
+    });
 
-    const updateDoc = {
-      student: student._id,
-      subject: decoded.subject,
-      date: attendanceDate,
-      status: 'Present',
-      markedBy: req.user._id, // the student themselves
-      lectureType: decoded.lectureType,
-      selfMarked: true,
-      collegeId: decoded.collegeId
-    };
-    if (decoded.facultyId) updateDoc.faculty = decoded.facultyId;
+    // 3. Combine them
+    const result = timetables.map(t => {
+      const att = attendanceMap[t._id.toString()];
+      return {
+        timetable: t,
+        attendance: att ? { status: att.status, remarks: att.remarks } : null
+      };
+    });
 
-    let record;
-    if (existing) {
-      Object.assign(existing, updateDoc);
-      await existing.save();
-      record = existing;
-    } else {
-      record = await Attendance.create(updateDoc);
-    }
+    // Sort by startTime
+    result.sort((a, b) => a.timetable.startTime.localeCompare(b.timetable.startTime));
 
-    return res.status(200).json(new ApiResponse(200, { recordId: record._id }, 'Attendance successfully marked via QR'));
-  } catch (error) { next(error); }
+    return res.status(200).json(new ApiResponse(200, result, 'Faculty lectures and attendance fetched'));
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
@@ -464,6 +474,6 @@ module.exports = {
   getStudentTodayAttendance,
   getAdminLiveFeed,
   getAttendanceDashboardStats,
-  generateQRToken,
-  markQRAttendance
+  markFacultyLectureAttendance,
+  getFacultyLecturesWithAttendance
 };

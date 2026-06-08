@@ -13,7 +13,8 @@ const {
   getAdminLiveFeed,
   getAttendanceDashboardStats,
   markFacultyLectureAttendance,
-  getFacultyLecturesWithAttendance
+  getFacultyLecturesWithAttendance,
+  getFacultyAttendanceSummary
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
@@ -34,5 +35,6 @@ router.get('/student-today', protect, authorize('Student'), getStudentTodayAtten
 // Faculty Lecture Attendance routes
 router.post('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), markFacultyLectureAttendance);
 router.get('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyLecturesWithAttendance);
+router.get('/faculty-summary', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyAttendanceSummary);
 
 module.exports = router;

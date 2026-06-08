@@ -390,8 +390,8 @@ const markFacultyLectureAttendance = async (req, res, next) => {
       throw new ApiError(400, 'facultyId, timetableId, date, and status are required');
     }
 
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = date.split('-');
+    const attendanceDate = new Date(year, month - 1, day);
 
     let record = await FacultyAttendance.findOne({ faculty: facultyId, timetableId, date: attendanceDate });
     if (record) {
@@ -422,8 +422,8 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
     const { facultyId, date } = req.query;
     if (!facultyId || !date) throw new ApiError(400, 'facultyId and date are required');
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = date.split('-');
+    const queryDate = new Date(year, month - 1, day);
 
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayOfWeek = days[queryDate.getDay()];
@@ -464,6 +464,39 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
   }
 };
 
+const getFacultyAttendanceSummary = async (req, res, next) => {
+  try {
+    const { facultyId } = req.query;
+    if (!facultyId) throw new ApiError(400, 'facultyId is required');
+
+    const records = await FacultyAttendance.find({ faculty: facultyId })
+      .populate({ path: 'timetableId', populate: { path: 'subject', select: 'name code' } })
+      .sort({ date: -1 });
+
+    const summary = {
+      totalLectures: records.length,
+      present: 0,
+      absent: 0,
+      history: []
+    };
+
+    summary.history = records.map(r => {
+      if (r.status === 'Present') summary.present++;
+      else if (r.status === 'Absent') summary.absent++;
+      return {
+        date: r.date,
+        status: r.status,
+        subject: r.timetableId?.subject?.name || 'Unknown',
+        time: r.timetableId ? `${r.timetableId.startTime} - ${r.timetableId.endTime}` : 'Unknown'
+      };
+    });
+
+    return res.status(200).json(new ApiResponse(200, summary, 'Faculty attendance summary fetched'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -475,5 +508,6 @@ module.exports = {
   getAdminLiveFeed,
   getAttendanceDashboardStats,
   markFacultyLectureAttendance,
-  getFacultyLecturesWithAttendance
+  getFacultyLecturesWithAttendance,
+  getFacultyAttendanceSummary
 };

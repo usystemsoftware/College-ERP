@@ -1,5 +1,8 @@
 const Attendance = require('./attendance.model');
+const FacultyAttendance = require('./facultyAttendance.model');
 const Student = require('../students/student.model');
+const Faculty = require('../faculty/faculty.model');
+const Timetable = require('../timetables/timetable.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const jwt = require('jsonwebtoken');
@@ -369,6 +372,98 @@ const getAttendanceDashboardStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// ─────────────────────────────────────────────────
+// FACULTY LECTURE ATTENDANCE
+// ─────────────────────────────────────────────────
+
+const markFacultyLectureAttendance = async (req, res, next) => {
+  try {
+    let { facultyId, timetableId, date, status, remarks } = req.body;
+
+    // Auto-resolve facultyId for logged-in faculty
+    if (!facultyId) {
+      const faculty = await Faculty.findOne({ user: req.user._id });
+      if (faculty) facultyId = faculty._id;
+    }
+
+    if (!facultyId || !timetableId || !date || !status) {
+      throw new ApiError(400, 'facultyId, timetableId, date, and status are required');
+    }
+
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0);
+
+    let record = await FacultyAttendance.findOne({ faculty: facultyId, timetableId, date: attendanceDate });
+    if (record) {
+      record.status = status;
+      record.remarks = remarks || record.remarks;
+      record.markedBy = req.user._id;
+      await record.save();
+    } else {
+      record = await FacultyAttendance.create({
+        faculty: facultyId,
+        timetableId,
+        date: attendanceDate,
+        status,
+        markedBy: req.user._id,
+        collegeId: req.user.collegeId,
+        remarks: remarks || ''
+      });
+    }
+
+    return res.status(200).json(new ApiResponse(200, record, 'Faculty lecture attendance marked successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getFacultyLecturesWithAttendance = async (req, res, next) => {
+  try {
+    const { facultyId, date } = req.query;
+    if (!facultyId || !date) throw new ApiError(400, 'facultyId and date are required');
+
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
+
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[queryDate.getDay()];
+
+    // 1. Get all timetable slots for this faculty on this day
+    const timetables = await Timetable.find({
+      faculty: facultyId,
+      dayOfWeek: dayOfWeek,
+      isActive: true
+    }).populate('subject', 'name code').populate('course', 'name');
+
+    // 2. Get attendance records for these slots on this date
+    const attendanceRecords = await FacultyAttendance.find({
+      faculty: facultyId,
+      date: queryDate
+    });
+
+    const attendanceMap = {};
+    attendanceRecords.forEach(record => {
+      attendanceMap[record.timetableId.toString()] = record;
+    });
+
+    // 3. Combine them
+    const result = timetables.map(t => {
+      const att = attendanceMap[t._id.toString()];
+      return {
+        timetable: t,
+        attendance: att ? { status: att.status, remarks: att.remarks } : null
+      };
+    });
+
+    // Sort by startTime
+    result.sort((a, b) => a.timetable.startTime.localeCompare(b.timetable.startTime));
+
+    return res.status(200).json(new ApiResponse(200, result, 'Faculty lectures and attendance fetched'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /attendance/qr/generate
 const generateQRToken = async (req, res, next) => {
   try {
@@ -527,5 +622,7 @@ module.exports = {
   getAttendanceDashboardStats,
   generateQRToken,
   markQRAttendance,
-  sendQRToFaculty
+  sendQRToFaculty,
+  markFacultyLectureAttendance,
+  getFacultyLecturesWithAttendance
 };

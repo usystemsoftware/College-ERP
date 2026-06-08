@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, Clock, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import api from '../../api/axios';
+import FacultyLectureAttendance from './FacultyLectureAttendance';
 
 const HRDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -63,9 +64,17 @@ const HRDashboard = () => {
           >
             Payslips
           </button>
+          <button 
+            onClick={() => setActiveTab('LectureAttendance')}
+            className={`pb-3 px-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'LectureAttendance' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+          >
+            Lecture Attendance
+          </button>
         </div>
 
-        {activeTab === 'Leaves' ? (
+        {activeTab === 'LectureAttendance' ? (
+          <FacultyLectureAttendance />
+        ) : activeTab === 'Leaves' ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
              {leaves.map((leave, idx) => (
                 <div key={idx} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-900">
@@ -132,6 +141,24 @@ const HRDashboard = () => {
         </div>
       </div>
 
+      <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
+        <button 
+          onClick={() => setActiveTab('Leaves')}
+          className={`pb-3 px-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Leaves' || activeTab === 'Payroll' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+        >
+          Overview
+        </button>
+        <button 
+          onClick={() => setActiveTab('LectureAttendance')}
+          className={`pb-3 px-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'LectureAttendance' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+        >
+          Lecture Attendance
+        </button>
+      </div>
+
+      {activeTab === 'LectureAttendance' ? (
+        <FacultyLectureAttendance />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Leave Approvals */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
@@ -172,6 +199,7 @@ const HRDashboard = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

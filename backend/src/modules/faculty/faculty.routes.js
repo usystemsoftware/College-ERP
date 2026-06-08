@@ -8,7 +8,7 @@ const ADMIN_ROLES = ['Super Admin', 'College Admin', 'Principal'];
 
 router.get('/dashboard', protect, getFacultyDashboardStats);
 router.get('/me', protect, getMyFacultyProfile);
-router.get('/', protect, authorize(...ADMIN_ROLES, 'HOD', 'Faculty', 'Class Coordinator'), getFaculty);
+router.get('/', protect, authorize(...ADMIN_ROLES, 'HOD', 'Faculty', 'Class Coordinator', 'HR'), getFaculty);
 router.get('/:id', protect, getFacultyMember);
 router.post('/', protect, authorize(...ADMIN_ROLES), createFaculty);
 router.put('/:id', protect, authorize(...ADMIN_ROLES, 'HOD'), updateFaculty);

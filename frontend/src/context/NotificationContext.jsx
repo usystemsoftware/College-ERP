@@ -79,6 +79,16 @@ export const NotificationProvider = ({ children }) => {
       console.log('🔔 New notification received via socket:', data.title);
       setNotifications((prev) => [data, ...prev]);
       setUnreadCount((count) => count + 1);
+
+      // Show toast if it's a pushed QR
+      if (data.metadata?.type === 'STUDENT_QR_ATTENDANCE') {
+        import('react-hot-toast').then(({ toast }) => {
+          toast.success(`📋 ${data.metadata.subjectName} QR received — Mark Now!`, {
+            duration: 6000,
+            icon: '📲',
+          });
+        });
+      }
     });
 
     // Cleanup on unmount or user change

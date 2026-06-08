@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio, MapPin, User, RefreshCw, QrCode, Loader2 } from 'lucide-react';
+import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio, MapPin, User, RefreshCw, QrCode, Loader2, Send } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSubjects } from '../../api/academic.api';
 import { getStudentsAPI } from '../../api/students.api';
-import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI } from '../../api/attendance.api';
+import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI, sendQRToStudentsAPI } from '../../api/attendance.api';
+import { getFacultyAPI } from '../../api/faculty.api';
 import { getSocket } from '../../services/socket';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
@@ -16,6 +17,7 @@ const mockTrendData = [
   { name: 'Week 3', rate: 88 },
   { name: 'Week 4', rate: 94 },
 ];
+
 
 const AttendancePage = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -45,10 +47,31 @@ const AttendancePage = () => {
   const [qrToken, setQrToken] = useState('');
   const [generatingQR, setGeneratingQR] = useState(false);
 
+  // Send QR Modal State
+  const [sendQRModalOpen, setSendQRModalOpen] = useState(false);
+  const [facultySearch, setFacultySearch] = useState('');
+  const [facultyDeptFilter, setFacultyDeptFilter] = useState('All');
+  const [selectedFacultyIds, setSelectedFacultyIds] = useState([]);
+  const [sendMethod, setSendMethod] = useState('both');
+  const [sendMessage, setSendMessage] = useState('');
+  const [sendingQR, setSendingQR] = useState(false);
+  const [sentFacultyIds, setSentFacultyIds] = useState([]);
+  const [facultyList, setFacultyList] = useState([]);
+
   useEffect(() => {
     fetchSubjects();
     fetchLiveFeed();
+    fetchFaculties();
   }, []);
+
+  const fetchFaculties = async () => {
+    try {
+      const res = await getFacultyAPI({ limit: 1000 });
+      setFacultyList(res.data?.data?.faculty || []);
+    } catch (err) {
+      console.error('Error fetching faculties:', err);
+    }
+  };
 
   // Socket listener for real-time student check-ins
   useEffect(() => {
@@ -216,6 +239,28 @@ const AttendancePage = () => {
     }
   };
 
+  const handleSendQRToStudents = async () => {
+    if (selectedFacultyIds.length === 0) {
+      toast.error('Please select at least one faculty');
+      return;
+    }
+    setSendingQR(true);
+    try {
+      const res = await sendQRToStudentsAPI({
+        qrSessionId: qrToken,
+        subjectId: subject,
+        facultyIds: selectedFacultyIds
+      });
+      toast.success(`✅ QR pushed to ${res.data.data.sentTo} students`);
+      setSentFacultyIds(prev => [...prev, ...selectedFacultyIds]);
+      setSelectedFacultyIds([]);
+    } catch (error) {
+      toast.error('Failed to push QR: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSendingQR(false);
+    }
+  };
+
   // Stats calculation
   const totalStudents = attendanceRecords.length;
   const presentCount = attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
@@ -225,6 +270,13 @@ const AttendancePage = () => {
     r.student?.personalDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.student?.rollNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredFaculty = facultyList.filter(f => {
+    const deptName = f.department?.name || 'General';
+    const fName = f.fullName || 'Unknown Faculty';
+    return (facultyDeptFilter === 'All' || deptName === facultyDeptFilter) &&
+           (fName.toLowerCase().includes(facultySearch.toLowerCase()) || deptName.toLowerCase().includes(facultySearch.toLowerCase()));
+  });
 
   return (
     <div className="space-y-6">
@@ -562,11 +614,140 @@ const AttendancePage = () => {
           <div className="w-full rounded-lg bg-slate-50 p-4 border border-slate-100 dark:bg-dark-800 dark:border-slate-700">
             <div className="flex items-center gap-3">
               <QrCode className="text-brand-500" size={24} />
-              <div>
+              <div className="flex-1">
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Session</h4>
                 <p className="text-xs text-slate-500">Date: {date} | Subject: {subjects.find(s => s._id === subject)?.name}</p>
               </div>
+              <button
+                onClick={() => setSendQRModalOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-brand-500 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+              >
+                <Send size={16} />
+                Push to Class
+              </button>
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Push QR to Class Modal */}
+      <Modal isOpen={sendQRModalOpen} onClose={() => setSendQRModalOpen(false)} title="Push QR to Class">
+        <div className="p-6 flex flex-col max-h-[85vh]">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Select faculty members to push this QR to their enrolled students in real-time.
+          </p>
+          
+          {/* Lecture Info Card */}
+          <div className="flex items-center justify-between p-3 mb-6 bg-slate-50 border border-slate-200 rounded-lg dark:bg-dark-800 dark:border-slate-700">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lecture Session</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">{subjects.find(s => s._id === subject)?.name || 'Class'} • {date}</p>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 mb-1">
+                Active
+              </span>
+              <p className="text-xs text-slate-500 flex items-center gap-1"><Clock size={12} /> Expires in 10:00</p>
+            </div>
+          </div>
+
+          {/* Section 2 — Faculty Selection */}
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="flex gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search faculty by name or department..."
+                  value={facultySearch}
+                  onChange={(e) => setFacultySearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white dark:bg-dark-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+              {['All', 'CSE', 'IT', 'MECH', 'CIVIL', 'ECE'].map(dept => (
+                <button
+                  key={dept}
+                  onClick={() => setFacultyDeptFilter(dept)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${facultyDeptFilter === dept ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-dark-700 dark:text-slate-300 dark:hover:bg-dark-600'}`}
+                >
+                  {dept}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center mb-2 px-1">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filteredFaculty.length > 0 && selectedFacultyIds.length === filteredFaculty.length}
+                  onChange={(e) => setSelectedFacultyIds(e.target.checked ? filteredFaculty.map(f => f.id) : [])}
+                  className="rounded text-brand-500 focus:ring-brand-500"
+                />
+                Select All
+              </label>
+              <span className="text-xs text-brand-600 dark:text-brand-400 font-medium">
+                {selectedFacultyIds.length} faculty selected
+              </span>
+            </div>
+
+            <div className="overflow-y-auto max-h-[300px] border border-slate-200 rounded-lg divide-y divide-slate-100 dark:border-slate-700 dark:divide-slate-800">
+              {filteredFaculty.map(faculty => {
+                const fName = faculty.fullName || 'Unknown Faculty';
+                const deptName = faculty.department?.name || 'General';
+                const isOnline = faculty.user?.status === 'active' || faculty.user?.status === 'Active';
+                return (
+                <label key={faculty._id} className="flex items-center p-3 hover:bg-slate-50 dark:hover:bg-dark-750/50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedFacultyIds.includes(faculty._id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedFacultyIds(prev => [...prev, faculty._id]);
+                      else setSelectedFacultyIds(prev => prev.filter(id => id !== faculty._id));
+                    }}
+                    className="rounded text-brand-500 focus:ring-brand-500 mt-1"
+                  />
+                  <div className="ml-3 relative">
+                    <div className="h-8 w-8 rounded-full bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
+                      {fName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-dark-800 ${isOnline ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      {fName}
+                      {sentFacultyIds.includes(faculty._id) && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold dark:bg-green-900/30 dark:text-green-400">Sent ✓</span>}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      <span className="inline-block bg-slate-100 dark:bg-dark-700 px-1.5 py-0.5 rounded mr-2">{deptName}</span>
+                      {faculty.designation || 'Faculty'}
+                    </p>
+                  </div>
+                </label>
+              )})}
+              {filteredFaculty.length === 0 && (
+                <div className="p-8 text-center text-slate-500 text-sm">No faculty members found.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => setSendQRModalOpen(false)}
+              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg dark:text-slate-300 dark:hover:bg-dark-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSendQRToStudents}
+              disabled={selectedFacultyIds.length === 0 || sendingQR}
+              className="px-6 py-2 text-sm font-semibold text-white bg-brand-500 rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+            >
+              {sendingQR ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              Push to Students ({selectedFacultyIds.length})
+            </button>
           </div>
         </div>
       </Modal>

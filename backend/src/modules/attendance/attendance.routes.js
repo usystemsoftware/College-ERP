@@ -12,6 +12,11 @@ const {
   getStudentTodayAttendance,
   getAdminLiveFeed,
   getAttendanceDashboardStats,
+  generateQRToken,
+  verifyQRToken,
+  markQRAttendance,
+  sendQRToFaculty,
+  sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance
 } = require('./attendance.controller');
@@ -30,6 +35,13 @@ router.get('/admin-live-feed', protect, authorize('Super Admin', 'College Admin'
 router.post('/student-checkin', protect, authorize('Student'), studentCheckIn);
 router.post('/student-checkout', protect, authorize('Student'), studentCheckOut);
 router.get('/student-today', protect, authorize('Student'), getStudentTodayAttendance);
+
+// QR Attendance routes
+router.post('/qr/generate', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), generateQRToken);
+router.post('/qr/verify', protect, authorize('Student'), verifyQRToken);
+router.post('/qr/mark', protect, authorize('Student'), markQRAttendance);
+router.post('/qr/send-to-faculty', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), sendQRToFaculty);
+router.post('/qr/send-to-students', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), sendQRToStudents);
 
 // Faculty Lecture Attendance routes
 router.post('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), markFacultyLectureAttendance);

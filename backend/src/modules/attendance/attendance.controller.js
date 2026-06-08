@@ -464,6 +464,255 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
   }
 };
 
+// POST /attendance/qr/generate
+const generateQRToken = async (req, res, next) => {
+  try {
+    const { subject, date, lectureType } = req.body;
+    if (!subject || !date) throw new ApiError(400, 'Subject and date required');
+
+    const faculty = await require('../faculty/faculty.model').findOne({ user: req.user._id });
+    if (!faculty && req.user.role.name === 'Faculty') throw new ApiError(403, 'Faculty profile not found');
+
+    const facultyId = faculty ? faculty._id : null;
+    const sessionId = Math.random().toString(36).substring(2, 10);
+
+    const payload = {
+      subject,
+      date,
+      lectureType: lectureType || 'Theory',
+      facultyId,
+      collegeId: req.user.collegeId,
+      sessionId,
+      type: 'lecture_qr'
+    };
+
+    // Token expires in 10 minutes
+    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
+
+    return res.json(new ApiResponse(200, { token, expiresIn: 600 }, 'QR Token generated'));
+  } catch (error) { next(error); }
+};
+
+// POST /attendance/qr/verify
+const verifyQRToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, 'QR Token is required');
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const attendanceDate = new Date(decoded.date);
+    
+    // Check if already marked for this subject and date
+    const existing = await Attendance.findOne({
+      student: student._id,
+      subject: decoded.subject,
+      date: attendanceDate
+    });
+
+    if (existing && existing.status === 'Present') {
+      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
+    }
+
+    const subjectDoc = await require('../subjects/subject.model').findById(decoded.subject);
+
+    return res.status(200).json(new ApiResponse(200, {
+      subject: decoded.subject,
+      subjectName: subjectDoc ? subjectDoc.name : 'Unknown Subject',
+      date: decoded.date,
+      lectureType: decoded.lectureType
+    }, 'QR Token is valid'));
+  } catch (error) { next(error); }
+};
+
+// POST /attendance/qr/mark
+const markQRAttendance = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, 'QR Token is required');
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const attendanceDate = new Date(decoded.date);
+    
+    // Check if already marked for this subject and date
+    const existing = await Attendance.findOne({
+      student: student._id,
+      subject: decoded.subject,
+      date: attendanceDate
+    });
+
+    if (existing && existing.status === 'Present') {
+      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
+    }
+
+    const updateDoc = {
+      student: student._id,
+      subject: decoded.subject,
+      date: attendanceDate,
+      status: 'Present',
+      markedBy: req.user._id, // the student themselves
+      lectureType: decoded.lectureType,
+      selfMarked: true,
+      collegeId: decoded.collegeId
+    };
+    if (decoded.facultyId) updateDoc.faculty = decoded.facultyId;
+
+    let record;
+    if (existing) {
+      Object.assign(existing, updateDoc);
+      await existing.save();
+      record = existing;
+    } else {
+      record = await Attendance.create(updateDoc);
+    }
+
+    return res.status(200).json(new ApiResponse(200, { recordId: record._id }, 'Attendance successfully marked via QR'));
+  } catch (error) { next(error); }
+};
+
+// POST /attendance/qr/send-to-faculty
+const sendQRToFaculty = async (req, res, next) => {
+  try {
+    const { qrSessionId, facultyIds, sendMethod, message } = req.body;
+    if (!qrSessionId || !facultyIds?.length || !sendMethod) {
+      throw new ApiError(400, 'qrSessionId, facultyIds, and sendMethod are required');
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(qrSessionId, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+
+    const notificationService = require('../../services/notification.service');
+    const User = require('../users/user.model');
+
+    let sentCount = 0;
+    const failedList = [];
+
+    for (const facultyId of facultyIds) {
+      try {
+        if (sendMethod === 'portal' || sendMethod === 'both') {
+          await notificationService.emitNotification({
+            title: 'QR Code for Lecture Attendance',
+            message: message || `Please display this QR code to your students.`,
+            type: 'System',
+            category: 'Attendance',
+            recipient: facultyId,
+            metadata: { 
+              type: 'QR_ATTENDANCE', 
+              qrSessionId, 
+              subject: decoded.subject, 
+              expiresAt: new Date(decoded.exp * 1000) 
+            }
+          });
+        }
+        if (sendMethod === 'email' || sendMethod === 'both') {
+          const userDoc = await User.findById(facultyId);
+          if (userDoc?.email) {
+            await notificationService.sendEmail({
+              to: userDoc.email,
+              subject: 'QR Code for Lecture Attendance',
+              html: `<p>${message || 'Please display this QR code to your students for attendance:'}</p><p><b>${qrSessionId}</b></p>`
+            });
+          }
+        }
+        sentCount++;
+      } catch (err) {
+        console.error('Error sending QR to faculty:', err);
+        failedList.push(facultyId);
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount, failed: failedList }, 'QR sent successfully'));
+  } catch (error) { next(error); }
+};
+
+// POST /attendance/qr/send-to-students
+const sendQRToStudents = async (req, res, next) => {
+  try {
+    const { qrSessionId, subjectId } = req.body;
+    if (!qrSessionId || !subjectId) {
+      throw new ApiError(400, 'qrSessionId and subjectId are required');
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(qrSessionId, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    if (decoded.type !== 'lecture_qr') throw new ApiError(400, 'Invalid token type');
+
+    const notificationService = require('../../services/notification.service');
+    const Subject = require('../subjects/subject.model');
+    const Student = require('../students/student.model');
+
+    const subject = await Subject.findById(subjectId);
+    if (!subject) throw new ApiError(404, 'Subject not found');
+
+    let students = await Student.find({
+      department: subject.department,
+      course: subject.course,
+      semester: subject.semester
+    });
+
+    if (!students.length) {
+      // Fallback: push to all students if mapping is loose
+      students = await Student.find({});
+    }
+
+    let sentCount = 0;
+    for (const student of students) {
+      try {
+        await notificationService.emitNotification({
+          title: `📋 ${subject.name || 'Lecture'} QR received`,
+          message: 'Mark Now',
+          type: 'STUDENT_QR_ATTENDANCE',
+          category: 'Attendance',
+          recipient: student.user, // User ID for socket room
+          metadata: { 
+            type: 'STUDENT_QR_ATTENDANCE', 
+            qrSessionId, 
+            subjectName: subject.name,
+            expiresAt: new Date(decoded.exp * 1000) 
+          }
+        });
+        sentCount++;
+      } catch (err) {
+        console.error('Error sending QR to student:', err);
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, { sentTo: sentCount }, 'QR pushed to students successfully'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -474,6 +723,11 @@ module.exports = {
   getStudentTodayAttendance,
   getAdminLiveFeed,
   getAttendanceDashboardStats,
+  generateQRToken,
+  verifyQRToken,
+  markQRAttendance,
+  sendQRToFaculty,
+  sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance
 };

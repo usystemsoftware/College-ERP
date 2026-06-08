@@ -1,19 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, DollarSign, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
-
-// Mock Data
-const mockInvoices = [
-  { id: 'INV-2023-001', title: 'Tuition Fee - Fall 2023', totalAmount: 5000, paidAmount: 5000, dueDate: 'Sep 01, 2023', status: 'Paid', feeType: 'Tuition' },
-  { id: 'INV-2023-042', title: 'Hostel Fee - Fall 2023', totalAmount: 2000, paidAmount: 1000, dueDate: 'Oct 01, 2023', status: 'Partial', feeType: 'Hostel' },
-  { id: 'INV-2023-089', title: 'Library Fine', totalAmount: 50, paidAmount: 0, dueDate: 'Oct 15, 2023', status: 'Pending', feeType: 'Library Fine' },
-];
-
-const mockStats = {
-  totalBilled: 1500000,
-  totalCollected: 1200000,
-  pendingDues: 300000
-};
+import api from '../../api/axios';
 
 const FeeDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -21,6 +9,38 @@ const FeeDashboard = () => {
   const isStudent = roleName === 'Student';
 
   const [activeTab, setActiveTab] = useState('All');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/fees/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch fee stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const invoices = stats?.invoices || [];
+  const summary = stats?.summary || { totalFees: 0, totalPaid: 0, outstandingBalance: 0 };
+  const adminStats = {
+    totalBilled: stats?.totalBilled || 0,
+    totalCollected: stats?.totalCollected || 0,
+    pendingDues: stats?.pendingDues || 0
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -55,7 +75,7 @@ const FeeDashboard = () => {
                 <FileText size={18} />
               </div>
             </div>
-            <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">${mockStats.totalBilled.toLocaleString()}</p>
+            <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">${adminStats.totalBilled.toLocaleString()}</p>
           </div>
           
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
@@ -65,9 +85,9 @@ const FeeDashboard = () => {
                 <DollarSign size={18} />
               </div>
             </div>
-            <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">${mockStats.totalCollected.toLocaleString()}</p>
+            <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">${adminStats.totalCollected.toLocaleString()}</p>
             <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-dark-800">
-              <div className="h-full rounded-full bg-green-500" style={{ width: `${(mockStats.totalCollected / mockStats.totalBilled) * 100}%` }}></div>
+              <div className="h-full rounded-full bg-green-500" style={{ width: `${(adminStats.totalCollected / (adminStats.totalBilled || 1)) * 100}%` }}></div>
             </div>
           </div>
 
@@ -78,7 +98,7 @@ const FeeDashboard = () => {
                 <AlertCircle size={18} />
               </div>
             </div>
-            <p className="mt-4 text-3xl font-bold text-red-600 dark:text-red-400">${mockStats.pendingDues.toLocaleString()}</p>
+            <p className="mt-4 text-3xl font-bold text-red-600 dark:text-red-400">${adminStats.pendingDues.toLocaleString()}</p>
           </div>
         </div>
 
@@ -125,7 +145,7 @@ const FeeDashboard = () => {
             ))}
           </div>
 
-          {mockInvoices
+          {invoices
             .filter(i => activeTab === 'All' || (activeTab === 'Paid' ? i.status === 'Paid' : i.status !== 'Paid'))
             .map(invoice => (
             <div key={invoice.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -162,15 +182,15 @@ const FeeDashboard = () => {
           <div className="space-y-3 text-sm">
             <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span>Total Fees</span>
-              <span>$7,050</span>
+              <span>${summary.totalFees.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-green-600 dark:text-green-400">
               <span>Total Paid</span>
-              <span>-$6,000</span>
+              <span>-${summary.totalPaid.toLocaleString()}</span>
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between font-bold text-lg text-slate-900 dark:text-white">
               <span>Outstanding Balance</span>
-              <span>$1,050</span>
+              <span>${summary.outstandingBalance.toLocaleString()}</span>
             </div>
           </div>
         </div>

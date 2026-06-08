@@ -32,6 +32,65 @@ const getDashboardStats = async (req, res, next) => {
       }
     ]);
 
+
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    
+    const monthlyRevenue = await Payment.aggregate([
+      { 
+        $match: { 
+          ...filter, 
+          status: 'Success',
+          paymentDate: { $gte: startOfYear }
+        } 
+      },
+      {
+        $group: {
+          _id: { $month: "$paymentDate" },
+          revenue: { $sum: "$amount" }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const revenueData = monthNames.map((month, index) => {
+      const monthData = monthlyRevenue.find(item => item._id === index + 1);
+      const revenue = monthData ? monthData.revenue : 0;
+      return {
+        name: month,
+        revenue: revenue,
+        expenses: Math.floor(revenue * 0.4) // Simulating expenses as 40% of revenue
+      };
+    });
+
+    // Admission Trends: Applications by week (last 4 weeks)
+    const admissionAgg = await Application.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: { $week: "$createdAt" },
+          students: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": -1 } },
+      { $limit: 4 }
+    ]);
+    
+    const admissionDataRaw = admissionAgg.reverse().map((item, index) => ({
+      name: `Week ${index + 1}`,
+      students: item.students
+    }));
+    
+    const admissionData = [];
+    for(let i = 1; i <= 4; i++) {
+      if (i <= admissionDataRaw.length) {
+        admissionData.push({ name: `Week ${i}`, students: admissionDataRaw[i - 1].students });
+      } else {
+        admissionData.push({ name: `Week ${i}`, students: 0 });
+      }
+    }
+
     const stats = {
       totalStudents: totalStudents,
       totalFaculty: totalFaculty,
@@ -40,14 +99,8 @@ const getDashboardStats = async (req, res, next) => {
       pendingApprovals: pendingApprovals,
       revenue: feeStats.length > 0 ? feeStats[0].totalCollected : 0,
       activeCourses: totalCourses,
-      revenueData: [
-        { name: 'Jan', value: 400000 },
-        { name: 'Feb', value: 300000 },
-        { name: 'Mar', value: 200000 },
-        { name: 'Apr', value: 278000 },
-        { name: 'May', value: 189000 },
-        { name: 'Jun', value: 239000 },
-      ]
+      revenueData: revenueData,
+      admissionData: admissionData
     };
 
     return res.status(200).json(new ApiResponse(200, { stats }, 'Dashboard stats fetched successfully'));

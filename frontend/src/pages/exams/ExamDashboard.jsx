@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Award, ChevronDown, CheckCircle, Clock } from 'lucide-react';
 import { useSelector } from 'react-redux';
-
-// Mock Data
-const mockExams = [
-  { id: 1, title: 'Mid-Term Fall 2023', subject: 'Data Structures', date: 'Nov 10, 2023', status: 'Upcoming', marks: 100 },
-  { id: 2, title: 'Mid-Term Fall 2023', subject: 'Database Systems', date: 'Nov 12, 2023', status: 'Upcoming', marks: 100 },
-  { id: 3, title: 'Quiz 1', subject: 'Operating Systems', date: 'Oct 05, 2023', status: 'Published', marks: 20, score: 18 },
-  { id: 4, title: 'Quiz 1', subject: 'Computer Networks', date: 'Oct 08, 2023', status: 'Evaluating', marks: 20 },
-];
+import api from '../../api/axios';
 
 const ExamDashboard = () => {
   const { user } = useSelector(state => state.auth);
   const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
   const isStudent = roleName === 'Student';
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const response = await api.get('/exams/dashboard');
+        setExams(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch exam stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExams();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -43,12 +60,16 @@ const ExamDashboard = () => {
           </div>
           
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {mockExams.filter(e => e.status === 'Upcoming').map((exam) => (
+            {exams.filter(e => e.status === 'Upcoming').map((exam) => {
+              const d = new Date(exam.date);
+              const month = d.toLocaleString('default', { month: 'short' }).toUpperCase();
+              const day = d.getDate();
+              return (
               <div key={exam.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-dark-800/50 transition">
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center justify-center rounded bg-brand-50 dark:bg-brand-900/20 px-3 py-2 text-center border border-brand-100 dark:border-brand-800/50">
-                    <span className="text-sm font-bold text-brand-700 dark:text-brand-400">NOV</span>
-                    <span className="text-lg font-black text-brand-700 dark:text-brand-400">10</span>
+                    <span className="text-sm font-bold text-brand-700 dark:text-brand-400">{month}</span>
+                    <span className="text-lg font-black text-brand-700 dark:text-brand-400">{day}</span>
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-white text-base">{exam.subject}</h4>
@@ -62,7 +83,7 @@ const ExamDashboard = () => {
                   <p className="text-xs text-slate-400 mt-1">Total Marks: {exam.marks}</p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
 
@@ -75,7 +96,7 @@ const ExamDashboard = () => {
           </div>
           
           <div className="p-4 space-y-4">
-            {mockExams.filter(e => e.status === 'Published' || e.status === 'Evaluating').map((exam) => (
+            {exams.filter(e => e.status === 'Published' || e.status === 'Evaluating').map((exam) => (
               <div key={exam.id} className="border border-slate-100 dark:border-slate-800 rounded-lg p-3 relative overflow-hidden">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
                 <h4 className="font-semibold text-sm text-slate-900 dark:text-white pl-2">{exam.subject}</h4>

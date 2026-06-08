@@ -1,15 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { BookOpen, Calendar, Clock, GraduationCap, DollarSign, Library, FileText, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-
-const mockAttendance = [
-  { name: 'Present', value: 85, color: '#10b981' },
-  { name: 'Absent', value: 15, color: '#f43f5e' },
-];
+import api from '../../api/axios';
 
 const StudentDashboard = () => {
   const { user } = useSelector(state => state.auth);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await api.get('/students/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch student dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const attendanceData = stats?.attendance || [
+    { name: 'Present', value: 0, color: '#10b981' },
+    { name: 'Absent', value: 0, color: '#f43f5e' }
+  ];
+  const attendancePercentage = attendanceData[0]?.value + attendanceData[1]?.value > 0
+    ? Math.round((attendanceData[0].value / (attendanceData[0].value + attendanceData[1].value)) * 100)
+    : 0;
+
+  const todaysClasses = stats?.todaysClasses || [];
 
   return (
     <div className="space-y-6">
@@ -49,7 +79,7 @@ const StudentDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={mockAttendance}
+                  data={attendanceData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -58,7 +88,7 @@ const StudentDashboard = () => {
                   dataKey="value"
                   stroke="none"
                 >
-                  {mockAttendance.map((entry, index) => (
+                  {attendanceData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -66,8 +96,8 @@ const StudentDashboard = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-bold text-slate-900 dark:text-white">85%</span>
-              <span className="text-xs font-semibold text-green-500">Good</span>
+              <span className="text-3xl font-bold text-slate-900 dark:text-white">{attendancePercentage}%</span>
+              <span className="text-xs font-semibold text-green-500">{attendancePercentage >= 75 ? 'Good' : 'Low'}</span>
             </div>
           </div>
         </div>
@@ -83,11 +113,7 @@ const StudentDashboard = () => {
             </span>
           </div>
           <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent dark:before:via-slate-800">
-            {[
-              { time: '09:00 AM', subject: 'Data Structures', room: 'L-101', done: true },
-              { time: '11:15 AM', subject: 'Operating Systems', room: 'L-102', done: false },
-              { time: '02:00 PM', subject: 'OS Lab', room: 'Lab-3', done: false },
-            ].map((cls, i) => (
+            {todaysClasses.map((cls, i) => (
               <div key={i} className={`relative flex items-center justify-between p-3 rounded-lg border ${cls.done ? 'bg-slate-50 border-slate-200 opacity-60 dark:bg-dark-900 dark:border-slate-800' : 'bg-white border-brand-200 dark:bg-dark-800 dark:border-brand-800'}`}>
                 <div>
                   <h4 className="font-semibold text-slate-900 dark:text-white">{cls.subject}</h4>
@@ -109,7 +135,7 @@ const StudentDashboard = () => {
               </div>
               <div>
                 <p className="font-semibold text-slate-900 dark:text-white">Fees Due</p>
-                <p className="text-xs text-slate-500">₹25,000 pending</p>
+                <p className="text-xs text-slate-500">₹{stats?.feesDue || 0} pending</p>
               </div>
             </div>
             <button className="text-xs font-bold text-white bg-orange-500 px-3 py-1.5 rounded-lg hover:bg-orange-600">Pay</button>
@@ -121,7 +147,7 @@ const StudentDashboard = () => {
                 <FileText size={20} />
               </div>
               <div>
-                <p className="font-semibold text-slate-900 dark:text-white">2 Assignments</p>
+                <p className="font-semibold text-slate-900 dark:text-white">{stats?.assignmentsDue || 0} Assignments</p>
                 <p className="text-xs text-slate-500">Due this week</p>
               </div>
             </div>
@@ -135,7 +161,7 @@ const StudentDashboard = () => {
               </div>
               <div>
                 <p className="font-semibold text-slate-900 dark:text-white">Library</p>
-                <p className="text-xs text-slate-500">1 book to return</p>
+                <p className="text-xs text-slate-500">{stats?.libraryBooksDue || 0} book to return</p>
               </div>
             </div>
           </div>

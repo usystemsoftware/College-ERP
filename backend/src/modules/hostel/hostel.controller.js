@@ -121,11 +121,87 @@ const getStudentAllocation = async (req, res, next) => {
   }
 };
 
+const getHostelDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let stats = {};
+
+    if (isStudent) {
+      let studentId = req.user._id;
+      try {
+        const Student = require('../students/student.model');
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const allocation = await HostelAllocation.findOne({ studentId, status: 'Active' })
+        .populate({
+          path: 'roomId',
+          populate: { path: 'hostelId' }
+        });
+
+      if (allocation && allocation.roomId && allocation.roomId.hostelId) {
+        const room = allocation.roomId;
+        const hostel = room.hostelId;
+        
+        let roommates = [];
+        try {
+          const roommatesAllocations = await HostelAllocation.find({ roomId: room._id, studentId: { $ne: studentId }, status: 'Active' }).populate('studentId', 'fullName');
+          roommates = roommatesAllocations.map(ra => ra.studentId?.fullName || 'Unknown Student');
+        } catch (e) {}
+
+        let validUntil = new Date(allocation.startDate);
+        validUntil.setFullYear(validUntil.getFullYear() + 1);
+
+        stats = {
+          studentAllocation: {
+            hostel: hostel.name,
+            roomNumber: room.roomNumber,
+            roomType: room.type,
+            bedNumber: roommates.length + 1,
+            roommates: roommates,
+            warden: hostel.warden || 'Unknown Warden',
+            contact: '+1 234-567-8900', // Mock
+            validUntil: validUntil.toLocaleDateString()
+          }
+        };
+      } else {
+        stats = { studentAllocation: null };
+      }
+    } else {
+      const hostels = await Hostel.find(filter).lean();
+      const hostelsStats = await Promise.all(hostels.map(async (hostel) => {
+        const rooms = await Room.find({ hostelId: hostel._id }).lean();
+        const totalRooms = rooms.length;
+        const occupiedRooms = rooms.filter(r => r.occupancy > 0).length;
+        
+        return {
+          id: hostel._id,
+          name: hostel.name,
+          type: hostel.type,
+          totalRooms,
+          occupiedRooms,
+          warden: hostel.warden || 'Unknown Warden',
+          contact: '+1 234-567-8900'
+        };
+      }));
+
+      stats = { hostels: hostelsStats };
+    }
+
+    return res.json(new ApiResponse(200, stats, 'Hostel dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createHostel,
   getHostels,
   createRoom,
   getRooms,
   allocateRoom,
-  getStudentAllocation
+  getStudentAllocation,
+  getHostelDashboardStats
 };

@@ -5,6 +5,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 
 router.use(protect);
 
+router.get('/dashboard', assignmentController.getAssignmentDashboardStats);
 router.post('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), assignmentController.createAssignment);
 router.get('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student'), assignmentController.getAssignments);
 

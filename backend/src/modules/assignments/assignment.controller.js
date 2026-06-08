@@ -121,9 +121,82 @@ const gradeAssignment = async (req, res, next) => {
   }
 };
 
+const getAssignmentDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let assignmentsList = [];
+
+    if (isStudent) {
+      let studentId = req.user._id;
+      try {
+        const Student = require('../students/student.model');
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const allAssignments = await Assignment.find(filter)
+        .populate('subjectId', 'name')
+        .sort({ dueDate: -1 })
+        .limit(20)
+        .lean();
+
+      assignmentsList = allAssignments.map(ex => {
+        let status = 'Pending';
+        const now = new Date();
+        const dueDate = new Date(ex.dueDate);
+        
+        if (dueDate < now) status = 'Late';
+
+        let score = null;
+        if (ex.submissions) {
+          const resObj = ex.submissions.find(r => r.studentId.toString() === studentId.toString());
+          if (resObj) {
+            status = resObj.status; 
+            if (status === 'Graded') score = resObj.marksAwarded;
+          }
+        }
+
+        return {
+          id: ex._id,
+          title: ex.title,
+          subject: ex.subjectId ? ex.subjectId.name : 'Unknown Subject',
+          dueDate: dueDate.toLocaleDateString(),
+          status: status,
+          marks: ex.totalMarks,
+          score: score
+        };
+      });
+
+    } else {
+      const allAssignments = await Assignment.find(filter)
+        .populate('subjectId', 'name')
+        .sort({ dueDate: -1 })
+        .limit(20)
+        .lean();
+
+      assignmentsList = allAssignments.map(ex => {
+        return {
+          id: ex._id,
+          title: ex.title,
+          subject: ex.subjectId ? ex.subjectId.name : 'Unknown Subject',
+          dueDate: new Date(ex.dueDate).toLocaleDateString(),
+          status: 'Pending',
+          marks: ex.totalMarks
+        };
+      });
+    }
+
+    return res.json(new ApiResponse(200, assignmentsList, 'Assignment dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createAssignment,
   getAssignments,
   submitAssignment,
-  gradeAssignment
+  gradeAssignment,
+  getAssignmentDashboardStats
 };

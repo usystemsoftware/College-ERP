@@ -167,4 +167,79 @@ const getFeeStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats };
+const getFeeDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let stats = {};
+
+    if (isStudent) {
+      let studentId = req.user._id;
+      try {
+        const Student = require('../students/student.model');
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const invoices = await Fee.find({ student: studentId }).sort({ dueDate: 1 }).lean();
+      
+      let totalFees = 0;
+      let totalPaid = 0;
+      let formattedInvoices = [];
+
+      for (let inv of invoices) {
+        totalFees += inv.totalAmount;
+        totalPaid += inv.paidAmount;
+        
+        let status = inv.status;
+        if (status !== 'Paid' && new Date(inv.dueDate) < new Date()) {
+          status = 'Overdue';
+        }
+
+        formattedInvoices.push({
+          id: inv._id,
+          title: `${inv.feeType} Fee`,
+          totalAmount: inv.totalAmount,
+          paidAmount: inv.paidAmount,
+          dueDate: new Date(inv.dueDate).toLocaleDateString(),
+          status: status,
+          feeType: inv.feeType
+        });
+      }
+
+      stats = {
+        invoices: formattedInvoices,
+        summary: {
+          totalFees,
+          totalPaid,
+          outstandingBalance: totalFees - totalPaid
+        }
+      };
+    } else {
+      const fees = await Fee.aggregate([
+        { $match: filter },
+        { $group: {
+            _id: null,
+            totalBilled: { $sum: '$totalAmount' },
+            totalCollected: { $sum: '$paidAmount' }
+        }}
+      ]);
+      
+      const totalBilled = fees.length > 0 ? fees[0].totalBilled : 0;
+      const totalCollected = fees.length > 0 ? fees[0].totalCollected : 0;
+      const pendingDues = totalBilled - totalCollected;
+
+      stats = {
+        totalBilled,
+        totalCollected,
+        pendingDues
+      };
+    }
+
+    return res.json(new ApiResponse(200, stats, 'Fee dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
+module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats, getFeeDashboardStats };

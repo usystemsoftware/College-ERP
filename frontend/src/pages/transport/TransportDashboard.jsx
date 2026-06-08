@@ -1,23 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bus, Map, Users, Clock, Plus } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import Modal from '../../components/common/Modal';
-
-// Mock Data
-const mockRoutes = [
-  { id: 'R1', name: 'Route 1 - City Center', stops: 5, vehicles: 2, students: 85, capacity: 100 },
-  { id: 'R2', name: 'Route 2 - North Suburbs', stops: 8, vehicles: 1, students: 45, capacity: 50 },
-];
-
-const mockStudentTransport = {
-  route: 'Route 1 - City Center',
-  stop: 'Central Library',
-  pickupTime: '07:30 AM',
-  dropTime: '04:15 PM',
-  vehicleNumber: 'KA-01-AB-1234',
-  driverName: 'Ramesh Kumar',
-  driverContact: '+1 987-654-3210'
-};
+import api from '../../api/axios';
 
 const TransportDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -26,11 +11,38 @@ const TransportDashboard = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/transport/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch transport stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleOpenModal = (type) => {
     setModalType(type);
     setIsModalOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const studentTransport = stats?.studentTransport || { route: 'Unassigned', stop: 'N/A', pickupTime: '-', dropTime: '-', vehicleNumber: '-', driverName: '-', driverContact: '-' };
+  const routes = stats?.routes || [];
 
   if (isStudent) {
     return (
@@ -47,16 +59,16 @@ const TransportDashboard = () => {
             <div className="flex-1 space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Bus className="text-brand-500" /> {mockStudentTransport.route}
+                  <Bus className="text-brand-500" /> {studentTransport.route}
                 </h2>
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-lg bg-slate-50 p-3 dark:bg-dark-800/50">
                     <p className="text-xs text-slate-500 mb-1">Your Stop</p>
-                    <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5"><Map size={14} className="text-slate-400"/> {mockStudentTransport.stop}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5"><Map size={14} className="text-slate-400"/> {studentTransport.stop}</p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-3 dark:bg-dark-800/50">
                     <p className="text-xs text-slate-500 mb-1">Vehicle</p>
-                    <p className="font-mono font-semibold text-slate-900 dark:text-white">{mockStudentTransport.vehicleNumber}</p>
+                    <p className="font-mono font-semibold text-slate-900 dark:text-white">{studentTransport.vehicleNumber}</p>
                   </div>
                 </div>
               </div>
@@ -68,7 +80,7 @@ const TransportDashboard = () => {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Pickup</p>
-                    <p className="font-bold text-slate-900 dark:text-white">{mockStudentTransport.pickupTime}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{studentTransport.pickupTime}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -77,7 +89,7 @@ const TransportDashboard = () => {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Drop</p>
-                    <p className="font-bold text-slate-900 dark:text-white">{mockStudentTransport.dropTime}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{studentTransport.dropTime}</p>
                   </div>
                 </div>
               </div>
@@ -89,8 +101,8 @@ const TransportDashboard = () => {
                 <div className="h-16 w-16 rounded-full bg-slate-200 dark:bg-dark-700 flex items-center justify-center mb-3">
                   <Users size={24} className="text-slate-400" />
                 </div>
-                <p className="font-bold text-slate-900 dark:text-white">{mockStudentTransport.driverName}</p>
-                <p className="mt-1 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-3 py-1 rounded-full">{mockStudentTransport.driverContact}</p>
+                <p className="font-bold text-slate-900 dark:text-white">{studentTransport.driverName}</p>
+                <p className="mt-1 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-3 py-1 rounded-full">{studentTransport.driverContact}</p>
               </div>
             </div>
           </div>
@@ -124,7 +136,7 @@ const TransportDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {mockRoutes.map((route) => (
+        {routes.map((route) => (
           <div key={route.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
             <div className="flex justify-between items-start mb-4">
               <div>

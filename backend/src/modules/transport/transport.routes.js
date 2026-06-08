@@ -5,6 +5,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 
 router.use(protect);
 
+router.get('/dashboard', transportController.getTransportDashboardStats);
 router.post('/routes', authorize('Super Admin', 'College Admin', 'Transport Manager'), transportController.createRoute);
 router.get('/routes', authorize('Super Admin', 'College Admin', 'Transport Manager', 'Student'), transportController.getRoutes);
 

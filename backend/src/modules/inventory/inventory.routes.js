@@ -6,6 +6,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 router.use(protect);
 router.use(authorize('Super Admin', 'College Admin', 'Inventory Manager'));
 
+router.get('/dashboard', inventoryController.getInventoryDashboardStats);
 router.post('/', inventoryController.addAsset);
 router.get('/', inventoryController.getAssets);
 router.put('/:id', inventoryController.updateAsset);

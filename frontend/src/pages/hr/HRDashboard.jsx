@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, Clock, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { useSelector } from 'react-redux';
-
-// Mock Data
-const mockLeaves = [
-  { id: 'L-001', faculty: 'Dr. Alan Turing', type: 'Sick', startDate: 'Nov 10, 2023', endDate: 'Nov 12, 2023', status: 'Pending' },
-  { id: 'L-002', faculty: 'Prof. Grace Hopper', type: 'Casual', startDate: 'Nov 15, 2023', endDate: 'Nov 15, 2023', status: 'Approved' },
-];
-
-const mockPayroll = [
-  { month: 'October 2023', basic: 5000, allowances: 1000, deductions: 200, net: 5800, status: 'Paid' },
-  { month: 'September 2023', basic: 5000, allowances: 1000, deductions: 200, net: 5800, status: 'Paid' },
-];
+import api from '../../api/axios';
 
 const HRDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -19,6 +9,33 @@ const HRDashboard = () => {
   const isFaculty = roleName === 'Faculty';
 
   const [activeTab, setActiveTab] = useState('Leaves');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/hr/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch hr stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const leaves = stats?.leaves || [];
+  const payroll = stats?.payroll || [];
 
   if (isFaculty) {
     return (
@@ -50,7 +67,7 @@ const HRDashboard = () => {
 
         {activeTab === 'Leaves' ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-             {mockLeaves.map((leave, idx) => (
+             {leaves.map((leave, idx) => (
                 <div key={idx} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-900">
                   <div className="flex justify-between items-start">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -80,7 +97,7 @@ const HRDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {mockPayroll.map((p, i) => (
+                {payroll.map((p, i) => (
                   <tr key={i}>
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{p.month}</td>
                     <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">${p.net}</td>
@@ -120,7 +137,7 @@ const HRDashboard = () => {
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Pending Leave Requests</h3>
           <div className="space-y-4">
-            {mockLeaves.filter(l => l.status === 'Pending').map((leave, i) => (
+            {leaves.filter(l => l.status === 'Pending').map((leave, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg border border-slate-100 p-4 dark:border-slate-800 bg-slate-50 dark:bg-dark-800/50">
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">{leave.faculty}</p>
@@ -132,7 +149,7 @@ const HRDashboard = () => {
                 </div>
               </div>
             ))}
-            {mockLeaves.filter(l => l.status === 'Pending').length === 0 && <p className="text-sm text-slate-500">No pending requests.</p>}
+            {leaves.filter(l => l.status === 'Pending').length === 0 && <p className="text-sm text-slate-500">No pending requests.</p>}
           </div>
         </div>
 
@@ -143,7 +160,7 @@ const HRDashboard = () => {
               <div className="rounded-lg bg-brand-100 p-2 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"><DollarSign size={20}/></div>
               <h3 className="font-medium text-slate-500">Total Payroll (Oct)</h3>
             </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">$45,600</p>
+            <p className="text-3xl font-bold text-slate-900 dark:text-white">${stats?.totalPayroll?.toLocaleString() || 0}</p>
           </div>
           
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
@@ -151,7 +168,7 @@ const HRDashboard = () => {
               <div className="rounded-lg bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"><Clock size={20}/></div>
               <h3 className="font-medium text-slate-500">Staff on Leave Today</h3>
             </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">4</p>
+            <p className="text-3xl font-bold text-slate-900 dark:text-white">{stats?.staffOnLeaveToday || 0}</p>
           </div>
         </div>
       </div>

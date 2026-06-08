@@ -5,6 +5,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 
 router.use(protect);
 
+router.get('/dashboard', hostelController.getHostelDashboardStats);
 router.post('/', authorize('Super Admin', 'College Admin', 'Hostel Warden'), hostelController.createHostel);
 router.get('/', authorize('Super Admin', 'College Admin', 'Hostel Warden', 'Student'), hostelController.getHostels);
 

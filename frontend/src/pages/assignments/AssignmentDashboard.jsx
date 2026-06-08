@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Clock, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { useSelector } from 'react-redux';
-
-// Mock Data
-const mockAssignments = [
-  { id: 1, title: 'Build a REST API', subject: 'Node.js Backend', dueDate: 'Oct 25, 2023', status: 'Pending', marks: 50 },
-  { id: 2, title: 'Database Normalization', subject: 'DBMS', dueDate: 'Oct 20, 2023', status: 'Submitted', marks: 100 },
-  { id: 3, title: 'React Hooks Essay', subject: 'Frontend Dev', dueDate: 'Oct 15, 2023', status: 'Graded', marks: 20, score: 18 },
-  { id: 4, title: 'Network Topologies', subject: 'Computer Networks', dueDate: 'Oct 10, 2023', status: 'Late', marks: 30 },
-];
+import api from '../../api/axios';
 
 const AssignmentDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -16,6 +9,30 @@ const AssignmentDashboard = () => {
   const isStudent = roleName === 'Student';
 
   const [activeTab, setActiveTab] = useState('All');
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await api.get('/assignments/dashboard');
+        setAssignments(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch assignments stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssignments();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -73,7 +90,7 @@ const AssignmentDashboard = () => {
 
       {/* Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockAssignments
+        {assignments
           .filter(a => activeTab === 'All' || a.status === activeTab)
           .map((assignment) => (
           <div key={assignment.id} className="group flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-900">

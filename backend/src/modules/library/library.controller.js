@@ -104,10 +104,80 @@ const getCirculationHistory = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const getLibraryDashboardStats = async (req, res, next) => {
+  try {
+    const isLibrarian = ['Librarian', 'Super Admin', 'College Admin'].includes(req.user.role.name);
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let stats = {};
+
+    const books = await Book.find(filter).sort({ title: 1 }).lean();
+    const formattedBooks = books.map(b => ({
+      id: b.isbn || b._id,
+      title: b.title,
+      author: b.author,
+      category: b.category,
+      available: b.availableCopies,
+      total: b.totalCopies
+    }));
+
+    if (isLibrarian) {
+      const records = await IssueRecord.find(filter)
+        .populate('bookId', 'title')
+        .populate('userId', 'email')
+        .sort({ issueDate: -1 })
+        .lean();
+        
+      const circulation = records.map(r => {
+        let status = r.status || 'Issued';
+        if (status !== 'Returned' && new Date(r.dueDate) < new Date()) {
+          status = 'Overdue';
+        }
+        return {
+          id: r._id,
+          book: r.bookId?.title || 'Unknown Book',
+          user: r.userId?.email || 'Unknown User',
+          issueDate: r.issueDate ? new Date(r.issueDate).toLocaleDateString() : 'N/A',
+          dueDate: r.dueDate ? new Date(r.dueDate).toLocaleDateString() : 'N/A',
+          status: status
+        };
+      });
+
+      stats = { books: formattedBooks, circulation };
+    } else {
+      const myRecords = await IssueRecord.find({ userId: req.user._id, status: { $ne: 'Returned' } })
+        .populate('bookId', 'title')
+        .sort({ dueDate: 1 })
+        .lean();
+
+      const circulation = myRecords.map(r => {
+        let status = r.status || 'Issued';
+        if (status !== 'Returned' && new Date(r.dueDate) < new Date()) {
+          status = 'Overdue';
+        }
+        return {
+          id: r._id,
+          book: r.bookId?.title || 'Unknown Book',
+          user: req.user.email || 'You',
+          issueDate: r.issueDate ? new Date(r.issueDate).toLocaleDateString() : 'N/A',
+          dueDate: r.dueDate ? new Date(r.dueDate).toLocaleDateString() : 'N/A',
+          status: status
+        };
+      });
+
+      stats = { books: formattedBooks, circulation };
+    }
+
+    return res.json(new ApiResponse(200, stats, 'Library dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   addBook,
   getBooks,
   issueBook,
   returnBook,
-  getCirculationHistory
+  getCirculationHistory,
+  getLibraryDashboardStats
 };

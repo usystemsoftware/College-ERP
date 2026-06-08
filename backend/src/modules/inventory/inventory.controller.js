@@ -42,8 +42,51 @@ const updateAsset = async (req, res, next) => {
   }
 };
 
+const getInventoryDashboardStats = async (req, res, next) => {
+  try {
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    const assets = await Asset.find(filter).sort({ itemName: 1 }).lean();
+
+    const formattedAssets = assets.map(a => ({
+      id: a._id,
+      name: a.itemName,
+      category: a.category || 'Other',
+      location: a.location || 'Unknown',
+      qty: a.quantity || 0,
+      status: a.status || 'In Use'
+    }));
+
+    let electronicsCount = 0;
+    let furnitureCount = 0;
+    let underRepairCount = 0;
+
+    assets.forEach(a => {
+      const cat = (a.category || '').toLowerCase();
+      const status = (a.status || '').toLowerCase();
+      
+      if (cat.includes('electronic') || cat.includes('it equipment') || cat.includes('computer')) electronicsCount += (a.quantity || 0);
+      if (cat.includes('furniture')) furnitureCount += (a.quantity || 0);
+      if (status.includes('repair') || status.includes('maintenance')) underRepairCount += (a.quantity || 0);
+    });
+
+    const stats = {
+      assets: formattedAssets,
+      summary: {
+        electronicsCount,
+        furnitureCount,
+        underRepairCount
+      }
+    };
+
+    return res.json(new ApiResponse(200, stats, 'Inventory dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   addAsset,
   getAssets,
-  updateAsset
+  updateAsset,
+  getInventoryDashboardStats
 };

@@ -111,11 +111,77 @@ const getStudentTransport = async (req, res, next) => {
   }
 };
 
+const getTransportDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let stats = {};
+
+    if (isStudent) {
+      let studentId = req.user._id; // Fallback if no student profile yet
+      try {
+        const Student = require('../students/student.model');
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const allocation = await TransportAllocation.findOne({ studentId, status: 'Active' })
+        .populate('routeId')
+        .populate('vehicleId');
+      
+      if (allocation && allocation.routeId && allocation.vehicleId) {
+        const stop = allocation.routeId.stops.id(allocation.stopId);
+        stats = {
+          studentTransport: {
+            route: allocation.routeId.routeName,
+            stop: stop ? stop.stopName : 'Unknown',
+            pickupTime: stop ? stop.pickupTime : 'N/A',
+            dropTime: stop ? stop.dropTime : 'N/A',
+            vehicleNumber: allocation.vehicleId.vehicleNumber,
+            driverName: allocation.vehicleId.driverName,
+            driverContact: allocation.vehicleId.driverContact
+          }
+        };
+      } else {
+        // Fallback mock if not allocated so dashboard isn't completely empty
+        stats = { studentTransport: { route: 'Unassigned', stop: 'N/A', pickupTime: '-', dropTime: '-', vehicleNumber: '-', driverName: '-', driverContact: '-' } };
+      }
+    } else {
+      // Admin View
+      const routes = await Route.find(filter).lean();
+      
+      const routeStats = await Promise.all(routes.map(async (route) => {
+        const vehiclesCount = await Vehicle.countDocuments({ routeId: route._id });
+        const studentsCount = await TransportAllocation.countDocuments({ routeId: route._id, status: 'Active' });
+        
+        const vehicles = await Vehicle.find({ routeId: route._id }).lean();
+        const totalCapacity = vehicles.reduce((sum, v) => sum + v.capacity, 0);
+
+        return {
+          id: route._id,
+          name: route.routeName,
+          stops: route.stops ? route.stops.length : 0,
+          vehicles: vehiclesCount,
+          students: studentsCount,
+          capacity: totalCapacity > 0 ? totalCapacity : 50
+        };
+      }));
+
+      stats = { routes: routeStats };
+    }
+
+    return res.json(new ApiResponse(200, stats, 'Transport dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createRoute,
   getRoutes,
   addVehicle,
   getVehicles,
   allocateTransport,
-  getStudentTransport
+  getStudentTransport,
+  getTransportDashboardStats
 };

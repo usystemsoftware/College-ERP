@@ -1,24 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Users, CheckCircle, Search, Filter, Phone, MapPin } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import Modal from '../../components/common/Modal';
-
-// Mock Data
-const mockHostels = [
-  { id: 'H1', name: 'Boys Hostel A', type: 'Boys', totalRooms: 50, occupiedRooms: 45, warden: 'Mr. John Doe', contact: '+1 234-567-8901' },
-  { id: 'H2', name: 'Girls Hostel B', type: 'Girls', totalRooms: 40, occupiedRooms: 40, warden: 'Mrs. Jane Smith', contact: '+1 234-567-8902' },
-];
-
-const mockStudentAllocation = {
-  hostel: 'Boys Hostel A',
-  roomNumber: '101-A',
-  roomType: 'Non-AC',
-  bedNumber: 2,
-  roommates: ['Alex Johnson (CS-001)'],
-  warden: 'Mr. John Doe',
-  contact: '+1 234-567-8901',
-  validUntil: 'May 30, 2024'
-};
+import api from '../../api/axios';
 
 const HostelDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -28,12 +12,47 @@ const HostelDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/hostel/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch hostel stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleOpenModal = (type) => {
     setModalType(type);
     setIsModalOpen(true);
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const studentAllocation = stats?.studentAllocation || {
+    hostel: 'Unassigned',
+    roomNumber: 'N/A',
+    roomType: 'N/A',
+    bedNumber: '-',
+    roommates: [],
+    warden: '-',
+    contact: '-',
+    validUntil: '-'
+  };
+  const hostels = stats?.hostels || [];
   if (isStudent) {
     return (
       <div className="space-y-6">
@@ -49,17 +68,17 @@ const HostelDashboard = () => {
                 <Home size={24} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{mockStudentAllocation.hostel}</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{studentAllocation.hostel}</h2>
                 <div className="mt-1 flex items-center gap-4 text-sm font-medium text-slate-600 dark:text-slate-400">
-                  <span className="flex items-center gap-1"><MapPin size={14}/> Room {mockStudentAllocation.roomNumber}</span>
-                  <span className="flex items-center gap-1"><Users size={14}/> Bed {mockStudentAllocation.bedNumber}</span>
+                  <span className="flex items-center gap-1"><MapPin size={14}/> Room {studentAllocation.roomNumber}</span>
+                  <span className="flex items-center gap-1"><Users size={14}/> Bed {studentAllocation.bedNumber}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="inline-flex rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm dark:bg-dark-800 dark:text-slate-300">
-                    {mockStudentAllocation.roomType}
+                    {studentAllocation.roomType}
                   </span>
                   <span className="inline-flex rounded-md bg-green-100 px-2 py-1 text-xs font-semibold text-green-700 shadow-sm dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1">
-                    <CheckCircle size={12}/> Active until {mockStudentAllocation.validUntil}
+                    <CheckCircle size={12}/> Active until {studentAllocation.validUntil}
                   </span>
                 </div>
               </div>
@@ -67,17 +86,18 @@ const HostelDashboard = () => {
             
             <div className="w-full md:w-auto rounded-lg bg-white p-4 shadow-sm dark:bg-dark-800 border border-slate-100 dark:border-slate-700">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Warden Contact</h3>
-              <p className="mt-1 font-medium text-slate-900 dark:text-white">{mockStudentAllocation.warden}</p>
-              <p className="text-sm text-brand-600 dark:text-brand-400 flex items-center gap-1 mt-1"><Phone size={14}/> {mockStudentAllocation.contact}</p>
+              <p className="mt-1 font-medium text-slate-900 dark:text-white">{studentAllocation.warden}</p>
+              <p className="text-sm text-brand-600 dark:text-brand-400 flex items-center gap-1 mt-1"><Phone size={14}/> {studentAllocation.contact}</p>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-brand-200/50 dark:border-brand-800/30">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Roommates</h3>
             <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-1">
-              {mockStudentAllocation.roommates.map((rm, i) => (
+              {studentAllocation.roommates.map((rm, i) => (
                 <li key={i}>{rm}</li>
               ))}
+              {studentAllocation.roommates.length === 0 && <li>No roommates</li>}
             </ul>
           </div>
         </div>
@@ -110,7 +130,7 @@ const HostelDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {mockHostels.map((hostel) => (
+        {hostels.map((hostel) => (
           <div key={hostel.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
             <div className="flex justify-between items-start mb-4">
               <div>

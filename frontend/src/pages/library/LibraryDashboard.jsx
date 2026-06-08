@@ -1,20 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, Filter, Hash, User, Calendar, Plus } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import Modal from '../../components/common/Modal';
-
-// Mock Data
-const mockBooks = [
-  { id: 'BK-001', title: 'Introduction to Algorithms', author: 'Thomas H. Cormen', category: 'Computer Science', available: 3, total: 5 },
-  { id: 'BK-002', title: 'Database System Concepts', author: 'Abraham Silberschatz', category: 'Computer Science', available: 0, total: 2 },
-  { id: 'BK-003', title: 'Engineering Mechanics', author: 'R.C. Hibbeler', category: 'Mechanical', available: 4, total: 4 },
-  { id: 'BK-004', title: 'Principles of Marketing', author: 'Philip Kotler', category: 'Management', available: 1, total: 3 },
-];
-
-const mockCirculation = [
-  { id: 'IS-101', book: 'Database System Concepts', user: 'Alex Johnson (CS-001)', issueDate: 'Oct 01, 2023', dueDate: 'Oct 15, 2023', status: 'Overdue' },
-  { id: 'IS-102', book: 'Database System Concepts', user: 'Priya Sharma (CS-002)', issueDate: 'Oct 10, 2023', dueDate: 'Oct 24, 2023', status: 'Issued' },
-];
+import api from '../../api/axios';
 
 const LibraryDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -25,11 +13,40 @@ const LibraryDashboard = () => {
   const [activeTab, setActiveTab] = useState('Catalog');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/library/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch library stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleOpenModal = (type) => {
     setModalType(type);
     setIsModalOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const books = stats?.books || [];
+  const circulation = stats?.circulation || [];
+
+
 
   return (
     <div className="space-y-6">
@@ -105,7 +122,7 @@ const LibraryDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {mockBooks.filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()) || b.author.toLowerCase().includes(searchTerm.toLowerCase())).map((book) => (
+                {books.filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()) || b.author.toLowerCase().includes(searchTerm.toLowerCase())).map((book) => (
                   <tr key={book.id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50 transition">
                     <td className="px-6 py-4">
                       <div className="flex gap-3 items-start">
@@ -155,7 +172,7 @@ const LibraryDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {mockCirculation.map((record) => (
+              {circulation.map((record) => (
                 <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-dark-800/50">
                   <td className="px-6 py-4 font-mono text-xs">{record.id}</td>
                   <td className="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-2"><BookOpen size={14} className="text-slate-400"/> {record.book}</td>

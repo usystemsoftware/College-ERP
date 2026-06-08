@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, XCircle, Clock, Save, Filter } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import api from '../../api/axios';
+import { QrCode, X, Loader2 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { generateQRAPI } from '../../api/attendance.api';
+import toast from 'react-hot-toast';
+import Modal from '../../components/common/Modal';
 
 const AttendanceDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -13,6 +18,9 @@ const AttendanceDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrToken, setQrToken] = useState('');
+  const [generatingQR, setGeneratingQR] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -40,7 +48,27 @@ const AttendanceDashboard = () => {
 
   const handleSave = () => {
     console.log("Saved Attendance for", selectedDate, attendance);
-    alert("Attendance saved successfully!");
+    toast.success("Attendance saved successfully!");
+  };
+
+  const handleGenerateQR = async () => {
+    setGeneratingQR(true);
+    try {
+      // Using a placeholder ObjectId for the subject since dropdowns are mock data
+      const subjectId = '65fa123b456c789d012e345f'; 
+      const res = await generateQRAPI({
+        subject: subjectId,
+        date: selectedDate,
+        lectureType: 'Theory'
+      });
+      setQrToken(res.data.data.token);
+      setQrModalOpen(true);
+      toast.success('QR Token generated');
+    } catch (error) {
+      toast.error('Failed to generate QR Code. ' + (error.response?.data?.message || error.message));
+    } finally {
+      setGeneratingQR(false);
+    }
   };
 
   if (loading) {
@@ -90,8 +118,16 @@ const AttendanceDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <button 
+            onClick={handleGenerateQR}
+            disabled={generatingQR}
+            className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-800/30 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/40 transition disabled:opacity-50"
+          >
+            {generatingQR ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />} 
+            Generate QR
+          </button>
+          <button 
             onClick={handleSave}
-            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700"
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition"
           >
             <Save size={16} /> Save Attendance
           </button>
@@ -180,6 +216,34 @@ const AttendanceDashboard = () => {
           </table>
         </div>
       </div>
+
+      <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Lecture QR Attendance">
+        <div className="flex flex-col items-center justify-center p-6 space-y-6">
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            Ask students to scan this QR code from their portal to instantly mark their attendance. 
+            This code will expire in 10 minutes.
+          </p>
+          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+            {qrToken && (
+              <QRCodeSVG 
+                value={qrToken} 
+                size={256} 
+                level="H" 
+                includeMargin={true} 
+              />
+            )}
+          </div>
+          <div className="w-full rounded-lg bg-slate-50 p-4 border border-slate-100 dark:bg-dark-800 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <QrCode className="text-brand-500" size={24} />
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Session</h4>
+                <p className="text-xs text-slate-500">Date: {selectedDate} | Type: Theory</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

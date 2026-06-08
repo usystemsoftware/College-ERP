@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio, MapPin, User, RefreshCw } from 'lucide-react';
+import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio, MapPin, User, RefreshCw, QrCode, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSubjects } from '../../api/academic.api';
 import { getStudentsAPI } from '../../api/students.api';
-import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI } from '../../api/attendance.api';
+import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI } from '../../api/attendance.api';
 import { getSocket } from '../../services/socket';
+import { QRCodeSVG } from 'qrcode.react';
+import toast from 'react-hot-toast';
+import Modal from '../../components/common/Modal';
 
 const mockTrendData = [
   { name: 'Week 1', rate: 95 },
@@ -36,6 +39,11 @@ const AttendancePage = () => {
   const [attendanceStatus, setAttendanceStatus] = useState({}); // { studentId: 'Present'|'Absent'|'Late' }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // QR Modal State
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrToken, setQrToken] = useState('');
+  const [generatingQR, setGeneratingQR] = useState(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -186,6 +194,28 @@ const AttendancePage = () => {
     }
   };
 
+  const handleGenerateQR = async () => {
+    if (!subject || !date) {
+      toast.error('Please select a subject and date first');
+      return;
+    }
+    setGeneratingQR(true);
+    try {
+      const res = await generateQRAPI({
+        subject: subject,
+        date: date,
+        lectureType: 'Theory'
+      });
+      setQrToken(res.data.data.token);
+      setQrModalOpen(true);
+      toast.success('QR Token generated');
+    } catch (error) {
+      toast.error('Failed to generate QR Code. ' + (error.response?.data?.message || error.message));
+    } finally {
+      setGeneratingQR(false);
+    }
+  };
+
   // Stats calculation
   const totalStudents = attendanceRecords.length;
   const presentCount = attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
@@ -207,6 +237,14 @@ const AttendancePage = () => {
           <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-dark-800 dark:hover:bg-dark-750 text-slate-700 dark:text-slate-300">
             <Download size={16} />
             Export Report
+          </button>
+          <button 
+            onClick={handleGenerateQR}
+            disabled={generatingQR}
+            className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-800/30 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/40 transition disabled:opacity-50"
+          >
+            {generatingQR ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />} 
+            Generate QR
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -507,6 +545,35 @@ const AttendancePage = () => {
           </div>
         </div>
       , document.body)}
+
+      {/* QR Modal */}
+      <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Lecture QR Attendance">
+        <div className="flex flex-col items-center justify-center p-6 space-y-6">
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            Ask students to scan this QR code from their portal to instantly mark their attendance. 
+            This code will expire in 10 minutes.
+          </p>
+          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+            {qrToken && (
+              <QRCodeSVG 
+                value={qrToken} 
+                size={256} 
+                level="H" 
+                includeMargin={true} 
+              />
+            )}
+          </div>
+          <div className="w-full rounded-lg bg-slate-50 p-4 border border-slate-100 dark:bg-dark-800 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <QrCode className="text-brand-500" size={24} />
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Session</h4>
+                <p className="text-xs text-slate-500">Date: {date} | Subject: {subjects.find(s => s._id === subject)?.name}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

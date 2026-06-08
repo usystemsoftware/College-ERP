@@ -87,6 +87,12 @@ const reviewApplication = async (req, res, next) => {
 
     if (status === 'Approved') {
       if (!allottedBatchId) throw new ApiError(400, 'Batch must be allotted to approve application');
+      
+      const semester = await Semester.findOne({ isCurrent: true }) || await Semester.findOne();
+      if (!semester) {
+        throw new ApiError(400, 'Cannot approve admission: No active semester found in the system. Please configure academic semesters first.');
+      }
+
       application.allottedBatchId = allottedBatchId;
       
       // Generate Enrollment ID: COL-YYYY-RANDOM
@@ -113,9 +119,14 @@ const reviewApplication = async (req, res, next) => {
       // We should also create a Student Profile here
       const courseDetails = await Course.findById(application.courseId);
       const batchDetails = await Batch.findById(allottedBatchId);
-      const semester = await Semester.findOne({ isCurrent: true }) || await Semester.findOne();
       
-      const rollNumber = `R-${year}-${crypto.randomInt(1000, 9999)}`;
+      let rollNumber;
+      let isUnique = false;
+      while (!isUnique) {
+        rollNumber = `R-${year}-${crypto.randomInt(1000, 9999)}`;
+        const existing = await Student.findOne({ rollNumber });
+        if (!existing) isUnique = true;
+      }
       
       await Student.create({
         user: user._id,
@@ -123,7 +134,7 @@ const reviewApplication = async (req, res, next) => {
         enrollmentNumber: application.enrollmentId,
         department: courseDetails.department,
         course: application.courseId,
-        semester: semester ? semester._id : null, // Assuming at least one semester exists
+        semester: semester._id,
         division: 'A',
         batch: batchDetails ? batchDetails.name : 'Unknown',
         personalDetails: {
@@ -135,6 +146,8 @@ const reviewApplication = async (req, res, next) => {
         },
         collegeId: application.collegeId
       });
+
+      console.log(`[Admission] Student Approved. Email: ${application.email}, Password: ${tempPassword}, Enrollment: ${application.enrollmentId}`);
     }
 
     await application.save();

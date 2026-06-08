@@ -1,16 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const mockAttendanceStats = [
-  { subject: 'Data Structures', classAvg: 88, target: 75 },
-  { subject: 'Operating Systems', classAvg: 82, target: 75 },
-  { subject: 'Algorithms', classAvg: 91, target: 75 },
-];
+import api from '../../api/axios';
 
 const FacultyDashboard = () => {
   const { user } = useSelector(state => state.auth);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/faculty/dashboard');
+        setStats(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch faculty stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
+  const todaysClasses = stats?.todaysClasses || [];
+  const attendanceStats = stats?.attendanceStats || [];
 
   return (
     <div className="space-y-6">
@@ -25,7 +47,7 @@ const FacultyDashboard = () => {
               Welcome back, {user?.email?.split('@')[0] || 'Professor'}!
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              You have 3 classes scheduled for today. 2 assignments are pending grading.
+              You have {todaysClasses.length} classes scheduled for today. {stats?.pendingGrading || 0} assignments are pending grading.
             </p>
           </div>
         </div>
@@ -38,7 +60,7 @@ const FacultyDashboard = () => {
             <span className="text-sm font-semibold text-slate-500">Today's Classes</span>
             <div className="rounded-lg bg-blue-500/10 p-2 text-blue-500"><Calendar size={20} /></div>
           </div>
-          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">3</h3></div>
+          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">{todaysClasses.length}</h3></div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-800">
@@ -46,7 +68,7 @@ const FacultyDashboard = () => {
             <span className="text-sm font-semibold text-slate-500">Total Students</span>
             <div className="rounded-lg bg-indigo-500/10 p-2 text-indigo-500"><Users size={20} /></div>
           </div>
-          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">180</h3></div>
+          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.totalStudents || 0}</h3></div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-800">
@@ -54,7 +76,7 @@ const FacultyDashboard = () => {
             <span className="text-sm font-semibold text-slate-500">Pending Grading</span>
             <div className="rounded-lg bg-orange-500/10 p-2 text-orange-500"><FileText size={20} /></div>
           </div>
-          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">42</h3></div>
+          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.pendingGrading || 0}</h3></div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-800">
@@ -62,7 +84,7 @@ const FacultyDashboard = () => {
             <span className="text-sm font-semibold text-slate-500">Avg Attendance</span>
             <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><CheckCircle size={20} /></div>
           </div>
-          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">87%</h3></div>
+          <div className="mt-4"><h3 className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.avgAttendance || 0}%</h3></div>
         </div>
       </div>
 
@@ -73,11 +95,7 @@ const FacultyDashboard = () => {
             <Clock size={18} /> Today's Schedule
           </h3>
           <div className="space-y-4">
-            {[
-              { time: '09:00 AM - 10:00 AM', subject: 'Data Structures', room: 'L-101', type: 'Theory', done: true },
-              { time: '11:15 AM - 12:15 PM', subject: 'Operating Systems', room: 'L-102', type: 'Theory', done: false },
-              { time: '02:00 PM - 04:00 PM', subject: 'OS Lab', room: 'Lab-3', type: 'Practical', done: false },
-            ].map((cls, i) => (
+            {todaysClasses.map((cls, i) => (
               <div key={i} className={`flex items-center justify-between rounded-lg border p-4 ${cls.done ? 'border-slate-200 bg-slate-50 opacity-70 dark:border-slate-800 dark:bg-dark-900' : 'border-brand-200 bg-brand-50 dark:border-brand-900/30 dark:bg-brand-900/10'}`}>
                 <div className="flex items-center gap-4">
                   <div className={`h-12 w-2 rounded-full ${cls.done ? 'bg-slate-300' : 'bg-brand-500'}`}></div>
@@ -101,7 +119,7 @@ const FacultyDashboard = () => {
           <h3 className="text-md font-semibold mb-4 text-slate-800 dark:text-slate-200">Class Attendance Averages</h3>
           <div className="h-64 w-full mt-6">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockAttendanceStats} layout="vertical" margin={{ left: 40 }}>
+              <BarChart data={attendanceStats} layout="vertical" margin={{ left: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.1} />
                 <XAxis type="number" domain={[0, 100]} fontSize={12} stroke="#64748b" />
                 <YAxis type="category" dataKey="subject" fontSize={12} stroke="#64748b" />

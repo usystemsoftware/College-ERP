@@ -22,13 +22,8 @@ const AdminDashboard = () => {
     fetchStats();
   }, []);
 
-  // Mock Data for Admission Trends (as it's not provided by API yet)
-  const admissionData = [
-    { name: 'Week 1', students: 120 },
-    { name: 'Week 2', students: 300 },
-    { name: 'Week 3', students: 450 },
-    { name: 'Week 4', students: 200 },
-  ];
+  // Use admissionData from stats or fallback to an empty array
+  const admissionData = stats?.admissionData || [];
 
   if (loading) {
     return (

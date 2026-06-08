@@ -23,7 +23,8 @@ import {
   X,
   ChevronDown,
   Building,
-  UserPlus
+  UserPlus,
+  Archive
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -41,7 +42,7 @@ const DashboardLayout = () => {
 
   // Initialize socket and fetch initial unread count
   useEffect(() => {
-    if (user) {
+    if (user && user._id) {
       initiateSocketConnection(user);
       
       const fetchUnreadCount = async () => {
@@ -72,7 +73,7 @@ const DashboardLayout = () => {
     return () => {
       disconnectSocket();
     };
-  }, [user]);
+  }, [user?._id]);
 
   // Sync dark class on body (initial setup)
   useEffect(() => {
@@ -103,16 +104,19 @@ const DashboardLayout = () => {
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'Admissions', path: '/admissions', icon: UserPlus },
       { name: 'Departments', path: '/departments', icon: Building },
+      { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Faculty', path: '/faculty', icon: GraduationCap },
       { name: 'Attendance', path: '/attendance', icon: Clock },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+      { name: 'Inventory', path: '/inventory', icon: Archive },
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
     ];
   } else if (['Faculty', 'HOD'].includes(userRole)) {
     navItems = [
       { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
+      { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Attendance', path: '/attendance', icon: Clock },
       ...navItems,

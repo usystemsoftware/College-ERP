@@ -3,11 +3,12 @@ const router = express.Router();
 
 const { protect } = require('../../middleware/authMiddleware');
 const { authorize } = require('../../middleware/roleMiddleware');
-const { getStudents, getStudent, createStudent, updateStudent, deleteStudent, getMyProfile } = require('./student.controller');
+const { getStudents, getStudent, createStudent, updateStudent, deleteStudent, getMyProfile, getStudentDashboardStats } = require('./student.controller');
 
 const ADMIN_ROLES = ['Super Admin', 'College Admin', 'Principal', 'HOD', 'Admission Officer'];
 const VIEW_ROLES = [...ADMIN_ROLES, 'Faculty', 'Class Coordinator', 'Accountant'];
 
+router.get('/dashboard', protect, getStudentDashboardStats);
 router.get('/me', protect, getMyProfile);
 router.get('/', protect, authorize(...VIEW_ROLES), getStudents);
 router.get('/:id', protect, authorize(...VIEW_ROLES), getStudent);

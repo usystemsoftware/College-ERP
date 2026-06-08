@@ -1,25 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, XCircle, Clock, Save, Filter } from 'lucide-react';
 import { useSelector } from 'react-redux';
-
-// Mock Data
-const mockStudents = [
-  { id: '1', name: 'Alex Johnson', roll: 'CS-001', status: 'Present' },
-  { id: '2', name: 'Priya Sharma', roll: 'CS-002', status: 'Present' },
-  { id: '3', name: 'David Smith', roll: 'CS-003', status: 'Absent' },
-  { id: '4', name: 'Emily Chen', roll: 'CS-004', status: 'Late' },
-  { id: '5', name: 'Michael Brown', roll: 'CS-005', status: 'Present' },
-];
+import api from '../../api/axios';
 
 const AttendanceDashboard = () => {
   const { user } = useSelector(state => state.auth);
   
-  // Safely get role
   const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
   const isStudent = roleName === 'Student';
 
-  const [attendance, setAttendance] = useState(mockStudents);
+  const [attendance, setAttendance] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/attendance/dashboard');
+        if (isStudent) {
+          setStats(response.data.data);
+        } else {
+          setAttendance(response.data.data.students || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch attendance stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [isStudent]);
 
   const handleStatusChange = (id, newStatus) => {
     setAttendance(attendance.map(student => 
@@ -32,25 +43,37 @@ const AttendanceDashboard = () => {
     alert("Attendance saved successfully!");
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+      </div>
+    );
+  }
+
   if (isStudent) {
+    const overall = stats?.overallAttendance || 0;
+    const attended = stats?.classesAttended || 0;
+    const missed = stats?.classesMissed || 0;
+
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Attendance</h1>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
             <h3 className="text-sm font-medium text-slate-500">Overall Attendance</h3>
-            <p className="mt-2 text-4xl font-bold text-brand-600 dark:text-brand-400">85%</p>
+            <p className="mt-2 text-4xl font-bold text-brand-600 dark:text-brand-400">{overall}%</p>
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-dark-800">
-              <div className="h-full rounded-full bg-brand-500" style={{ width: '85%' }}></div>
+              <div className="h-full rounded-full bg-brand-500" style={{ width: `${overall}%` }}></div>
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
             <h3 className="text-sm font-medium text-slate-500">Classes Attended</h3>
-            <p className="mt-2 text-4xl font-bold text-green-600 dark:text-green-400">102</p>
+            <p className="mt-2 text-4xl font-bold text-green-600 dark:text-green-400">{attended}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-dark-900">
             <h3 className="text-sm font-medium text-slate-500">Classes Missed</h3>
-            <p className="mt-2 text-4xl font-bold text-red-600 dark:text-red-400">18</p>
+            <p className="mt-2 text-4xl font-bold text-red-600 dark:text-red-400">{missed}</p>
           </div>
         </div>
       </div>

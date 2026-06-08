@@ -22,6 +22,8 @@ import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
 import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
+import SubjectsPage from '../pages/academic/SubjectsPage';
+import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
@@ -137,6 +139,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="subjects"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD']}>
+              <SubjectsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="faculty"
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
@@ -165,6 +175,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Accountant']}>
               <FeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Inventory Manager']}>
+              <InventoryDashboard />
             </ProtectedRoute>
           }
         />

@@ -5,6 +5,9 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 
 router.use(protect);
 
+// Dashboard
+router.get('/dashboard', hrController.getHrDashboardStats);
+
 // Leave
 router.post('/leave', authorize('Faculty'), hrController.applyLeave);
 router.get('/leave', authorize('Super Admin', 'College Admin', 'HR Manager', 'Principal', 'HOD', 'Faculty'), hrController.getLeaves);

@@ -114,4 +114,58 @@ const getMyFacultyProfile = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getFaculty, getFacultyMember, createFaculty, updateFaculty, deleteFaculty, getMyFacultyProfile };
+const getFacultyDashboardStats = async (req, res, next) => {
+  try {
+    const faculty = await Faculty.findOne({ user: req.user._id });
+    if (!faculty) throw new ApiError(404, 'Faculty profile not found');
+
+    // 1. Today's Classes
+    let Timetable;
+    try { Timetable = require('../timetables/timetable.model'); } catch(e) {}
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = days[new Date().getDay()];
+    
+    let formattedClasses = [];
+    if (Timetable) {
+      const todaysClasses = await Timetable.find({
+        faculty: faculty._id,
+        dayOfWeek: today,
+        isActive: true
+      }).populate('subject', 'name').sort({ startTime: 1 }).lean();
+      
+      formattedClasses = todaysClasses.map(cls => ({
+        time: `${cls.startTime} - ${cls.endTime}`,
+        subject: cls.subject?.name || 'Unknown Subject',
+        room: cls.roomNumber,
+        type: cls.isLab ? 'Practical' : 'Theory',
+        done: false
+      }));
+    }
+
+    if (formattedClasses.length === 0) {
+      formattedClasses = [
+        { time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true },
+        { time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false }
+      ];
+    }
+
+    // 2. Attendance Stats
+    let attendanceStats = [
+      { subject: 'Data Structures', classAvg: 88, target: 75 },
+      { subject: 'Operating Systems', classAvg: 82, target: 75 },
+      { subject: 'Algorithms', classAvg: 91, target: 75 },
+    ];
+
+    const stats = {
+      todaysClasses: formattedClasses,
+      totalStudents: 180, // Placeholder
+      pendingGrading: 42, // Placeholder
+      avgAttendance: 87, // Placeholder
+      attendanceStats: attendanceStats
+    };
+
+    return res.json(new ApiResponse(200, stats, 'Dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
+module.exports = { getFaculty, getFacultyMember, createFaculty, updateFaculty, deleteFaculty, getMyFacultyProfile, getFacultyDashboardStats };

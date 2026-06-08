@@ -98,9 +98,87 @@ const getStudentResults = async (req, res, next) => {
   }
 };
 
+const getExamDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    let examsList = [];
+
+    if (isStudent) {
+      let studentId = req.user._id;
+      try {
+        const Student = require('../students/student.model');
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const allExams = await Exam.find(filter)
+        .populate('subjectId', 'name')
+        .sort({ date: -1 })
+        .limit(20)
+        .lean();
+
+      examsList = allExams.map(ex => {
+        let status = 'Upcoming';
+        const now = new Date();
+        const examDate = new Date(ex.date);
+        
+        if (ex.isPublished) status = 'Published';
+        else if (examDate < now) status = 'Evaluating';
+
+        let score = null;
+        if (status === 'Published' && ex.results) {
+          const res = ex.results.find(r => r.studentId.toString() === studentId.toString());
+          if (res) score = res.marksObtained;
+        }
+
+        return {
+          id: ex._id,
+          title: ex.title,
+          subject: ex.subjectId ? ex.subjectId.name : 'Unknown Subject',
+          date: examDate.toLocaleDateString(),
+          status: status,
+          marks: ex.totalMarks,
+          score: score
+        };
+      });
+
+    } else {
+      const allExams = await Exam.find(filter)
+        .populate('subjectId', 'name')
+        .sort({ date: -1 })
+        .limit(20)
+        .lean();
+
+      examsList = allExams.map(ex => {
+        let status = 'Upcoming';
+        const now = new Date();
+        const examDate = new Date(ex.date);
+        
+        if (ex.isPublished) status = 'Published';
+        else if (examDate < now) status = 'Evaluating';
+
+        return {
+          id: ex._id,
+          title: ex.title,
+          subject: ex.subjectId ? ex.subjectId.name : 'Unknown Subject',
+          date: examDate.toLocaleDateString(),
+          status: status,
+          marks: ex.totalMarks
+        };
+      });
+    }
+
+    return res.json(new ApiResponse(200, examsList, 'Exam dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createExam,
   getExams,
   updateResults,
-  getStudentResults
+  getStudentResults,
+  getExamDashboardStats
 };

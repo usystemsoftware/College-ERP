@@ -320,6 +320,54 @@ const getAdminLiveFeed = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const getAttendanceDashboardStats = async (req, res, next) => {
+  try {
+    const isStudent = req.user.role.name === 'Student';
+    
+    if (isStudent) {
+      let studentId = req.user._id;
+      try {
+        const student = await Student.findOne({ user: req.user._id });
+        if (student) studentId = student._id;
+      } catch (e) {}
+
+      const records = await Attendance.find({ student: studentId });
+      let present = 0;
+      let absent = 0;
+      let late = 0;
+
+      records.forEach(r => {
+        if (r.status === 'Present') present++;
+        else if (r.status === 'Absent') absent++;
+        else if (r.status === 'Late') { late++; present++; }
+      });
+
+      const total = present + absent;
+      const overallAttendance = total > 0 ? Math.round((present / total) * 100) : 0;
+
+      return res.json(new ApiResponse(200, {
+        overallAttendance,
+        classesAttended: present,
+        classesMissed: absent
+      }, 'Student attendance dashboard stats fetched'));
+    } else {
+      // Faculty view: return some students for the initial view
+      const studentsList = await Student.find({ collegeId: req.user.collegeId }).limit(10).lean();
+      
+      const formattedStudents = studentsList.map(s => ({
+        id: s._id,
+        name: s.personalDetails?.fullName || 'Unknown Student',
+        roll: s.rollNumber || 'N/A',
+        status: 'Present' // Default selection
+      }));
+
+      return res.json(new ApiResponse(200, {
+        students: formattedStudents
+      }, 'Faculty attendance dashboard stats fetched'));
+    }
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -328,5 +376,6 @@ module.exports = {
   studentCheckIn,
   studentCheckOut,
   getStudentTodayAttendance,
-  getAdminLiveFeed
+  getAdminLiveFeed,
+  getAttendanceDashboardStats
 };

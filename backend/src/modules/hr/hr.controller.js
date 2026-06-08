@@ -78,10 +78,68 @@ const getPayroll = async (req, res, next) => {
   }
 };
 
+const getHrDashboardStats = async (req, res, next) => {
+  try {
+    const isFaculty = req.user.role.name === 'Faculty';
+    const filter = {};
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+    
+    let stats = {};
+
+    if (isFaculty) {
+      const Faculty = require('../faculty/faculty.model');
+      const faculty = await Faculty.findOne({ user: req.user._id });
+      if (faculty) {
+        const leaves = await Leave.find({ facultyId: faculty._id }).sort({ createdAt: -1 }).lean();
+        const payroll = await Payroll.find({ facultyId: faculty._id }).sort({ createdAt: -1 }).lean();
+        stats = {
+          leaves: leaves.map(l => ({ id: l._id, faculty: faculty.fullName, type: l.leaveType, startDate: new Date(l.startDate).toLocaleDateString(), endDate: new Date(l.endDate).toLocaleDateString(), status: l.status })),
+          payroll: payroll.map(p => ({ month: p.month, basic: p.basicSalary, allowances: p.allowances, deductions: p.deductions, net: p.netSalary, status: 'Paid' }))
+        };
+      } else {
+        stats = { leaves: [], payroll: [] };
+      }
+    } else {
+      const pendingLeaves = await Leave.find({ ...filter, status: 'Pending' }).populate('facultyId', 'fullName').sort({ createdAt: -1 }).lean();
+      
+      const d = new Date();
+      const currentMonth = d.toLocaleString('default', { month: 'long' }) + ' ' + d.getFullYear();
+      
+      const currentMonthPayroll = await Payroll.aggregate([
+        { $match: { ...filter, month: currentMonth } },
+        { $group: { _id: null, total: { $sum: "$netSalary" } } }
+      ]);
+      const totalPayroll = currentMonthPayroll.length > 0 ? currentMonthPayroll[0].total : 0;
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const staffOnLeaveToday = await Leave.countDocuments({
+        ...filter,
+        status: 'Approved',
+        startDate: { $lte: tomorrow },
+        endDate: { $gte: today }
+      });
+
+      stats = {
+        leaves: pendingLeaves.map(l => ({ id: l._id, faculty: l.facultyId?.fullName, type: l.leaveType, startDate: new Date(l.startDate).toLocaleDateString(), endDate: new Date(l.endDate).toLocaleDateString(), status: l.status })),
+        totalPayroll,
+        staffOnLeaveToday,
+        currentMonth
+      };
+    }
+
+    return res.json(new ApiResponse(200, stats, 'HR Dashboard stats fetched'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   applyLeave,
   getLeaves,
   updateLeaveStatus,
   generatePayroll,
-  getPayroll
+  getPayroll,
+  getHrDashboardStats
 };

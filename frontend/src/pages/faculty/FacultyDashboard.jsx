@@ -3,11 +3,52 @@ import { useSelector } from 'react-redux';
 import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../api/axios';
+import { useNotification } from '../../context/NotificationContext';
+import { QRCodeSVG } from 'qrcode.react';
+import Modal from '../../components/common/Modal';
+import toast from 'react-hot-toast';
 
 const FacultyDashboard = () => {
   const { user } = useSelector(state => state.auth);
+  const { socket } = useNotification();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // View QR Modal state
+  const [viewQRModalOpen, setViewQRModalOpen] = useState(false);
+  const [activeQRData, setActiveQRData] = useState(null);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleNewNotification = (data) => {
+      if (data.metadata?.type === 'QR_ATTENDANCE') {
+        toast((t) => (
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-bold text-slate-800">📋 New QR Attendance for {data.metadata.subject || 'Class'}</p>
+              <p className="text-xs text-slate-500 line-clamp-1">{data.message}</p>
+            </div>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                setActiveQRData(data.metadata);
+                setViewQRModalOpen(true);
+              }}
+              className="bg-brand-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand-600 transition-colors whitespace-nowrap"
+            >
+              Tap to view
+            </button>
+          </div>
+        ), { duration: 15000, position: 'top-right' });
+      }
+    };
+
+    socket.on('new_notification', handleNewNotification);
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -173,6 +214,48 @@ const FacultyDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* View QR Modal */}
+      <Modal isOpen={viewQRModalOpen} onClose={() => setViewQRModalOpen(false)} title="Lecture QR Attendance">
+        <div className="flex flex-col items-center justify-center p-6 space-y-6">
+          <div className="w-full bg-brand-50 text-brand-700 border border-brand-200 rounded-lg p-3 text-sm flex items-start gap-3 dark:bg-brand-900/30 dark:border-brand-800/50 dark:text-brand-300">
+            <CheckCircle className="shrink-0 mt-0.5" size={18} />
+            <p>
+              <strong className="block mb-1 text-brand-800 dark:text-brand-200">You have received this active QR from the Superadmin!</strong>
+              Display this QR code to your students. They can scan it from their portal to instantly mark their attendance for this session.
+            </p>
+          </div>
+          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+            {activeQRData?.qrSessionId && (
+              <QRCodeSVG 
+                value={activeQRData.qrSessionId} 
+                size={256} 
+                level="H" 
+                includeMargin={true} 
+              />
+            )}
+          </div>
+          <div className="w-full rounded-lg bg-slate-50 p-4 border border-slate-100 dark:bg-dark-800 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-brand-100 text-brand-600 p-2 rounded-lg dark:bg-brand-900/40 dark:text-brand-400">
+                  <CheckCircle size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{activeQRData?.subject || 'Lecture'} Session</h4>
+                  <p className="text-xs text-slate-500 font-medium">Session Active</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expires In</span>
+                <span className="text-lg font-bold text-rose-500 flex items-center gap-1">
+                  <Clock size={16} /> 10:00
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

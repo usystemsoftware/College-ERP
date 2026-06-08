@@ -327,13 +327,13 @@ const getAdminLiveFeed = async (req, res, next) => {
 const getAttendanceDashboardStats = async (req, res, next) => {
   try {
     const isStudent = req.user.role.name === 'Student';
-    
+
     if (isStudent) {
       let studentId = req.user._id;
       try {
         const student = await Student.findOne({ user: req.user._id });
         if (student) studentId = student._id;
-      } catch (e) {}
+      } catch (e) { }
 
       const records = await Attendance.find({ student: studentId });
       let present = 0;
@@ -357,7 +357,7 @@ const getAttendanceDashboardStats = async (req, res, next) => {
     } else {
       // Faculty view: return some students for the initial view
       const studentsList = await Student.find({ collegeId: req.user.collegeId }).limit(10).lean();
-      
+
       const formattedStudents = studentsList.map(s => ({
         id: s._id,
         name: s.personalDetails?.fullName || 'Unknown Student',
@@ -507,6 +507,11 @@ module.exports = {
   getStudentTodayAttendance,
   getAdminLiveFeed,
   getAttendanceDashboardStats,
+  generateQRToken,
+  verifyQRToken,
+  markQRAttendance,
+  sendQRToFaculty,
+  sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance,
   getFacultyAttendanceSummary

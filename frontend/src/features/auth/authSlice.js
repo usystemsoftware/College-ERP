@@ -47,7 +47,9 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   loading: false,
-  error: null
+  error: null,
+  onCampus: false,
+  campusLocation: null
 };
 
 const authSlice = createSlice({
@@ -56,6 +58,12 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    updateCampusStatus: (state, action) => {
+      if (state.user) {
+        state.user.onCampus = action.payload.onCampus;
+        state.user.campusLocation = action.payload.location;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -99,5 +107,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, updateCampusStatus } = authSlice.actions;
 export default authSlice.reducer;

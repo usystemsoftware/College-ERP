@@ -49,4 +49,24 @@ router.post('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College
 router.get('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyLecturesWithAttendance);
 router.get('/faculty-summary', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyAttendanceSummary);
 
+const { campusCheckin, campusCheckout, getCampusLive } = require('./attendance.controller');
+
+router.post('/campus-checkin',
+  protect,
+  authorize('Student'),
+  campusCheckin
+);
+
+router.post('/campus-checkout',
+  protect,
+  authorize('Student'),
+  campusCheckout
+);
+
+router.get('/campus-live',
+  protect,
+  authorize('Super Admin', 'College Admin', 'Principal'),
+  getCampusLive
+);
+
 module.exports = router;

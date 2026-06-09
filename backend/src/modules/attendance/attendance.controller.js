@@ -497,6 +497,125 @@ const getFacultyAttendanceSummary = async (req, res, next) => {
   }
 };
 
+const { isInsideCampus } = require('../../utils/geo');
+
+const campusCheckin = async (req, res, next) => {
+  try {
+    const { lat, lng, accuracy } = req.body;
+    const studentDoc = await Student.findOne({ user: req.user._id })
+      .populate('personalDetails');
+    if (!studentDoc) throw new ApiError(404, 'Student profile not found');
+
+    const onCampus = isInsideCampus(lat, lng);
+    const todayMidnight = new Date();
+    todayMidnight.setUTCHours(0, 0, 0, 0);
+
+    const now = new Date();
+
+    await Attendance.updateOne(
+      { student: studentDoc._id, date: todayMidnight, collegeId: req.user.collegeId },
+      {
+        $set: {
+          checkInTime: now,
+          selfMarked: true,
+          status: 'Present',
+          markedBy: req.user._id,
+          location: { latitude: lat, longitude: lng, accuracy: accuracy || 0 }
+        }
+      },
+      { upsert: true }
+    );
+
+    const io = req.app.get('io');
+    if (io) {
+      const socketPayload = {
+        studentId: studentDoc._id,
+        userId: req.user._id,
+        studentName: studentDoc.personalDetails?.fullName || 'Unknown',
+        rollNumber: studentDoc.rollNumber,
+        lat, lng, accuracy,
+        onCampus: onCampus,
+        checkInTime: now.toISOString(),
+        collegeId: req.user.collegeId
+      };
+      io.to('campus:' + req.user.collegeId.toString()).emit('student:checkin', socketPayload);
+    }
+
+    return res.status(200).json(new ApiResponse(200, { onCampus: onCampus }, 'Check-in recorded'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const campusCheckout = async (req, res, next) => {
+  try {
+    const studentDoc = await Student.findOne({ user: req.user._id });
+    if (!studentDoc) throw new ApiError(404, 'Student profile not found');
+
+    const todayMidnight = new Date();
+    todayMidnight.setUTCHours(0, 0, 0, 0);
+
+    const now = new Date();
+
+    await Attendance.updateOne(
+      { student: studentDoc._id, date: todayMidnight },
+      { $set: { checkOutTime: now } }
+    );
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('campus:' + req.user.collegeId.toString()).emit('student:checkout', {
+        studentId: studentDoc._id,
+        userId: req.user._id,
+        checkOutTime: now.toISOString()
+      });
+    }
+
+    return res.status(200).json(new ApiResponse(200, null, 'Check-out recorded'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCampusLive = async (req, res, next) => {
+  try {
+    const todayMidnight = new Date();
+    todayMidnight.setUTCHours(0, 0, 0, 0);
+
+    const records = await Attendance.find({
+      date: todayMidnight,
+      checkInTime: { $exists: true },
+      checkOutTime: { $exists: false },
+      collegeId: req.user.collegeId
+    }).populate('student', 'rollNumber personalDetails.fullName department');
+
+    const mappedArray = records.map(doc => {
+      const isInside = doc.location && doc.location.latitude && doc.location.longitude ? 
+        isInsideCampus(doc.location.latitude, doc.location.longitude) : false;
+        
+      return {
+        studentId: doc.student._id,
+        studentName: doc.student.personalDetails?.fullName,
+        rollNumber: doc.student.rollNumber,
+        department: doc.student.department,
+        checkInTime: doc.checkInTime,
+        onCampus: isInside,
+        location: { lat: doc.location?.latitude, lng: doc.location?.longitude }
+      };
+    });
+
+    return res.status(200).json(new ApiResponse(200, { students: mappedArray, count: mappedArray.length }, 'Live campus data'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generateQRToken = (req, res) => res.status(501).json({ message: 'Not implemented' });
+const verifyQRToken = (req, res) => res.status(501).json({ message: 'Not implemented' });
+const markQRAttendance = (req, res) => res.status(501).json({ message: 'Not implemented' });
+const sendQRToFaculty = (req, res) => res.status(501).json({ message: 'Not implemented' });
+const sendQRToStudents = (req, res) => res.status(501).json({ message: 'Not implemented' });
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -514,5 +633,8 @@ module.exports = {
   sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance,
-  getFacultyAttendanceSummary
+  getFacultyAttendanceSummary,
+  campusCheckin,
+  campusCheckout,
+  getCampusLive
 };

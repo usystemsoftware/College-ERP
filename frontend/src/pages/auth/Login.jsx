@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginUser } from '../../features/auth/authSlice';
+import { loginUser, updateCampusStatus } from '../../features/auth/authSlice';
 import { Mail, Lock, Loader2, BookOpen } from 'lucide-react';
+import api from '../../api/axios';
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -17,9 +18,39 @@ const Login = () => {
   const onSubmit = (data) => {
     dispatch(loginUser(data)).then((res) => {
       if (!res.error) {
+        const user = res.payload;
+        if (user) triggerCampusCheckin(user._id, user.role);
         navigate('/');
       }
     });
+  };
+
+  const triggerCampusCheckin = async (userId, role) => {
+    const roleName = typeof role === 'object' ? role?.name : role;
+    if (roleName !== 'Student') return;
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude, accuracy } = position.coords;
+          const res = await api.post('/attendance/campus-checkin', {
+            lat: latitude, lng: longitude, accuracy
+          });
+          const data = res.data;
+          dispatch(updateCampusStatus({
+            onCampus: data.data?.onCampus || false,
+            location: { lat: latitude, lng: longitude }
+          }));
+        } catch (err) {
+          console.warn('Campus check-in failed silently:', err);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation permission denied — login continues normally');
+      },
+      { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
+    );
   };
 
   return (

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { CheckCircle, XCircle, User } from 'lucide-react';
 import { getGatePassesAPI, approveGatePassAPI } from '../../api/gatepass.api';
+import { isDepartmentHod, getUserRole } from '../../utils/roles';
 
 const HodGatePassPage = () => {
+  const { user } = useSelector((state) => state.auth);
+  const canApprove = getUserRole(user) === 'HOD' || isDepartmentHod(user);
   const [gatePasses, setGatePasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('Pending');
@@ -58,6 +62,14 @@ const HodGatePassPage = () => {
   };
 
   const getStudentName = (pass) => pass.student?.personalDetails?.fullName || pass.host?.email || 'Unknown';
+
+  if (!canApprove) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-dark-800">
+        <p className="text-slate-600 dark:text-slate-400">Gate pass approvals are only available for department HODs.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

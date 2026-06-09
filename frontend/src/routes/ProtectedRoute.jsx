@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { loadCurrentUser } from '../features/auth/authSlice';
+import { hasRoleAccess } from '../utils/roles';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
@@ -26,8 +27,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const roleName = typeof user?.role === 'object' ? user.role?.name : user?.role;
-  if (user && allowedRoles && !allowedRoles.includes(roleName)) {
+  if (user && allowedRoles && !hasRoleAccess(user, allowedRoles)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

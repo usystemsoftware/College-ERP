@@ -6,7 +6,9 @@ const normalizeUser = (user) => {
   if (!user) return null;
   return {
     ...user,
-    role: typeof user.role === 'object' ? user.role?.name : user.role
+    role: typeof user.role === 'object' ? user.role?.name : user.role,
+    isDepartmentHod: Boolean(user.isDepartmentHod),
+    hodDepartments: user.hodDepartments || []
   };
 };
 

@@ -15,6 +15,23 @@ const getCollegeId = (user) => {
 
 const normalizeStudentId = (id) => (id == null ? '' : String(id));
 
+// Helper to calculate distance in meters between two coordinates
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371e3; // Earth radius in meters
+  const toRad = (val) => (val * Math.PI) / 180;
+  const phi1 = toRad(lat1);
+  const phi2 = toRad(lat2);
+  const deltaPhi = toRad(lat2 - lat1);
+  const deltaLambda = toRad(lon2 - lon1);
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const CampusLiveWidget = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +64,23 @@ const CampusLiveWidget = () => {
       try {
         const res = await api.get('/attendance/campus-live');
         if (res.data.success) {
-          setStudents(res.data.data?.students || []);
+          // The backend returns an array of Attendance records in res.data.data
+          const rawRecords = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.students || []);
+          const formatted = rawRecords.map(r => {
+            const studentId = normalizeStudentId(r.student?._id);
+            const lat = r.location?.lat || r.lat;
+            const lng = r.location?.lng || r.lng;
+            const dist = calculateDistance(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
+            return {
+              studentId,
+              studentName: r.student?.personalDetails?.fullName || r.studentName,
+              rollNumber: r.student?.rollNumber || r.rollNumber,
+              location: { lat, lng },
+              checkInTime: r.checkInTime,
+              onCampus: dist <= CAMPUS_RADIUS
+            };
+          });
+          setStudents(formatted);
         } else {
           setError(res.data.message || 'Failed to fetch live data');
         }
@@ -64,25 +97,36 @@ const CampusLiveWidget = () => {
     if (!collegeId) return;
 
     const handleCheckin = (payload) => {
-      const studentId = normalizeStudentId(payload.studentId);
+      // payload might come as { student: { id, name, rollNumber }, location: { lat, lng } } 
+      // or { studentId, studentName, lat, lng }
+      const studentId = normalizeStudentId(payload.studentId || payload.student?.id);
+      const studentName = payload.studentName || payload.student?.name;
+      const rollNumber = payload.rollNumber || payload.student?.rollNumber;
+      const lat = payload.location?.lat || payload.lat;
+      const lng = payload.location?.lng || payload.lng;
+      const dist = calculateDistance(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
+      
       setStudents((prev) => {
         const exists = prev.find((s) => normalizeStudentId(s.studentId) === studentId);
         const entry = {
           ...payload,
           studentId,
-          location: { lat: payload.lat, lng: payload.lng }
+          studentName,
+          rollNumber,
+          location: { lat, lng },
+          onCampus: dist <= CAMPUS_RADIUS
         };
         if (exists) {
           return prev.map((s) =>
             normalizeStudentId(s.studentId) === studentId ? { ...s, ...entry } : s
           );
         }
-        return [...prev, entry];
+        return [entry, ...prev];
       });
     };
 
     const handleCheckout = (payload) => {
-      const studentId = normalizeStudentId(payload.studentId);
+      const studentId = normalizeStudentId(payload.studentId || payload.student?.id);
       setStudents((prev) => prev.filter((s) => normalizeStudentId(s.studentId) !== studentId));
       if (markersRef.current[studentId]) {
         markersRef.current[studentId].remove();
@@ -100,13 +144,19 @@ const CampusLiveWidget = () => {
       const joinCampusRoom = () => socket.emit('join_room', `campus:${collegeId}`);
       joinCampusRoom();
       socket.on('connect', joinCampusRoom);
+      
+      // Listen to both event name formats to ensure compatibility
       socket.on('student:checkin', handleCheckin);
+      socket.on('student_checkin', handleCheckin);
       socket.on('student:checkout', handleCheckout);
+      socket.on('student_checkout', handleCheckout);
 
       cleanupSocket = () => {
         socket.off('connect', joinCampusRoom);
         socket.off('student:checkin', handleCheckin);
+        socket.off('student_checkin', handleCheckin);
         socket.off('student:checkout', handleCheckout);
+        socket.off('student_checkout', handleCheckout);
       };
       return true;
     };

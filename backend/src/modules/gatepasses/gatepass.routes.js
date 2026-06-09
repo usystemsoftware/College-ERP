@@ -5,7 +5,7 @@ const { authorize } = require('../../middleware/roleMiddleware');
 const { getGatePasses, createGatePass, approveGatePass, checkIn, checkOut } = require('./gatepass.controller');
 
 router.get('/', protect, authorize(
-  'Student', 'HOD', 'Security Officer', 'College Admin', 'Principal', 'Super Admin'
+  'Student', 'Faculty', 'HOD', 'Security Officer', 'College Admin', 'Principal', 'Super Admin'
 ), getGatePasses);
 
 router.post('/', protect, authorize(
@@ -13,7 +13,7 @@ router.post('/', protect, authorize(
 ), createGatePass);
 
 router.patch('/:id/approve', protect, authorize(
-  'HOD', 'Security Officer', 'College Admin', 'Principal', 'Super Admin'
+  'Faculty', 'HOD', 'Security Officer', 'College Admin', 'Principal', 'Super Admin'
 ), approveGatePass);
 
 router.patch('/:id/checkin', protect, authorize('Security Officer', 'College Admin', 'Super Admin'), checkIn);

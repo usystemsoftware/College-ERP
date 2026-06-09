@@ -20,6 +20,31 @@ const getParents = async (req, res, next) => {
   }
 };
 
+// Get current parent profile
+const getMe = async (req, res, next) => {
+  try {
+    const parent = await Parent.findOne({ user: req.user._id })
+      .populate('user', 'email status profileImage')
+      .populate({
+        path: 'students',
+        select: 'rollNumber personalDetails.fullName course department semester',
+        populate: [
+          { path: 'course', select: 'name code' },
+          { path: 'department', select: 'name code' }
+        ]
+      })
+      .populate('collegeId', 'name code');
+
+    if (!parent) {
+      throw new ApiError(404, 'Parent profile not found');
+    }
+
+    return res.status(200).json(new ApiResponse(200, { parent }, 'Parent profile fetched successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get single parent
 const getParentById = async (req, res, next) => {
   try {

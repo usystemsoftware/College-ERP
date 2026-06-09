@@ -174,6 +174,11 @@ const DashboardLayout = () => {
       { name: 'Timetable', path: '/timetable', icon: Calendar },
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
     ];
+  } else if (userRole === 'Parent') {
+    navItems = [
+      { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
+      ...navItems,
+    ];
   } else if (userRole === 'Accountant') {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },

@@ -12,6 +12,7 @@ const safeRequire = (modulePath) => {
     }
   } catch (err) {
     console.warn(`Could not load route module: ${modulePath}`);
+    console.error(err);
   }
   return null;
 };

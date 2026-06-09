@@ -39,7 +39,7 @@ const getFacultyMember = async (req, res, next) => {
 
 const createFaculty = async (req, res, next) => {
   try {
-    const { email, password, employeeId, fullName, designation, department, joiningDate, collegeId } = req.body;
+    const { email, password, employeeId, fullName, designation, department, joiningDate, collegeId, role } = req.body;
     if (!email || !password || !employeeId || !fullName || !department) throw new ApiError(400, 'Required fields missing');
 
     const existingUser = await User.findOne({ email });
@@ -47,12 +47,14 @@ const createFaculty = async (req, res, next) => {
     const existingEmp = await Faculty.findOne({ employeeId });
     if (existingEmp) throw new ApiError(400, 'Employee ID already exists');
 
-    const facultyRole = await Role.findOne({ name: 'Faculty' });
-    if (!facultyRole) throw new ApiError(500, 'Faculty role not configured');
+    // Find requested role or default to 'Faculty'
+    const roleName = role || 'Faculty';
+    const selectedRole = await Role.findOne({ name: roleName });
+    if (!selectedRole) throw new ApiError(500, `Role '${roleName}' not configured`);
 
     const user = await User.create({
       email, password,
-      role: facultyRole._id,
+      role: selectedRole._id,
       collegeId: collegeId || req.user.collegeId,
       isVerified: true,
       status: 'Active'
@@ -144,27 +146,38 @@ const getFacultyDashboardStats = async (req, res, next) => {
           date: startOfDay
         });
         attendanceRecords.forEach(att => {
-          attendanceMap[att.timetableId.toString()] = att.status;
+          attendanceMap[att.timetableId.toString()] = {
+            status: att.status,
+            sessionStatus: att.sessionStatus,
+            actualStartTime: att.actualStartTime,
+            actualEndTime: att.actualEndTime
+          };
         });
       } catch (e) {
         console.error("Error fetching faculty attendance", e);
       }
       
-      formattedClasses = todaysClasses.map(cls => ({
-        _id: cls._id,
-        time: `${cls.startTime} - ${cls.endTime}`,
-        subject: cls.subject?.name || 'Unknown Subject',
-        room: cls.roomNumber,
-        type: cls.isLab ? 'Practical' : 'Theory',
-        done: attendanceMap[cls._id.toString()] === 'Present',
-        attendanceStatus: attendanceMap[cls._id.toString()] || null
-      }));
+      formattedClasses = todaysClasses.map(cls => {
+        const att = attendanceMap[cls._id.toString()];
+        return {
+          _id: cls._id,
+          time: `${cls.startTime} - ${cls.endTime}`,
+          subject: cls.subject?.name || 'Unknown Subject',
+          room: cls.roomNumber,
+          type: cls.isLab ? 'Practical' : 'Theory',
+          done: att?.status === 'Present',
+          attendanceStatus: att?.status || null,
+          sessionStatus: att?.sessionStatus || 'Pending',
+          actualStartTime: att?.actualStartTime || null,
+          actualEndTime: att?.actualEndTime || null
+        };
+      });
     }
 
     if (formattedClasses.length === 0) {
       formattedClasses = [
-        { _id: '6663edfa328b067d0cf0c091', time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true, attendanceStatus: 'Present' },
-        { _id: '6663edfa328b067d0cf0c092', time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false, attendanceStatus: null }
+        { _id: '6663edfa328b067d0cf0c091', time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true, attendanceStatus: 'Present', sessionStatus: 'Completed', actualStartTime: null, actualEndTime: null },
+        { _id: '6663edfa328b067d0cf0c092', time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false, attendanceStatus: null, sessionStatus: 'Pending', actualStartTime: null, actualEndTime: null }
       ];
     }
 

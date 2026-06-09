@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { BookOpen, Calendar, Clock, Users, GraduationCap, FileText, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../api/axios';
 import { useNotification } from '../../context/NotificationContext';
@@ -8,11 +8,42 @@ import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../../components/common/Modal';
 import toast from 'react-hot-toast';
 
+const LiveTimer = ({ startTime }) => {
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+    const start = new Date(startTime).getTime();
+    
+    // Immediate calculation
+    const now = new Date().getTime();
+    setDuration(Math.floor((now - start) / 1000));
+
+    const interval = setInterval(() => {
+      const currentNow = new Date().getTime();
+      setDuration(Math.floor((currentNow - start) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const mins = Math.floor(duration / 60);
+  const secs = duration % 60;
+  return (
+    <div className="flex items-center gap-2 text-rose-500 font-bold bg-rose-50 px-3 py-1 rounded-full dark:bg-rose-900/30 dark:text-rose-400">
+      <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+      <span className="text-sm font-mono tracking-wider">{mins}:{secs < 10 ? '0'+secs : secs}</span>
+    </div>
+  );
+};
+
 const FacultyDashboard = () => {
   const { user } = useSelector(state => state.auth);
   const { socket } = useNotification();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [departmentAnomalies, setDepartmentAnomalies] = useState([]);
+
+  const isHOD = user?.role?.name === 'HOD' || user?.role === 'HOD';
 
   // View QR Modal state
   const [viewQRModalOpen, setViewQRModalOpen] = useState(false);
@@ -64,26 +95,63 @@ const FacultyDashboard = () => {
     fetchStats();
   }, []);
 
-  const handleMarkAttendance = async (timetableId, status) => {
+  useEffect(() => {
+    if (isHOD) {
+      const fetchAnomalies = async () => {
+        try {
+          const res = await api.get('/attendance/faculty-lecture/department-anomalies');
+          setDepartmentAnomalies(res.data.data);
+        } catch(err) {
+          console.error('Failed to fetch department anomalies', err);
+        }
+      };
+      fetchAnomalies();
+    }
+  }, [isHOD]);
+
+  const handleStartSession = async (timetableId) => {
     try {
-      await api.post('/attendance/faculty-lecture', {
+      const res = await api.post('/attendance/faculty-lecture/start-session', {
         timetableId,
-        date: new Date().toISOString().split('T')[0],
-        status
+        date: new Date().toISOString().split('T')[0]
       });
-      // update local stats
       setStats(prev => {
         if(!prev) return prev;
         const newClasses = prev.todaysClasses.map(cls => {
           if(cls._id === timetableId) {
-            return { ...cls, done: status === 'Present', attendanceStatus: status };
+            return { ...cls, sessionStatus: 'In Progress', actualStartTime: res.data.data.actualStartTime };
           }
           return cls;
         });
         return { ...prev, todaysClasses: newClasses };
       });
+      toast.success('Lecture session started');
     } catch(err) {
-      console.error("Failed to mark attendance", err);
+      toast.error(err.response?.data?.message || 'Failed to start session');
+      console.error("Failed to start session", err);
+    }
+  };
+
+  const handleEndSession = async (timetableId) => {
+    try {
+      const res = await api.post('/attendance/faculty-lecture/end-session', {
+        timetableId,
+        date: new Date().toISOString().split('T')[0]
+      });
+      setStats(prev => {
+        if(!prev) return prev;
+        const newClasses = prev.todaysClasses.map(cls => {
+          if(cls._id === timetableId) {
+            return { ...cls, sessionStatus: 'Completed', done: true, attendanceStatus: 'Present' };
+          }
+          return cls;
+        });
+        return { ...prev, todaysClasses: newClasses };
+      });
+      toast.success('Lecture session ended');
+    } catch(err) {
+      toast.error(err.response?.data?.message || 'Failed to end session');
+      console.error("Failed to end session", err);
     }
   };
 
@@ -173,23 +241,34 @@ const FacultyDashboard = () => {
                     {cls.type}
                   </span>
                   
-                  {/* Self-attendance marking buttons */}
+                  {/* Session tracking buttons */}
                   {cls._id && (
-                    <div className="flex gap-1 border-l pl-4 dark:border-slate-700">
-                      <button 
-                        onClick={() => handleMarkAttendance(cls._id, 'Present')}
-                        className={`p-1.5 rounded-md transition-colors ${cls.attendanceStatus === 'Present' ? 'bg-emerald-500 text-white' : 'text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/50'}`}
-                        title="Mark Present"
-                      >
-                        <CheckCircle size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleMarkAttendance(cls._id, 'Absent')}
-                        className={`p-1.5 rounded-md transition-colors ${cls.attendanceStatus === 'Absent' ? 'bg-red-500 text-white' : 'text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50'}`}
-                        title="Mark Absent"
-                      >
-                        <XCircle size={18} />
-                      </button>
+                    <div className="flex items-center gap-3 border-l pl-4 dark:border-slate-700">
+                      {cls.sessionStatus === 'Pending' && (
+                        <button 
+                          onClick={() => handleStartSession(cls._id)}
+                          className="px-4 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
+                        >
+                          Start Lecture
+                        </button>
+                      )}
+                      {cls.sessionStatus === 'In Progress' && (
+                        <>
+                          <LiveTimer startTime={cls.actualStartTime} />
+                          <button 
+                            onClick={() => handleEndSession(cls._id)}
+                            className="px-4 py-1.5 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+                          >
+                            End Lecture
+                          </button>
+                        </>
+                      )}
+                      {cls.sessionStatus === 'Completed' && (
+                        <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full dark:bg-emerald-900/30 dark:text-emerald-400">
+                          <CheckCircle size={16} />
+                          <span className="text-sm font-bold">Completed</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -214,6 +293,58 @@ const FacultyDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* HOD Department Anomalies Section */}
+      {isHOD && (
+        <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-sm dark:border-rose-900/30 dark:bg-dark-800 mt-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-rose-100 text-rose-600 rounded-lg dark:bg-rose-900/30 dark:text-rose-400">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Department Alerts</h3>
+              <p className="text-sm text-slate-500">Lecture anomalies (Late Start / Early Finish) within your department</p>
+            </div>
+          </div>
+
+          {departmentAnomalies.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700">
+                    <th className="pb-3 font-semibold">Faculty</th>
+                    <th className="pb-3 font-semibold">Subject</th>
+                    <th className="pb-3 font-semibold">Date</th>
+                    <th className="pb-3 font-semibold">Duration</th>
+                    <th className="pb-3 font-semibold text-rose-500">Issue Detected</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {departmentAnomalies.map(anomaly => (
+                    <tr key={anomaly._id} className="text-slate-700 dark:text-slate-300">
+                      <td className="py-3 font-medium">{anomaly.facultyName}</td>
+                      <td className="py-3">{anomaly.subject}</td>
+                      <td className="py-3">{new Date(anomaly.date).toLocaleDateString()}</td>
+                      <td className="py-3">{anomaly.duration} mins</td>
+                      <td className="py-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                          {anomaly.issue}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200 dark:bg-dark-900/50 dark:border-slate-800">
+              <CheckCircle className="text-emerald-500 mb-2" size={24} />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">All clear! No anomalies detected in your department recently.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View QR Modal */}
       <Modal isOpen={viewQRModalOpen} onClose={() => setViewQRModalOpen(false)} title="Lecture QR Attendance">

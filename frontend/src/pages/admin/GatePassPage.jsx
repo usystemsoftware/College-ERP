@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Plus, CheckCircle, XCircle, LogIn, LogOut, Search, Clock } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, LogIn, LogOut, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { getGatePassesAPI, createGatePassAPI, approveGatePassAPI, checkInGatePassAPI, checkOutGatePassAPI } from '../../api/gatepass.api';
 
@@ -7,12 +7,11 @@ const GatePassPage = () => {
   const [gatePasses, setGatePasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal states
+  const [typeFilter, setTypeFilter] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form states
+
   const [visitorName, setVisitorName] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
   const [visitorIdType, setVisitorIdType] = useState('Aadhar');
@@ -23,12 +22,13 @@ const GatePassPage = () => {
 
   useEffect(() => {
     fetchGatePasses();
-  }, []);
+  }, [typeFilter]);
 
   const fetchGatePasses = async () => {
     setLoading(true);
     try {
-      const res = await getGatePassesAPI();
+      const params = typeFilter ? { requestType: typeFilter } : {};
+      const res = await getGatePassesAPI(params);
       setGatePasses(res.data?.data?.passes || []);
     } catch (error) {
       console.error('Error fetching gate passes:', error);
@@ -77,18 +77,31 @@ const GatePassPage = () => {
       else if (type === 'Reject') await approveGatePassAPI(id, 'Rejected');
       else if (type === 'CheckIn') await checkInGatePassAPI(id);
       else if (type === 'CheckOut') await checkOutGatePassAPI(id);
-      
       fetchGatePasses();
     } catch (error) {
       console.error(`Failed to perform action: ${type}`, error);
-      alert('Action failed. You might not have the required permissions.');
+      alert(error.response?.data?.message || 'Action failed. You might not have the required permissions.');
     }
   };
 
-  const filteredPasses = gatePasses.filter(pass => 
-    pass.visitorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pass.visitorPhone.includes(searchTerm)
-  );
+  const getDisplayName = (pass) => {
+    if (pass.requestType === 'Student') {
+      return pass.student?.personalDetails?.fullName || pass.host?.email || 'Student';
+    }
+    return pass.visitorName;
+  };
+
+  const getDisplaySubtext = (pass) => {
+    if (pass.requestType === 'Student') {
+      return `${pass.student?.rollNumber || ''} • ${pass.department?.name || 'Dept'}`;
+    }
+    return `${pass.visitorPhone} • ${pass.numberOfVisitors} ${pass.numberOfVisitors > 1 ? 'visitors' : 'visitor'}`;
+  };
+
+  const filteredPasses = gatePasses.filter(pass => {
+    const name = getDisplayName(pass).toLowerCase();
+    return name.includes(searchTerm.toLowerCase()) || (pass.visitorPhone || '').includes(searchTerm);
+  });
 
   const getStatusBadge = (status) => {
     const colors = {
@@ -110,14 +123,14 @@ const GatePassPage = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gate Passes & Security</h1>
-          <p className="text-sm text-slate-500">Manage visitor entries, vehicle records, and security approvals.</p>
+          <p className="text-sm text-slate-500">Student passes require HOD approval. Security handles check-in and check-out.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
         >
           <Plus size={16} />
-          New Gate Pass
+          New Visitor Pass
         </button>
       </div>
 
@@ -125,23 +138,32 @@ const GatePassPage = () => {
         <div className="flex flex-col sm:flex-row gap-4 border-b border-slate-200 p-5 dark:border-slate-800 sm:items-center justify-between">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search visitors..." 
+            <input
+              type="text"
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white"
             />
           </div>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-dark-900 dark:text-white"
+          >
+            <option value="">All Types</option>
+            <option value="Student">Student</option>
+            <option value="Visitor">Visitor</option>
+          </select>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500 dark:bg-dark-850 dark:text-slate-400">
               <tr>
-                <th className="px-6 py-3 font-semibold">Visitor Details</th>
+                <th className="px-6 py-3 font-semibold">Name / Details</th>
+                <th className="px-6 py-3 font-semibold">Type</th>
                 <th className="px-6 py-3 font-semibold">Purpose</th>
-                <th className="px-6 py-3 font-semibold">Vehicle & Pass info</th>
                 <th className="px-6 py-3 font-semibold">Status</th>
                 <th className="px-6 py-3 font-semibold text-right">Actions</th>
               </tr>
@@ -155,22 +177,23 @@ const GatePassPage = () => {
                 filteredPasses.map((pass) => (
                   <tr key={pass._id} className="hover:bg-slate-50/50 dark:hover:bg-dark-750/30">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-900 dark:text-white">{pass.visitorName}</div>
-                      <div className="text-xs text-slate-500">{pass.visitorPhone} • {pass.numberOfVisitors} {pass.numberOfVisitors > 1 ? 'visitors' : 'visitor'}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{getDisplayName(pass)}</div>
+                      <div className="text-xs text-slate-500">{getDisplaySubtext(pass)}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${pass.requestType === 'Student' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
+                        {pass.requestType || 'Visitor'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 dark:text-slate-300 max-w-xs truncate" title={pass.purpose}>
                       {pass.purpose}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-slate-700 dark:text-slate-300">Veh: {pass.vehicleNumber || 'N/A'}</div>
-                      <div className="text-xs text-slate-500">{pass.visitorIdType}: {pass.visitorIdNumber}</div>
                     </td>
                     <td className="px-6 py-4">
                       {getStatusBadge(pass.status)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {pass.status === 'Pending' && (
+                        {pass.requestType === 'Visitor' && pass.status === 'Pending' && (
                           <>
                             <button onClick={() => handleAction(pass._id, 'Approve')} title="Approve" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/30">
                               <CheckCircle size={18} />
@@ -190,6 +213,9 @@ const GatePassPage = () => {
                             <LogOut size={18} />
                           </button>
                         )}
+                        {pass.requestType === 'Student' && pass.status === 'Pending' && (
+                          <span className="text-xs text-slate-400">Awaiting HOD</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -202,14 +228,14 @@ const GatePassPage = () => {
 
       {isModalOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all duration-300">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-900/5 dark:bg-dark-800 dark:ring-white/10 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-900/5 dark:bg-dark-800 dark:ring-white/10">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Create Gate Pass</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Create Visitor Gate Pass</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                 <XCircle size={24} />
               </button>
             </div>
-            
+
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -252,7 +278,7 @@ const GatePassPage = () => {
                 <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                   Cancel
                 </button>
-                <button type="submit" disabled={isSubmitting} className="rounded-lg bg-brand-500 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50 flex items-center gap-2">
+                <button type="submit" disabled={isSubmitting} className="rounded-lg bg-brand-500 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50">
                   {isSubmitting ? 'Creating...' : 'Create Gate Pass'}
                 </button>
               </div>

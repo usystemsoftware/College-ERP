@@ -61,8 +61,26 @@ const createParent = async (req, res, next) => {
   }
 };
 
+const getMyProfile = async (req, res, next) => {
+  try {
+    const parent = await Parent.findOne({ user: req.user._id })
+      .populate('user', 'email status profileImage')
+      .populate('students', 'rollNumber personalDetails.fullName course department semester')
+      .populate('collegeId', 'name code');
+
+    if (!parent) {
+      throw new ApiError(404, 'Parent profile not found');
+    }
+
+    return res.status(200).json(new ApiResponse(200, { parent }, 'Profile fetched successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getParents,
   getParentById,
-  createParent
+  createParent,
+  getMyProfile
 };

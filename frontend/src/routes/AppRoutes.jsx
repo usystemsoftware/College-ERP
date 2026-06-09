@@ -24,6 +24,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
 import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
+import ParentDashboard from '../pages/parent/ParentDashboard';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
@@ -64,6 +65,8 @@ const AppRoutes = () => {
         return <Navigate to="/faculty/dashboard" replace />;
       case 'Student':
         return <Navigate to="/student/dashboard" replace />;
+      case 'Parent':
+        return <Navigate to="/parent/dashboard" replace />;
       default:
         return <Navigate to="/admin/dashboard" replace />;
     }
@@ -122,6 +125,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="parent/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Parent']}>
+              <ParentDashboard />
             </ProtectedRoute>
           }
         />

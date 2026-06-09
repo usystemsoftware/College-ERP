@@ -13,6 +13,8 @@ import LMSPage from '../pages/shared/LMSPage';
 import NotificationsPage from '../pages/shared/NotificationsPage';
 import Profile from '../pages/shared/Profile';
 import GatePassPage from '../pages/admin/GatePassPage';
+import StudentGatePassPage from '../pages/student/StudentGatePassPage';
+import HodGatePassPage from '../pages/faculty/HodGatePassPage';
 import DepartmentsPage from '../pages/admin/DepartmentsPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentAttendancePage from '../pages/student/StudentAttendancePage';
@@ -108,6 +110,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="faculty/gatepass"
+          element={
+            <ProtectedRoute allowedRoles={['HOD']}>
+              <HodGatePassPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="student/dashboard"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
@@ -120,6 +130,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="student/gatepass"
+          element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentGatePassPage />
             </ProtectedRoute>
           }
         />

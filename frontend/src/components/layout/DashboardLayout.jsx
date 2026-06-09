@@ -144,7 +144,17 @@ const DashboardLayout = () => {
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
     ];
-  } else if (['Faculty', 'HOD'].includes(userRole)) {
+  } else if (userRole === 'HOD') {
+    navItems = [
+      { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
+      { name: 'Gate Pass Approvals', path: '/faculty/gatepass', icon: ShieldCheck },
+      { name: 'Subjects', path: '/subjects', icon: BookOpen },
+      { name: 'Students', path: '/students', icon: Users },
+      { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
+      ...navItems,
+    ];
+  } else if (userRole === 'Faculty') {
     navItems = [
       { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
@@ -157,6 +167,7 @@ const DashboardLayout = () => {
     navItems = [
       { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
       { name: 'Attendance', path: '/student/attendance', icon: Clock },
+      { name: 'Gate Pass', path: '/student/gatepass', icon: ShieldCheck },
       { name: 'Timetable', path: '/timetable', icon: Calendar },
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
     ];
@@ -164,6 +175,11 @@ const DashboardLayout = () => {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+      ...navItems,
+    ];
+  } else if (userRole === 'Security Officer') {
+    navItems = [
+      { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       ...navItems,
     ];
   } else {

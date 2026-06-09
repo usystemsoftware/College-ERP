@@ -19,7 +19,10 @@ const {
   sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance,
-  getFacultyAttendanceSummary
+  getFacultyAttendanceSummary,
+  startLectureSession,
+  endLectureSession,
+  getDepartmentLectureAnomalies
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
@@ -48,5 +51,8 @@ router.post('/qr/send-to-students', protect, authorize('Faculty', 'Class Coordin
 router.post('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), markFacultyLectureAttendance);
 router.get('/faculty-lecture', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyLecturesWithAttendance);
 router.get('/faculty-summary', protect, authorize('HR', 'Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getFacultyAttendanceSummary);
+router.post('/faculty-lecture/start-session', protect, authorize('Faculty'), startLectureSession);
+router.post('/faculty-lecture/end-session', protect, authorize('Faculty'), endLectureSession);
+router.get('/faculty-lecture/department-anomalies', protect, authorize('HOD', 'College Admin', 'Super Admin'), getDepartmentLectureAnomalies);
 
 module.exports = router;

@@ -451,7 +451,14 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
       const att = attendanceMap[t._id.toString()];
       return {
         timetable: t,
-        attendance: att ? { status: att.status, remarks: att.remarks } : null
+        attendance: att ? { 
+          status: att.status, 
+          remarks: att.remarks,
+          sessionStatus: att.sessionStatus,
+          actualStartTime: att.actualStartTime,
+          actualEndTime: att.actualEndTime,
+          durationMinutes: att.durationMinutes
+        } : null
       };
     });
 
@@ -497,6 +504,219 @@ const getFacultyAttendanceSummary = async (req, res, next) => {
   }
 };
 
+const startLectureSession = async (req, res, next) => {
+  try {
+    const { timetableId, date } = req.body;
+    
+    const faculty = await Faculty.findOne({ user: req.user._id });
+    if (!faculty) throw new ApiError(403, 'Faculty profile not found');
+    
+    const timetable = await Timetable.findById(timetableId);
+    if (!timetable) throw new ApiError(404, 'Timetable slot not found');
+
+    const [year, month, day] = date.split('-');
+    const attendanceDate = new Date(year, month - 1, day);
+
+    let record = await FacultyAttendance.findOne({ faculty: faculty._id, timetableId, date: attendanceDate });
+    
+    const now = new Date();
+    
+    // Check if late (5 minutes grace period)
+    const [hours, minutes] = timetable.startTime.split(':');
+    const scheduledStartTime = new Date(year, month - 1, day, hours, minutes);
+    const diffMinutes = (now - scheduledStartTime) / (1000 * 60);
+    const lateFlag = diffMinutes > 5;
+
+    if (record) {
+      if (record.sessionStatus !== 'Pending') {
+        throw new ApiError(400, `Lecture session is already ${record.sessionStatus}`);
+      }
+      record.sessionStatus = 'In Progress';
+      record.actualStartTime = now;
+      record.lateFlag = lateFlag;
+      record.markedBy = req.user._id;
+      await record.save();
+    } else {
+      record = await FacultyAttendance.create({
+        faculty: faculty._id,
+        timetableId,
+        date: attendanceDate,
+        status: 'Pending',
+        markedBy: req.user._id,
+        collegeId: req.user.collegeId,
+        sessionStatus: 'In Progress',
+        actualStartTime: now,
+        lateFlag: lateFlag
+      });
+    }
+
+    return res.status(200).json(new ApiResponse(200, record, 'Lecture session started successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const endLectureSession = async (req, res, next) => {
+  try {
+    const { timetableId, date } = req.body;
+
+    const faculty = await Faculty.findOne({ user: req.user._id });
+    if (!faculty) throw new ApiError(403, 'Faculty profile not found');
+
+    const timetable = await Timetable.findById(timetableId);
+    if (!timetable) throw new ApiError(404, 'Timetable slot not found');
+
+    const [year, month, day] = date.split('-');
+    const attendanceDate = new Date(year, month - 1, day);
+
+    let record = await FacultyAttendance.findOne({ faculty: faculty._id, timetableId, date: attendanceDate });
+
+    if (!record || record.sessionStatus !== 'In Progress') {
+      throw new ApiError(400, 'Lecture session is not in progress');
+    }
+
+    const now = new Date();
+    record.actualEndTime = now;
+    
+    // Calculate duration
+    const durationMinutes = Math.round((now - record.actualStartTime) / (1000 * 60));
+    record.durationMinutes = durationMinutes;
+
+    // Check if short (more than 10 minutes early)
+    const [startH, startM] = timetable.startTime.split(':');
+    const [endH, endM] = timetable.endTime.split(':');
+    const scheduledStartTime = new Date(year, month - 1, day, startH, startM);
+    const scheduledEndTime = new Date(year, month - 1, day, endH, endM);
+    const scheduledDuration = Math.round((scheduledEndTime - scheduledStartTime) / (1000 * 60));
+    
+    const shortFlag = durationMinutes < (scheduledDuration - 10);
+    record.shortFlag = shortFlag;
+
+    record.sessionStatus = 'Completed';
+    record.status = 'Present'; // Automatically mark present
+    await record.save();
+
+    // Alert HOD/Admin if there's an anomaly
+    if (record.lateFlag || record.shortFlag) {
+      const User = require('../users/user.model');
+      const Notification = require('../notifications/notification.model');
+      
+      const Role = require('../roles/role.model');
+      const targetRoles = await Role.find({ name: { $in: ['HOD', 'College Admin', 'Super Admin'] } });
+      const targetRoleIds = targetRoles.map(r => r._id);
+
+      const query = { 
+        role: { $in: targetRoleIds },
+        $or: [
+          { collegeId: req.user.collegeId },
+          { collegeId: { $exists: false } },
+          { collegeId: null }
+        ]
+      };
+
+      const adminsAndHods = await User.find(query).populate('role', 'name');
+
+      // For HODs, only alert if they belong to the same department
+      const relevantAdminsAndHods = [];
+      for (const admin of adminsAndHods) {
+        if (admin.role?.name === 'College Admin' || admin.role?.name === 'Super Admin') {
+          relevantAdminsAndHods.push(admin);
+        } else if (admin.role?.name === 'HOD') {
+          const hodProfile = await Faculty.findOne({ user: admin._id });
+          if (hodProfile && hodProfile.department && faculty && faculty.department) {
+            if (hodProfile.department.toString() === faculty.department.toString()) {
+              relevantAdminsAndHods.push(admin);
+            }
+          } else {
+            // Fallback for mock data missing departments
+            relevantAdminsAndHods.push(admin);
+          }
+        }
+      }
+      
+      let issueMessage = '';
+      if (record.lateFlag && record.shortFlag) issueMessage = 'started late and finished early';
+      else if (record.lateFlag) issueMessage = 'started late';
+      else issueMessage = 'finished early';
+
+      const subject = await require('../subjects/subject.model').findById(timetable.subject);
+      
+      const notifOps = relevantAdminsAndHods.map(admin => ({
+        insertOne: {
+          document: {
+            recipient: admin._id,
+            title: 'Lecture Anomaly Detected',
+            message: `Prof. ${faculty.personalDetails?.fullName || faculty.fullName || ''} ${issueMessage} for ${subject?.name || 'Class'} on ${attendanceDate.toLocaleDateString()}. Duration: ${durationMinutes} mins.`,
+            type: 'Alert',
+            category: 'Academic',
+            collegeId: req.user.collegeId
+          }
+        }
+      }));
+      
+      if (notifOps.length > 0) {
+        await Notification.bulkWrite(notifOps);
+        const io = req.app.get('io');
+        if (io) {
+          relevantAdminsAndHods.forEach(admin => {
+            io.to(admin._id.toString()).emit('notification_alert', { title: 'Lecture Anomaly', timestamp: new Date() });
+          });
+        }
+      }
+    }
+
+    return res.status(200).json(new ApiResponse(200, record, 'Lecture session ended successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --- DUMMY QR FUNCTIONS TO PREVENT CRASH ---
+const generateQRToken = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const verifyQRToken = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const markQRAttendance = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const sendQRToFaculty = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const sendQRToStudents = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+
+const getDepartmentLectureAnomalies = async (req, res, next) => {
+  try {
+    const hod = await Faculty.findOne({ user: req.user._id });
+    if (!hod) throw new ApiError(403, 'HOD profile not found');
+
+    const departmentFaculties = await Faculty.find({ department: hod.department }).select('_id fullName');
+    const facultyIds = departmentFaculties.map(f => f._id);
+
+    const anomalies = await FacultyAttendance.find({
+      faculty: { $in: facultyIds },
+      $or: [{ lateFlag: true }, { shortFlag: true }]
+    })
+    .populate('faculty', 'fullName')
+    .populate({ path: 'timetableId', populate: { path: 'subject', select: 'name code' } })
+    .sort({ date: -1 })
+    .limit(20);
+
+    const formattedAnomalies = anomalies.map(a => {
+      let issue = '';
+      if (a.lateFlag && a.shortFlag) issue = 'Started late & Finished early';
+      else if (a.lateFlag) issue = 'Started late';
+      else if (a.shortFlag) issue = 'Finished early';
+
+      return {
+        _id: a._id,
+        facultyName: a.faculty?.fullName || 'Unknown',
+        subject: a.timetableId?.subject?.name || 'Unknown',
+        date: a.date,
+        duration: a.durationMinutes,
+        issue
+      };
+    });
+
+    return res.status(200).json(new ApiResponse(200, formattedAnomalies, 'Department anomalies fetched successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -514,5 +734,8 @@ module.exports = {
   sendQRToStudents,
   markFacultyLectureAttendance,
   getFacultyLecturesWithAttendance,
-  getFacultyAttendanceSummary
+  getFacultyAttendanceSummary,
+  startLectureSession,
+  endLectureSession,
+  getDepartmentLectureAnomalies
 };

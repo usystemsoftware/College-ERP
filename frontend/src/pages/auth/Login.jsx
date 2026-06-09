@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginUser, updateCampusStatus } from '../../features/auth/authSlice';
+import { loginUser } from '../../features/auth/authSlice';
 import { Mail, Lock, Loader2, BookOpen } from 'lucide-react';
-import api from '../../api/axios';
+import { requestGeolocation, submitCampusCheckin } from '../../utils/campusCheckin';
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -16,41 +16,21 @@ const Login = () => {
   const { loading, error } = useSelector((state) => state.auth);
 
   const onSubmit = (data) => {
-    dispatch(loginUser(data)).then((res) => {
+    // Request location while the click gesture is still active (required by browsers)
+    const geoPromise = requestGeolocation();
+
+    dispatch(loginUser(data)).then(async (res) => {
       if (!res.error) {
         const user = res.payload;
-        if (user) triggerCampusCheckin(user._id, user.role);
+        const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+        if (user && roleName === 'Student') {
+          const coords = await geoPromise;
+          const ok = await submitCampusCheckin(dispatch, coords);
+          if (ok) sessionStorage.setItem('campusCheckinSent', '1');
+        }
         navigate('/');
       }
     });
-  };
-
-  const triggerCampusCheckin = async (userId, role) => {
-    const roleName = typeof role === 'object' ? role?.name : role;
-    if (roleName !== 'Student') return;
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude, accuracy } = position.coords;
-          const res = await api.post('/attendance/campus-checkin', {
-            lat: latitude, lng: longitude, accuracy
-          });
-          const data = res.data;
-          dispatch(updateCampusStatus({
-            onCampus: data.data?.onCampus || false,
-            location: { lat: latitude, lng: longitude }
-          }));
-        } catch (err) {
-          console.warn('Campus check-in failed silently:', err);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation permission denied — login continues normally');
-      },
-      { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
-    );
   };
 
   return (

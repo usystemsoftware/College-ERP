@@ -30,6 +30,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
 import { getMyNotifications } from '../../api/notifications.api';
+import { performStudentCampusCheckin, clearCampusCheckinSession } from '../../utils/campusCheckin';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -59,6 +60,14 @@ const DashboardLayout = () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, []);
+
+  // Record student location on session start (fallback if login-page geolocation failed)
+  useEffect(() => {
+    const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+    if (user?._id && roleName === 'Student') {
+      performStudentCampusCheckin(dispatch);
+    }
+  }, [user?._id, user?.role, dispatch]);
 
   // Initialize socket and fetch initial unread count
   useEffect(() => {
@@ -106,6 +115,7 @@ const DashboardLayout = () => {
   }, [darkMode]);
 
   const handleLogout = () => {
+    clearCampusCheckinSession();
     dispatch(logoutUser()).then(() => {
       navigate('/login');
     });

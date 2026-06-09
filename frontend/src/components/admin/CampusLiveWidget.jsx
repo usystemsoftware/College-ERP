@@ -8,6 +8,13 @@ const CAMPUS_LNG = parseFloat(import.meta.env.VITE_CAMPUS_LNG || '73.7898');
 const CAMPUS_RADIUS = parseInt(import.meta.env.VITE_CAMPUS_RADIUS_METERS || '300', 10);
 const CAMPUS_NAME = import.meta.env.VITE_CAMPUS_NAME || 'Campus';
 
+const getCollegeId = (user) => {
+  if (!user?.collegeId) return null;
+  return typeof user.collegeId === 'object' ? user.collegeId._id : user.collegeId;
+};
+
+const normalizeStudentId = (id) => (id == null ? '' : String(id));
+
 const CampusLiveWidget = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,36 +60,67 @@ const CampusLiveWidget = () => {
 
     fetchLiveStudents();
 
-    const socket = getSocket();
-    if (user && user.collegeId && socket) {
-      socket.emit('join_room', 'campus:' + user.collegeId);
-      
-      const handleCheckin = (payload) => {
-        setStudents(prev => {
-          const exists = prev.find(s => s.studentId === payload.studentId);
-          if (exists) {
-            return prev.map(s => s.studentId === payload.studentId ? { ...s, ...payload, location: { lat: payload.lat, lng: payload.lng } } : s);
-          }
-          return [...prev, { ...payload, location: { lat: payload.lat, lng: payload.lng } }];
-        });
-      };
+    const collegeId = getCollegeId(user);
+    if (!collegeId) return;
 
-      const handleCheckout = (payload) => {
-        setStudents(prev => prev.filter(s => s.studentId !== payload.studentId));
-        if (markersRef.current[payload.studentId]) {
-          markersRef.current[payload.studentId].remove();
-          delete markersRef.current[payload.studentId];
+    const handleCheckin = (payload) => {
+      const studentId = normalizeStudentId(payload.studentId);
+      setStudents((prev) => {
+        const exists = prev.find((s) => normalizeStudentId(s.studentId) === studentId);
+        const entry = {
+          ...payload,
+          studentId,
+          location: { lat: payload.lat, lng: payload.lng }
+        };
+        if (exists) {
+          return prev.map((s) =>
+            normalizeStudentId(s.studentId) === studentId ? { ...s, ...entry } : s
+          );
         }
-      };
+        return [...prev, entry];
+      });
+    };
 
+    const handleCheckout = (payload) => {
+      const studentId = normalizeStudentId(payload.studentId);
+      setStudents((prev) => prev.filter((s) => normalizeStudentId(s.studentId) !== studentId));
+      if (markersRef.current[studentId]) {
+        markersRef.current[studentId].remove();
+        delete markersRef.current[studentId];
+      }
+    };
+
+    let cleanupSocket = () => {};
+    let retryTimer;
+
+    const bindSocket = () => {
+      const socket = getSocket();
+      if (!socket) return false;
+
+      const joinCampusRoom = () => socket.emit('join_room', `campus:${collegeId}`);
+      joinCampusRoom();
+      socket.on('connect', joinCampusRoom);
       socket.on('student:checkin', handleCheckin);
       socket.on('student:checkout', handleCheckout);
 
-      return () => {
+      cleanupSocket = () => {
+        socket.off('connect', joinCampusRoom);
         socket.off('student:checkin', handleCheckin);
         socket.off('student:checkout', handleCheckout);
       };
+      return true;
+    };
+
+    if (!bindSocket()) {
+      retryTimer = setInterval(() => {
+        if (bindSocket()) clearInterval(retryTimer);
+      }, 500);
     }
+
+    return () => {
+      if (retryTimer) clearInterval(retryTimer);
+      cleanupSocket();
+    };
   }, [user]);
 
   useEffect(() => {
@@ -110,6 +148,7 @@ const CampusLiveWidget = () => {
       
       students.forEach(student => {
         if (student.location && student.location.lat && student.location.lng) {
+          const studentId = normalizeStudentId(student.studentId);
           const lat = student.location.lat;
           const lng = student.location.lng;
           
@@ -127,19 +166,19 @@ const CampusLiveWidget = () => {
           const iconHtml = `<div style="background-color: ${isOutside ? '#ef4444' : '#10b981'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`;
           const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [18, 18], iconAnchor: [9, 9] });
 
-          if (markersRef.current[student.studentId]) {
-            markersRef.current[student.studentId].setLatLng([lat, lng]);
-            markersRef.current[student.studentId].setPopupContent(popupContent);
-            markersRef.current[student.studentId].setIcon(customIcon);
+          if (markersRef.current[studentId]) {
+            markersRef.current[studentId].setLatLng([lat, lng]);
+            markersRef.current[studentId].setPopupContent(popupContent);
+            markersRef.current[studentId].setIcon(customIcon);
           } else {
             const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapRef.current);
             marker.bindPopup(popupContent);
-            markersRef.current[student.studentId] = marker;
+            markersRef.current[studentId] = marker;
           }
         }
       });
       
-      const currentIds = students.map(s => s.studentId);
+      const currentIds = students.map((s) => normalizeStudentId(s.studentId));
       Object.keys(markersRef.current).forEach(id => {
         if (!currentIds.includes(id)) {
           markersRef.current[id].remove();

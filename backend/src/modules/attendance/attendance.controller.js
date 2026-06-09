@@ -502,9 +502,15 @@ const { isInsideCampus } = require('../../utils/geo');
 const campusCheckin = async (req, res, next) => {
   try {
     const { lat, lng, accuracy } = req.body;
-    const studentDoc = await Student.findOne({ user: req.user._id })
-      .populate('personalDetails');
+    if (lat == null || lng == null) {
+      throw new ApiError(400, 'Latitude and longitude are required');
+    }
+
+    const studentDoc = await Student.findOne({ user: req.user._id });
     if (!studentDoc) throw new ApiError(404, 'Student profile not found');
+
+    const collegeId = req.user.collegeId || studentDoc.collegeId;
+    if (!collegeId) throw new ApiError(400, 'College not associated with this student account');
 
     const onCampus = isInsideCampus(lat, lng);
     const todayMidnight = new Date();
@@ -513,14 +519,16 @@ const campusCheckin = async (req, res, next) => {
     const now = new Date();
 
     await Attendance.updateOne(
-      { student: studentDoc._id, date: todayMidnight, collegeId: req.user.collegeId },
+      { student: studentDoc._id, date: todayMidnight, collegeId },
       {
         $set: {
           checkInTime: now,
           selfMarked: true,
           status: 'Present',
           markedBy: req.user._id,
-          location: { latitude: lat, longitude: lng, accuracy: accuracy || 0 }
+          collegeId,
+          location: { latitude: lat, longitude: lng, accuracy: accuracy || 0 },
+          checkOutTime: null
         }
       },
       { upsert: true }
@@ -529,19 +537,21 @@ const campusCheckin = async (req, res, next) => {
     const io = req.app.get('io');
     if (io) {
       const socketPayload = {
-        studentId: studentDoc._id,
-        userId: req.user._id,
+        studentId: studentDoc._id.toString(),
+        userId: req.user._id.toString(),
         studentName: studentDoc.personalDetails?.fullName || 'Unknown',
         rollNumber: studentDoc.rollNumber,
-        lat, lng, accuracy,
-        onCampus: onCampus,
+        lat,
+        lng,
+        accuracy,
+        onCampus,
         checkInTime: now.toISOString(),
-        collegeId: req.user.collegeId
+        collegeId: collegeId.toString()
       };
-      io.to('campus:' + req.user.collegeId.toString()).emit('student:checkin', socketPayload);
+      io.to('campus:' + collegeId.toString()).emit('student:checkin', socketPayload);
     }
 
-    return res.status(200).json(new ApiResponse(200, { onCampus: onCampus }, 'Check-in recorded'));
+    return res.status(200).json(new ApiResponse(200, { onCampus }, 'Check-in recorded'));
   } catch (error) {
     next(error);
   }
@@ -582,19 +592,26 @@ const getCampusLive = async (req, res, next) => {
     const todayMidnight = new Date();
     todayMidnight.setUTCHours(0, 0, 0, 0);
 
+    const collegeId = req.user.collegeId;
+    if (!collegeId) {
+      return res.status(200).json(new ApiResponse(200, { students: [], count: 0 }, 'Live campus data'));
+    }
+
     const records = await Attendance.find({
       date: todayMidnight,
       checkInTime: { $exists: true },
-      checkOutTime: { $exists: false },
-      collegeId: req.user.collegeId
+      $or: [{ checkOutTime: { $exists: false } }, { checkOutTime: null }],
+      collegeId
     }).populate('student', 'rollNumber personalDetails.fullName department');
 
-    const mappedArray = records.map(doc => {
+    const mappedArray = records
+      .filter((doc) => doc.student)
+      .map((doc) => {
       const isInside = doc.location && doc.location.latitude && doc.location.longitude ? 
         isInsideCampus(doc.location.latitude, doc.location.longitude) : false;
         
       return {
-        studentId: doc.student._id,
+        studentId: doc.student._id.toString(),
         studentName: doc.student.personalDetails?.fullName,
         rollNumber: doc.student.rollNumber,
         department: doc.student.department,

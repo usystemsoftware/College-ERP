@@ -16,15 +16,16 @@ router.post('/reset-password', authController.resetPassword);
 
 // Sample route to verify authentication is working
 router.get('/me', protect, (req, res) => {
+  const user = req.user.toObject();
+  delete user.password;
+  delete user.refreshToken;
+
   res.json({
     success: true,
     data: {
       user: {
-        id: req.user._id,
-        email: req.user.email,
-        role: req.user.role.name,
-        isVerified: req.user.isVerified,
-        status: req.user.status
+        ...user,
+        role: req.user.role?.name || user.role
       }
     }
   });

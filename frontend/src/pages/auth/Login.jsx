@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../../features/auth/authSlice';
 import { Mail, Lock, Loader2, BookOpen } from 'lucide-react';
+import { requestGeolocation, submitCampusCheckin } from '../../utils/campusCheckin';
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -15,8 +16,18 @@ const Login = () => {
   const { loading, error } = useSelector((state) => state.auth);
 
   const onSubmit = (data) => {
-    dispatch(loginUser(data)).then((res) => {
+    // Request location while the click gesture is still active (required by browsers)
+    const geoPromise = requestGeolocation();
+
+    dispatch(loginUser(data)).then(async (res) => {
       if (!res.error) {
+        const user = res.payload;
+        const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+        if (user && roleName === 'Student') {
+          const coords = await geoPromise;
+          const ok = await submitCampusCheckin(dispatch, coords);
+          if (ok) sessionStorage.setItem('campusCheckinSent', '1');
+        }
         navigate('/');
       }
     });

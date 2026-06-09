@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Users, BookOpen, Clock, AlertTriangle, TrendingUp, DollarSign } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useSelector } from 'react-redux';
 import api from '../../api/axios';
+import CampusLiveWidget from '../../components/admin/CampusLiveWidget';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useSelector(state => state.auth);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -81,6 +84,12 @@ const AdminDashboard = () => {
           <p className="mt-1 text-sm text-slate-500">Leaves & Admissions</p>
         </div>
       </div>
+
+      {(['Super Admin', 'College Admin', 'Principal'].includes(user?.role?.name || user?.role)) && (
+        <div className="mt-6">
+          <CampusLiveWidget />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}

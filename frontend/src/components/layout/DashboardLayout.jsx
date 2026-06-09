@@ -30,6 +30,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
 import { getMyNotifications } from '../../api/notifications.api';
+import { performStudentCampusCheckin, clearCampusCheckinSession } from '../../utils/campusCheckin';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -59,6 +60,14 @@ const DashboardLayout = () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, []);
+
+  // Record student location on session start (fallback if login-page geolocation failed)
+  useEffect(() => {
+    const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+    if (user?._id && roleName === 'Student') {
+      performStudentCampusCheckin(dispatch);
+    }
+  }, [user?._id, user?.role, dispatch]);
 
   // Initialize socket and fetch initial unread count
   useEffect(() => {
@@ -106,6 +115,7 @@ const DashboardLayout = () => {
   }, [darkMode]);
 
   const handleLogout = () => {
+    clearCampusCheckinSession();
     dispatch(logoutUser()).then(() => {
       navigate('/login');
     });
@@ -134,7 +144,17 @@ const DashboardLayout = () => {
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
     ];
-  } else if (['Faculty', 'HOD'].includes(userRole)) {
+  } else if (userRole === 'HOD') {
+    navItems = [
+      { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
+      { name: 'Gate Pass Approvals', path: '/faculty/gatepass', icon: ShieldCheck },
+      { name: 'Subjects', path: '/subjects', icon: BookOpen },
+      { name: 'Students', path: '/students', icon: Users },
+      { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
+      ...navItems,
+    ];
+  } else if (userRole === 'Faculty') {
     navItems = [
       { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
@@ -147,6 +167,7 @@ const DashboardLayout = () => {
     navItems = [
       { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
       { name: 'Attendance', path: '/student/attendance', icon: Clock },
+      { name: 'Gate Pass', path: '/student/gatepass', icon: ShieldCheck },
       { name: 'Timetable', path: '/timetable', icon: Calendar },
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
     ];
@@ -154,6 +175,11 @@ const DashboardLayout = () => {
     navItems = [
       { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
+      ...navItems,
+    ];
+  } else if (userRole === 'Security Officer') {
+    navItems = [
+      { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       ...navItems,
     ];
   } else {

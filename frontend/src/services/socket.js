@@ -17,6 +17,12 @@ export const initiateSocketConnection = (user) => {
       // Join a room specific to this user to receive personal notifications
       socket.emit('join_room', user._id.toString());
     }
+
+    const collegeId = typeof user?.collegeId === 'object' ? user.collegeId._id : user?.collegeId;
+    const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+    if (collegeId && ['Super Admin', 'College Admin', 'Principal'].includes(roleName)) {
+      socket.emit('join_room', `campus:${collegeId}`);
+    }
   });
 };
 

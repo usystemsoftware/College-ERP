@@ -6,7 +6,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 router.use(protect);
 
 router.get('/', parentController.getParents);
-router.get('/me', parentController.getMe);
+router.get('/me', parentController.getMyProfile);
 router.get('/:id', parentController.getParentById);
 router.post('/', authorize('Super Admin', 'College Admin', 'Principal'), parentController.createParent);
 

@@ -190,6 +190,10 @@ const DashboardLayout = () => {
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       ...navItems,
     ];
+  } else if (userRole === 'Parent') {
+    navItems = [
+      { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
+    ];
   } else {
     navItems = [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },

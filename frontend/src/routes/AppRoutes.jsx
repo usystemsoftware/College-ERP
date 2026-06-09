@@ -24,11 +24,10 @@ import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
 import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
+import ParentDashboard from '../pages/parent/ParentDashboard';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
-import ParentDashboard from '../pages/parent/ParentDashboard';
-
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
     <h1 className="text-4xl font-extrabold text-red-500">403 - Access Denied</h1>
@@ -129,6 +128,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="parent/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Parent']}>
+              <ParentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="student/attendance"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
@@ -141,14 +148,6 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentGatePassPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="parent/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['Parent']}>
-              <ParentDashboard />
             </ProtectedRoute>
           }
         />

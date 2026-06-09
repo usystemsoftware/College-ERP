@@ -104,10 +104,8 @@ const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    // Strip password
-    const userPayload = user.toObject();
-    delete userPayload.password;
-    delete userPayload.refreshToken;
+    const { buildUserPayload } = require('../../utils/userPayload.util');
+    const userPayload = await buildUserPayload(user);
 
     return res.status(200).json(
       new ApiResponse(200, { user: userPayload, accessToken }, 'Login successful')

@@ -5,6 +5,13 @@ const Faculty = require('../faculty/faculty.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const { emitNotification } = require('../../services/notification.service');
+const { getDepartmentHodContext } = require('../../utils/hod.util');
+
+const isHodUser = async (user) => {
+  if (user.role.name === 'HOD') return true;
+  const { isDepartmentHod } = await getDepartmentHodContext(user._id);
+  return isDepartmentHod;
+};
 
 const populateOptions = [
   { path: 'host', select: 'email' },
@@ -35,7 +42,7 @@ const getGatePasses = async (req, res, next) => {
       const student = await Student.findOne({ user: req.user._id });
       if (!student) throw new ApiError(404, 'Student profile not found');
       filter.student = student._id;
-    } else if (role === 'HOD') {
+    } else if (await isHodUser(req.user)) {
       filter.assignedTo = req.user._id;
     } else if (!['Security Officer', 'College Admin', 'Principal', 'Super Admin'].includes(role)) {
       filter.host = req.user._id;
@@ -124,7 +131,9 @@ const approveGatePass = async (req, res, next) => {
 
     if (pass.requestType === 'Student') {
       if (!isAdmin) {
-        if (role !== 'HOD') throw new ApiError(403, 'Only department HOD can approve student gate pass requests');
+        if (!(await isHodUser(req.user))) {
+          throw new ApiError(403, 'Only department HOD can approve student gate pass requests');
+        }
         if (pass.assignedTo?.toString() !== req.user._id.toString()) {
           throw new ApiError(403, 'This gate pass is not assigned to you');
         }

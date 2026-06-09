@@ -14,21 +14,15 @@ router.post('/verify-otp', authController.verifyOtp);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 
-// Sample route to verify authentication is working
-router.get('/me', protect, (req, res) => {
-  const user = req.user.toObject();
-  delete user.password;
-  delete user.refreshToken;
+const { buildUserPayload } = require('../../utils/userPayload.util');
 
-  res.json({
-    success: true,
-    data: {
-      user: {
-        ...user,
-        role: req.user.role?.name || user.role
-      }
-    }
-  });
+router.get('/me', protect, async (req, res, next) => {
+  try {
+    const user = await buildUserPayload(req.user);
+    res.json({ success: true, data: { user } });
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;

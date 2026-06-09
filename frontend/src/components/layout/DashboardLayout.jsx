@@ -31,6 +31,7 @@ import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
 import { getMyNotifications } from '../../api/notifications.api';
 import { performStudentCampusCheckin, clearCampusCheckinSession } from '../../utils/campusCheckin';
+import { getUserRole, isDepartmentHod, getDisplayRole } from '../../utils/roles';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -121,7 +122,9 @@ const DashboardLayout = () => {
     });
   };
 
-  const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  const userRole = getUserRole(user);
+  const userIsDepartmentHod = isDepartmentHod(user);
+  const displayRole = getDisplayRole(user);
 
   let navItems = [
     { name: 'Timetable', path: '/timetable', icon: Calendar },
@@ -144,7 +147,7 @@ const DashboardLayout = () => {
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
     ];
-  } else if (userRole === 'HOD') {
+  } else if (userRole === 'HOD' || (userRole === 'Faculty' && userIsDepartmentHod)) {
     navItems = [
       { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
       { name: 'Gate Pass Approvals', path: '/faculty/gatepass', icon: ShieldCheck },
@@ -311,7 +314,7 @@ const DashboardLayout = () => {
                     {user?.email || 'User Account'}
                   </div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-none">
-                    {user?.role || 'Super Admin'}
+                    {displayRole}
                   </div>
                 </div>
                 <ChevronDown size={14} className="text-slate-400" />

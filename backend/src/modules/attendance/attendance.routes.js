@@ -55,24 +55,22 @@ router.post('/faculty-lecture/start-session', protect, authorize('Faculty'), sta
 router.post('/faculty-lecture/end-session', protect, authorize('Faculty'), endLectureSession);
 router.get('/faculty-lecture/department-anomalies', protect, authorize('HOD', 'College Admin', 'Super Admin'), getDepartmentLectureAnomalies);
 
-const { campusCheckin, campusCheckout, getCampusLive } = require('./attendance.controller');
-
 router.post('/campus-checkin',
   protect,
   authorize('Student'),
-  campusCheckin
+  studentCheckIn
 );
 
 router.post('/campus-checkout',
   protect,
   authorize('Student'),
-  campusCheckout
+  studentCheckOut
 );
 
 router.get('/campus-live',
   protect,
   authorize('Super Admin', 'College Admin', 'Principal'),
-  getCampusLive
+  getAdminLiveFeed
 );
 
 module.exports = router;

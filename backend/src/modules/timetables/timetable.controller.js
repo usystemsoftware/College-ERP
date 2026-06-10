@@ -33,6 +33,39 @@ const getTimetable = async (req, res, next) => {
       return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
     }
 
+    // ─── PARENT: fetch timetable for specific linked student ───
+    if (roleName === 'Parent') {
+      const studentId = req.query.studentId;
+      if (!studentId) throw new ApiError(400, 'Student ID required for parent view');
+      
+      const parent = await require('../parents/parent.model').findOne({ user: req.user._id });
+      if (!parent || !parent.students.includes(studentId)) {
+        throw new ApiError(403, 'Not authorized to view this student');
+      }
+
+      const student = await Student.findById(studentId);
+      if (!student) throw new ApiError(404, 'Student not found');
+
+      const filter = {
+        isActive: true,
+        collegeId: req.user.collegeId,
+        department: student.department,
+        course: student.course,
+        semester: student.semester,
+        division: student.division,
+      };
+
+      const timetable = await Timetable.find(filter)
+        .populate('subject', 'name code type')
+        .populate('faculty', 'fullName employeeId')
+        .populate('semester', 'name')
+        .populate('department', 'name code')
+        .populate('course', 'name code')
+        .sort({ dayOfWeek: 1, startTime: 1 });
+
+      return res.json(new ApiResponse(200, timetable, 'Timetable fetched'));
+    }
+
     // ─── FACULTY: auto-filter by their assigned classes ───
     if (roleName === 'Faculty' && req.query.view === 'my') {
       const facultyProfile = await require('../faculty/faculty.model').findOne({ user: req.user._id });

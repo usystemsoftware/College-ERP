@@ -374,7 +374,12 @@ const StudentDirectory = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Division</label>
-                <input {...register('division', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. A" />
+                <select {...register('division', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                  <option value="Division A">Division A</option>
+                  <option value="Division B">Division B</option>
+                  <option value="Division C">Division C</option>
+                  <option value="Division D">Division D</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch</label>

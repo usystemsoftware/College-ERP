@@ -5,7 +5,8 @@ import { useLocation } from 'react-router-dom';
 import { get } from '../../api/client';
 import { getSemesters, getSubjects, getCurrentAcademicYear, createSubject } from '../../api/academic.api';
 import { getFacultyAPI } from '../../api/faculty.api';
-import { getTimetableAPI, createTimetableSlotAPI, deleteTimetableSlotAPI } from '../../api/timetable.api';
+import { getMyParentProfileAPI } from '../../api/parents.api';
+import { getTimetableAPI, createTimetableSlotAPI, deleteTimetableSlotAPI, updateTimetableSlotAPI } from '../../api/timetable.api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/common/Modal';
 import LottieLoader from '../../components/common/LottieLoader';
@@ -82,12 +83,16 @@ const TimetablePage = () => {
   const isAdmin     = ADMIN_ROLES.includes(userRole);
   const isStudent   = userRole === 'Student';
   const isFaculty   = userRole === 'Faculty';
+  const isParent    = userRole === 'Parent';
   const [viewMode, setViewMode] = useState(isFaculty ? 'my' : 'master');
   const canViewFilters = isAdmin || (isFaculty && viewMode === 'master');
 
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [schedule,    setSchedule]    = useState([]);
   const [loading,     setLoading]     = useState(false);
+
+  const [parentStudents, setParentStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // ── Lookup data (admin) ──────────────────────────────────────────────────
   const [allDepts,    setAllDepts]    = useState([]);
@@ -101,6 +106,7 @@ const TimetablePage = () => {
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
 
   // All modal selections live here — department, course, sem, division, day, time, subject, type, faculty, room
   const [modal, setModal] = useState({
@@ -152,20 +158,43 @@ const TimetablePage = () => {
     })();
   }, [isAdmin, isFaculty, location.state]);
 
-  // ── 2. Student & Faculty 'my' view: auto-load own timetable ──────────────────────────────────
+  // ── 2. Parent Boot: fetch linked students ──────────────────────────────
   useEffect(() => {
-    if (!isStudent && !(isFaculty && viewMode === 'my')) return;
+    if (!isParent) return;
     (async () => {
-      setLoading(true);
       try {
-        const res = await getTimetableAPI(isFaculty ? { view: 'my' } : {});
-        if (res.data?.data) setSchedule(res.data.data);
-      } catch { toast.error('Failed to load timetable'); }
-      finally { setLoading(false); }
+        const res = await getMyParentProfileAPI();
+        const students = res.data?.data?.parent?.students || [];
+        setParentStudents(students);
+        if (students.length > 0) setSelectedStudent(students[0]);
+      } catch (e) { console.error(e); }
     })();
-  }, [isStudent, isFaculty, viewMode]);
+  }, [isParent]);
 
-  // ── 3. Admin/Faculty Master view: reload courses when dept changes ──────────────────────
+  // ── 3. Student, Faculty 'my' view & Parent: auto-load timetable ────────
+  useEffect(() => {
+    if (isStudent || (isFaculty && viewMode === 'my')) {
+      (async () => {
+        setLoading(true);
+        try {
+          const res = await getTimetableAPI(isFaculty ? { view: 'my' } : {});
+          if (res.data?.data) setSchedule(res.data.data);
+        } catch { toast.error('Failed to load timetable'); }
+        finally { setLoading(false); }
+      })();
+    } else if (isParent && selectedStudent) {
+      (async () => {
+        setLoading(true);
+        try {
+          const res = await getTimetableAPI({ studentId: selectedStudent._id });
+          if (res.data?.data) setSchedule(res.data.data);
+        } catch { toast.error('Failed to load timetable'); }
+        finally { setLoading(false); }
+      })();
+    }
+  }, [isStudent, isFaculty, viewMode, isParent, selectedStudent]);
+
+  // ── 4. Admin/Faculty Master view: reload courses when dept changes ──────
   useEffect(() => {
     if (!canViewFilters || !filters.department) return;
     (async () => {
@@ -179,7 +208,7 @@ const TimetablePage = () => {
     })();
   }, [filters.department, canViewFilters]);
 
-  // ── 4. Admin/Faculty Master view: reload timetable when filters change ──────────────────
+  // ── 5. Admin/Faculty Master view: reload timetable when filters change ──
   useEffect(() => {
     if (!canViewFilters || !filters.department || !filters.semester) return;
     (async () => {
@@ -192,7 +221,7 @@ const TimetablePage = () => {
     })();
   }, [filters, canViewFilters]);
 
-  // ── 5. Modal: load courses when modal dept changes ───────────────────────
+  // ── 6. Modal: load courses when modal dept changes ───────────────────────
   useEffect(() => {
     if (!modal.department) { setModalCourses([]); setM('course', ''); return; }
     setLoadingCourses(true);
@@ -206,7 +235,7 @@ const TimetablePage = () => {
       .finally(() => setLoadingCourses(false));
   }, [modal.department]);
 
-  // ── 6. Modal: load subjects when modal course + semester change ───────────
+  // ── 7. Modal: load subjects when modal course + semester change ───────────
   useEffect(() => {
     if (!modal.course || !modal.semester) { setModalSubjects([]); return; }
     setShowAddSubject(false);
@@ -255,6 +284,7 @@ const TimetablePage = () => {
 
   const openModal = (day = 'Monday', time = '09:00', session = null) => {
     if (session) {
+      setEditId(session._id);
       setModal({
         department: filters.department, course: filters.course,
         semester: filters.semester, division: filters.division,
@@ -263,6 +293,7 @@ const TimetablePage = () => {
         faculty: session.faculty?._id || '', room: session.roomNumber || ''
       });
     } else {
+      setEditId(null);
       setModal(p => ({
         ...p,
         department: filters.department || '',
@@ -313,10 +344,15 @@ const TimetablePage = () => {
     };
 
     try {
-      await createTimetableSlotAPI(payload);
-      const deptName = allDepts.find(d => d._id === modal.department)?.name || '';
-      const divName  = modal.division;
-      toast.success(`Class saved! All ${deptName} ${divName} students will see this in their timetable.`, { duration: 4000 });
+      if (editId) {
+        await updateTimetableSlotAPI(editId, payload);
+        toast.success(`Class updated successfully!`);
+      } else {
+        await createTimetableSlotAPI(payload);
+        const deptName = allDepts.find(d => d._id === modal.department)?.name || '';
+        const divName  = modal.division;
+        toast.success(`Class saved! All ${deptName} ${divName} students will see this in their timetable.`, { duration: 4000 });
+      }
 
       // Sync view filters to what was just saved so grid updates
       setFilters({
@@ -326,6 +362,7 @@ const TimetablePage = () => {
         division:   modal.division,
       });
       setIsModalOpen(false);
+      setEditId(null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save class');
     }
@@ -478,14 +515,16 @@ const TimetablePage = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {(isStudent || (isFaculty && viewMode === 'my')) ? 'My Timetable' : 'Master Timetable'}
+            {(isStudent || isParent || (isFaculty && viewMode === 'my')) ? 'My Timetable' : 'Master Timetable'}
           </h1>
           <p className="text-sm text-slate-500">
             {isStudent
               ? deptLabel ? `${deptLabel} — ${semLabel}` : 'Your class schedule'
-              : (isFaculty && viewMode === 'my')
-                ? 'Your assigned lectures across all departments'
-                : 'View and manage class schedules across departments.'}
+              : isParent
+                ? 'Your child\'s class schedule'
+                : (isFaculty && viewMode === 'my')
+                  ? 'Your assigned lectures across all departments'
+                  : 'View and manage class schedules across departments.'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -516,6 +555,25 @@ const TimetablePage = () => {
 
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-dark-800">
 
+        {/* Parent student selection tabs */}
+        {isParent && parentStudents.length > 1 && (
+          <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 p-4">
+            {parentStudents.map(student => (
+              <button
+                key={student._id}
+                onClick={() => setSelectedStudent(student)}
+                className={`pb-1 px-1 text-sm font-semibold transition-all ${
+                  selectedStudent?._id === student._id
+                    ? 'border-b-2 border-brand-500 text-brand-600 dark:text-brand-400'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                {student.personalDetails?.fullName}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Admin/Master view filters */}
         {canViewFilters && (
           <div className="flex flex-wrap gap-3 p-4 border-b border-slate-200 dark:border-slate-800 items-center">
@@ -541,7 +599,7 @@ const TimetablePage = () => {
         )}
 
         {/* Student/Faculty info bar */}
-        {isStudent && schedule.length > 0 && (
+        {(isStudent || isParent) && schedule.length > 0 && (
           <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 px-5 py-3 bg-brand-50/40 dark:bg-brand-900/10">
             <BookOpen size={16} className="text-brand-500" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -553,8 +611,8 @@ const TimetablePage = () => {
           </div>
         )}
 
-        {/* Student/Faculty — no timetable */}
-        {(isStudent || (isFaculty && viewMode === 'my')) && !loading && schedule.length === 0 && (
+        {/* Student/Faculty/Parent — no timetable */}
+        {(isStudent || isParent || (isFaculty && viewMode === 'my')) && !loading && schedule.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
             <div className="rounded-full bg-slate-100 p-5 dark:bg-dark-800 mb-4">
               <BookOpen size={32} className="text-slate-400" />
@@ -752,7 +810,7 @@ const TimetablePage = () => {
               </button>
               <button type="submit"
                 className="flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-                <ChevronRight size={16} /> Save &amp; Notify Students
+                <ChevronRight size={16} /> {editId ? 'Update Class' : 'Save & Notify Students'}
               </button>
             </div>
           </form>

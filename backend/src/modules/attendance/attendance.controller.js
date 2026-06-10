@@ -706,14 +706,44 @@ const generateQRToken = async (req, res, next) => {
 
     const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
     
-    // Push notification to students via Socket.IO
+    // Push notification to students via Socket.IO AND save to DB
     try {
       const subjectDoc = await require('../subjects/subject.model').findById(subject);
       const subjectName = subjectDoc ? subjectDoc.name : 'Lecture';
       
+      const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+      const Student = require('../students/student.model');
+      const Notification = require('../notifications/notification.model');
+
+      const students = await Student.find({ collegeId: req.user.collegeId }).select('_id user');
+
+      const notifOps = students.map(student => ({
+        insertOne: {
+          document: {
+            recipient: student.user,
+            title: 'QR Attendance Available',
+            message: `QR Attendance is now active for ${subjectName}`,
+            type: 'System',
+            category: 'Academic',
+            metadata: {
+              type: 'STUDENT_QR_ATTENDANCE',
+              subjectName: subjectName,
+              qrSessionId: token,
+              expiresAt: expiresAt
+            },
+            collegeId: req.user.collegeId,
+            createdAt: new Date(),
+            isRead: false
+          }
+        }
+      }));
+
+      if (notifOps.length > 0) {
+        await Notification.bulkWrite(notifOps);
+      }
+
       const io = req.app.get('io');
       if (io) {
-        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
         const notificationPayload = {
           title: 'QR Attendance Available',
           message: `QR Attendance is now active for ${subjectName}`,
@@ -726,7 +756,7 @@ const generateQRToken = async (req, res, next) => {
           createdAt: new Date(),
           isRead: false
         };
-        // Broadcast to everyone (can be optimized to target enrolled students)
+        // Broadcast to everyone
         io.emit('new_notification', notificationPayload);
       }
     } catch (err) {

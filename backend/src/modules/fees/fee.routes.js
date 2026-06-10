@@ -12,6 +12,9 @@ const FINANCE_ROLES = ['Super Admin', 'College Admin', 'Accountant', 'Principal'
 router.get('/dashboard', protect, feeController.getFeeDashboardStats);
 router.get('/stats', protect, authorize(...FINANCE_ROLES), feeController.getFeeStats);
 
+// Parent: view fees for all linked children
+router.get('/parent-fees', protect, authorize('Parent'), feeController.getFeesForParent);
+
 // Fee Categories
 router.post('/categories', protect, authorize(...FINANCE_ROLES), feeCategoryController.createCategory);
 router.get('/categories', protect, authorize(...FINANCE_ROLES), feeCategoryController.getCategories);

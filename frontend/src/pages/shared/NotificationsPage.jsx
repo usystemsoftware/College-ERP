@@ -10,7 +10,7 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchNotifications = async () => {
+  async function fetchNotifications() {
     try {
       setLoading(true);
       const params = {};
@@ -53,7 +53,7 @@ const NotificationsPage = () => {
     }
   };
 
-  const handleMarkAllAsRead = async () => {
+  async function handleMarkAllAsRead() {
     try {
       await markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, status: 'Read' })));

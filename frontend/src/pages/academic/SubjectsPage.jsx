@@ -54,7 +54,7 @@ const SubjectsPage = () => {
   }, []);
 
   // Load Subjects based on filters
-  const fetchSubjects = async () => {
+  async function fetchSubjects() {
     setLoading(true);
     try {
       const query = {};

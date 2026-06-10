@@ -11,7 +11,7 @@ const AdminDashboard = () => {
   const { user } = useSelector(state => state.auth);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
         const response = await api.get('/analytics/dashboard');
         setStats(response.data.data.stats);

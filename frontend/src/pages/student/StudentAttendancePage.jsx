@@ -83,7 +83,7 @@ const StudentAttendancePage = () => {
   // Removed location and camera handlers
 
   // ── Submit Check-In ──────────────────────────────
-  const handleCheckIn = async () => {
+  async function handleCheckIn() {
     setSubmitting(true);
     try {
       await studentCheckInAPI({});
@@ -98,7 +98,7 @@ const StudentAttendancePage = () => {
   };
 
   // ── Submit Check-Out ─────────────────────────────
-  const handleCheckOut = async () => {
+  async function handleCheckOut() {
     setCheckoutSubmitting(true);
     try {
       await studentCheckOutAPI({});
@@ -127,7 +127,7 @@ const StudentAttendancePage = () => {
     }
   };
 
-  const confirmQRAttendance = async () => {
+  async function confirmQRAttendance() {
     if (!qrVerification || qrVerification.status !== 'success') return;
     setSubmitting(true);
     try {

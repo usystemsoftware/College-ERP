@@ -35,7 +35,7 @@ const AdmissionReview = () => {
     fetchApplications();
   }, [statusFilter]);
 
-  const fetchApplications = async () => {
+  async function fetchApplications() {
     setLoading(true);
     try {
       const url = statusFilter !== 'All' ? `/admission/applications?status=${statusFilter}` : '/admission/applications';

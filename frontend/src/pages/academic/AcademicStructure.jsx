@@ -66,7 +66,7 @@ const AcademicStructure = () => {
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const [colRes, deptRes, courseRes, batchRes] = await Promise.all([

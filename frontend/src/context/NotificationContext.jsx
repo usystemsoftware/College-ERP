@@ -59,7 +59,7 @@ export const NotificationProvider = ({ children }) => {
     });
 
     // Initial fetch of notifications from DB
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
       try {
         const res = await apiClient.get('/notifications/my');
         const data = res.data?.data;
@@ -113,7 +113,7 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  const markAllAsRead = async () => {
+  async function markAllAsRead() {
     try {
       await apiClient.patch('/notifications/mark-all-read');
       setNotifications((prev) =>

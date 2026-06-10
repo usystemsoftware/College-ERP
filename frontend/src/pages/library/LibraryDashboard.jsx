@@ -17,7 +17,7 @@ const LibraryDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
         const response = await api.get('/library/dashboard');
         setStats(response.data.data);

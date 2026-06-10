@@ -16,7 +16,7 @@ const HodGatePassPage = () => {
     fetchGatePasses();
   }, [statusFilter]);
 
-  const fetchGatePasses = async () => {
+  async function fetchGatePasses() {
     setLoading(true);
     try {
       const params = { requestType: 'Student' };

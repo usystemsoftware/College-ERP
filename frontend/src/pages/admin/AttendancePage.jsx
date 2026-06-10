@@ -70,7 +70,7 @@ const AttendancePage = () => {
     fetchFaculties();
   }, []);
 
-  const fetchFaculties = async () => {
+  async function fetchFaculties() {
     try {
       const res = await getFacultyAPI({ limit: 1000 });
       setFacultyList(res.data?.data?.faculty || []);
@@ -127,7 +127,7 @@ const AttendancePage = () => {
     }
   }, [subject, date]);
 
-  const fetchSubjects = async () => {
+  async function fetchSubjects() {
     try {
       const res = await getSubjects();
       const list = res.data?.data || [];
@@ -141,7 +141,7 @@ const AttendancePage = () => {
     }
   };
 
-  const fetchLiveFeed = async () => {
+  async function fetchLiveFeed() {
     setLiveFeedLoading(true);
     try {
       const res = await getAdminLiveFeedAPI();
@@ -166,7 +166,7 @@ const AttendancePage = () => {
     }
   };
 
-  const fetchAttendanceData = async () => {
+  async function fetchAttendanceData() {
     setLoading(true);
     try {
       const res = await getAttendanceBySubjectDateAPI({ subject, date });
@@ -178,7 +178,7 @@ const AttendancePage = () => {
     }
   };
 
-  const fetchStudentsForModal = async () => {
+  async function fetchStudentsForModal() {
     if (!modalSubject) return;
     setModalLoading(true);
     try {
@@ -223,7 +223,7 @@ const AttendancePage = () => {
     setAttendanceStatus(prev => ({ ...prev, [studentId]: status }));
   };
 
-  const submitAttendance = async () => {
+  async function submitAttendance() {
     setIsSubmitting(true);
     try {
       const records = Object.keys(attendanceStatus).map(studentId => ({
@@ -309,7 +309,7 @@ const AttendancePage = () => {
     return () => clearInterval(interval);
   }, [qrModalOpen, qrTimeLeft, isLateQR]); // Add dependencies to keep closure fresh
 
-  const handleSendQRToStudents = async () => {
+  async function handleSendQRToStudents() {
     if (selectedFacultyIds.length === 0) {
       toast.error('Please select at least one faculty');
       return;

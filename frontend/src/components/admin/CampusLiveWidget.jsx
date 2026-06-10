@@ -60,7 +60,7 @@ const CampusLiveWidget = () => {
       setMapReady(true);
     }
 
-    const fetchLiveStudents = async () => {
+    async function fetchLiveStudents() {
       try {
         const res = await api.get('/attendance/campus-live');
         if (res.data.success) {
@@ -171,7 +171,7 @@ const CampusLiveWidget = () => {
       if (retryTimer) clearInterval(retryTimer);
       cleanupSocket();
     };
-  }, [user]);
+  }, [user?._id, getCollegeId(user)]);
 
   useEffect(() => {
     if (mapReady && !mapRef.current && document.getElementById('campus-map')) {

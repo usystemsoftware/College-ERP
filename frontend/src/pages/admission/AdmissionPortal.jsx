@@ -17,7 +17,7 @@ const AdmissionPortal = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('');
 
   useEffect(() => {
-    const fetchFormData = async () => {
+    async function fetchFormData() {
       try {
         const response = await client.get('/admission/form-data');
         if (response.data.success) {

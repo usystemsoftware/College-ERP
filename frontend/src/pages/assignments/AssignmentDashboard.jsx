@@ -13,7 +13,7 @@ const AssignmentDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAssignments = async () => {
+    async function fetchAssignments() {
       try {
         const response = await api.get('/assignments/dashboard');
         setAssignments(response.data.data);

@@ -20,17 +20,33 @@ const getStudentFees = async (req, res, next) => {
 // GET all fees (admin view with filters)
 const getAllFees = async (req, res, next) => {
   try {
-    const { status, semester, feeType, page = 1, limit = 20 } = req.query;
+    const { status, semester, feeType, department, course, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     if (semester) filter.semester = semester;
     if (feeType) filter.feeType = feeType;
 
+    if (department || course) {
+      const studentFilter = {};
+      if (department) studentFilter.department = department;
+      if (course) studentFilter.course = course;
+      const students = await Student.find(studentFilter).select('_id');
+      const studentIds = students.map(s => s._id);
+      filter.student = { $in: studentIds };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [fees, total] = await Promise.all([
       Fee.find(filter)
-        .populate('student', 'rollNumber personalDetails.fullName')
+        .populate({
+          path: 'student',
+          select: 'rollNumber personalDetails.fullName course department',
+          populate: [
+            { path: 'course', select: 'name' },
+            { path: 'department', select: 'name' }
+          ]
+        })
         .populate('semester', 'name')
         .sort({ dueDate: 1 }).skip(skip).limit(parseInt(limit)),
       Fee.countDocuments(filter)

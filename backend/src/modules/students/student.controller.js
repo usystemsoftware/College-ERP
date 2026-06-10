@@ -2,6 +2,7 @@ const Student = require('./student.model');
 const User = require('../users/user.model');
 const Role = require('../roles/role.model');
 const Notification = require('../notifications/notification.model');
+const Parent = require('../parents/parent.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const { emitNotification } = require('../../services/notification.service');
@@ -24,7 +25,7 @@ const getStudents = async (req, res, next) => {
       .populate('department', 'name code')
       .populate('course', 'name code')
       .populate('semester', 'name')
-      .populate('parent', 'fullName phone')
+      .populate('parent', 'fullName phone email')
       .sort({ 'personalDetails.fullName': 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -58,7 +59,7 @@ const createStudent = async (req, res, next) => {
     const {
       email, password, rollNumber, enrollmentNumber,
       department, course, semester, division, batch,
-      personalDetails, collegeId
+      personalDetails, collegeId, parentEmail, parentPassword
     } = req.body;
 
     if (!email || !password || !rollNumber || !enrollmentNumber || !personalDetails?.fullName) {
@@ -104,6 +105,43 @@ const createStudent = async (req, res, next) => {
         collegeId: collegeId || req.user.collegeId
       });
 
+      if (parentEmail && parentPassword) {
+        const parentRole = await Role.findOne({ name: 'Parent' });
+        if (parentRole) {
+          let parentUser = await User.findOne({ email: parentEmail });
+          if (!parentUser) {
+            parentUser = await User.create({
+              email: parentEmail,
+              password: parentPassword,
+              role: parentRole._id,
+              collegeId: collegeId || req.user.collegeId,
+              isVerified: true,
+              status: 'Active'
+            });
+            
+            await Parent.create({
+              user: parentUser._id,
+              fullName: `Parent of ${personalDetails.fullName}`,
+              phone: personalDetails.phone || '0000000000',
+              email: parentEmail,
+              students: [student._id],
+              collegeId: collegeId || req.user.collegeId
+            });
+          } else {
+            const parentProfile = await Parent.findOne({ user: parentUser._id });
+            if (parentProfile && !parentProfile.students.includes(student._id)) {
+              parentProfile.students.push(student._id);
+              await parentProfile.save();
+            }
+          }
+          const parentProfile = await Parent.findOne({ user: parentUser._id });
+          if (parentProfile) {
+             student.parent = parentProfile._id;
+             await student.save();
+          }
+        }
+      }
+
       const populated = await Student.findById(student._id)
         .populate('user', 'email status')
         .populate('department', 'name')
@@ -130,14 +168,31 @@ const createStudent = async (req, res, next) => {
 // PUT update student
 const updateStudent = async (req, res, next) => {
   try {
-    const { email, personalDetails } = req.body;
+    const { email, password, personalDetails } = req.body;
 
-    // Email format validation (if being updated)
-    if (email !== undefined) {
+    const existingStudent = await Student.findById(req.params.id).populate('user');
+    if (!existingStudent) throw new ApiError(404, 'Student not found');
+
+    // Email validation and update
+    if (email && email !== existingStudent.user.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         throw new ApiError(400, 'Invalid email format');
       }
+      const existingUser = await User.findOne({ email, _id: { $ne: existingStudent.user._id } });
+      if (existingUser) throw new ApiError(400, 'Email already in use');
+      
+      existingStudent.user.email = email;
+    }
+
+    // Password update
+    if (password) {
+      existingStudent.user.password = password;
+    }
+
+    // Save user if credentials changed
+    if (email !== existingStudent.user.email || password) {
+      await existingStudent.user.save();
     }
 
     // Mobile number validation (if being updated)
@@ -152,7 +207,46 @@ const updateStudent = async (req, res, next) => {
       .populate('user', 'email status')
       .populate('department', 'name')
       .populate('course', 'name');
-    if (!student) throw new ApiError(404, 'Student not found');
+
+    const { parentEmail, parentPassword } = req.body;
+    if (parentEmail && parentPassword) {
+      const parentRole = await Role.findOne({ name: 'Parent' });
+      if (parentRole) {
+        let parentUser = await User.findOne({ email: parentEmail });
+        if (!parentUser) {
+          parentUser = await User.create({
+            email: parentEmail,
+            password: parentPassword,
+            role: parentRole._id,
+            collegeId: student.collegeId,
+            isVerified: true,
+            status: 'Active'
+          });
+          
+          await Parent.create({
+            user: parentUser._id,
+            fullName: `Parent of ${student.personalDetails?.fullName || 'Student'}`,
+            phone: student.personalDetails?.phone || '0000000000',
+            email: parentEmail,
+            students: [student._id],
+            collegeId: student.collegeId
+          });
+        } else {
+          // Parent user already exists, check profile
+          const parentProfile = await Parent.findOne({ user: parentUser._id });
+          if (parentProfile && !parentProfile.students.includes(student._id)) {
+            parentProfile.students.push(student._id);
+            await parentProfile.save();
+          }
+        }
+        
+        const parentProfile = await Parent.findOne({ user: parentUser._id });
+        if (parentProfile) {
+           student.parent = parentProfile._id;
+           await student.save();
+        }
+      }
+    }
 
     await emitNotification({
       title: 'Student Updated',

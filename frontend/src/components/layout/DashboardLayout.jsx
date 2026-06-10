@@ -169,6 +169,7 @@ const DashboardLayout = () => {
   } else if (userRole === 'Student') {
     navItems = [
       { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
+      { name: 'Fees & Payments', path: '/student/fees', icon: CreditCard },
       { name: 'Attendance', path: '/student/attendance', icon: Clock },
       { name: 'Gate Pass', path: '/student/gatepass', icon: ShieldCheck },
       { name: 'Timetable', path: '/timetable', icon: Calendar },
@@ -177,6 +178,7 @@ const DashboardLayout = () => {
   } else if (userRole === 'Parent') {
     navItems = [
       { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
+      { name: 'Fees & Payments', path: '/parent/fees', icon: CreditCard },
       ...navItems,
     ];
   } else if (userRole === 'Accountant') {

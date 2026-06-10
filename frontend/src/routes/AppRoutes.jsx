@@ -18,6 +18,7 @@ import HodGatePassPage from '../pages/faculty/HodGatePassPage';
 import DepartmentsPage from '../pages/admin/DepartmentsPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentAttendancePage from '../pages/student/StudentAttendancePage';
+import StudentFeesPage from '../pages/student/StudentFeesPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -25,6 +26,7 @@ import { loadCurrentUser } from '../features/auth/authSlice';
 import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
 import ParentDashboard from '../pages/parent/ParentDashboard';
+import ParentFeesPage from '../pages/parent/ParentFeesPage';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
@@ -136,10 +138,26 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="parent/fees"
+          element={
+            <ProtectedRoute allowedRoles={['Parent']}>
+              <ParentFeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="student/attendance"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="student/fees"
+          element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentFeesPage />
             </ProtectedRoute>
           }
         />

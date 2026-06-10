@@ -470,8 +470,8 @@ const getFacultyLecturesWithAttendance = async (req, res, next) => {
       const att = attendanceMap[t._id.toString()];
       return {
         timetable: t,
-        attendance: att ? { 
-          status: att.status, 
+        attendance: att ? {
+          status: att.status,
           remarks: att.remarks,
           sessionStatus: att.sessionStatus,
           actualStartTime: att.actualStartTime,
@@ -526,10 +526,10 @@ const getFacultyAttendanceSummary = async (req, res, next) => {
 const startLectureSession = async (req, res, next) => {
   try {
     const { timetableId, date } = req.body;
-    
+
     const faculty = await Faculty.findOne({ user: req.user._id });
     if (!faculty) throw new ApiError(403, 'Faculty profile not found');
-    
+
     const timetable = await Timetable.findById(timetableId);
     if (!timetable) throw new ApiError(404, 'Timetable slot not found');
 
@@ -537,9 +537,9 @@ const startLectureSession = async (req, res, next) => {
     const attendanceDate = new Date(year, month - 1, day);
 
     let record = await FacultyAttendance.findOne({ faculty: faculty._id, timetableId, date: attendanceDate });
-    
+
     const now = new Date();
-    
+
     // Check if late (5 minutes grace period)
     const [hours, minutes] = timetable.startTime.split(':');
     const scheduledStartTime = new Date(year, month - 1, day, hours, minutes);
@@ -596,7 +596,7 @@ const endLectureSession = async (req, res, next) => {
 
     const now = new Date();
     record.actualEndTime = now;
-    
+
     // Calculate duration
     const durationMinutes = Math.round((now - record.actualStartTime) / (1000 * 60));
     record.durationMinutes = durationMinutes;
@@ -607,7 +607,7 @@ const endLectureSession = async (req, res, next) => {
     const scheduledStartTime = new Date(year, month - 1, day, startH, startM);
     const scheduledEndTime = new Date(year, month - 1, day, endH, endM);
     const scheduledDuration = Math.round((scheduledEndTime - scheduledStartTime) / (1000 * 60));
-    
+
     const shortFlag = durationMinutes < (scheduledDuration - 10);
     record.shortFlag = shortFlag;
 
@@ -619,12 +619,12 @@ const endLectureSession = async (req, res, next) => {
     if (record.lateFlag || record.shortFlag) {
       const User = require('../users/user.model');
       const Notification = require('../notifications/notification.model');
-      
+
       const Role = require('../roles/role.model');
       const targetRoles = await Role.find({ name: { $in: ['HOD', 'College Admin', 'Super Admin'] } });
       const targetRoleIds = targetRoles.map(r => r._id);
 
-      const query = { 
+      const query = {
         role: { $in: targetRoleIds },
         $or: [
           { collegeId: req.user.collegeId },
@@ -652,14 +652,14 @@ const endLectureSession = async (req, res, next) => {
           }
         }
       }
-      
+
       let issueMessage = '';
       if (record.lateFlag && record.shortFlag) issueMessage = 'started late and finished early';
       else if (record.lateFlag) issueMessage = 'started late';
       else issueMessage = 'finished early';
 
       const subject = await require('../subjects/subject.model').findById(timetable.subject);
-      
+
       const notifOps = relevantAdminsAndHods.map(admin => ({
         insertOne: {
           document: {
@@ -672,7 +672,7 @@ const endLectureSession = async (req, res, next) => {
           }
         }
       }));
-      
+
       if (notifOps.length > 0) {
         await Notification.bulkWrite(notifOps);
         const io = req.app.get('io');
@@ -705,64 +705,6 @@ const generateQRToken = async (req, res, next) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
-    
-    // Push notification to students via Socket.IO AND save to DB
-    try {
-      const subjectDoc = await require('../subjects/subject.model').findById(subject);
-      const subjectName = subjectDoc ? subjectDoc.name : 'Lecture';
-      
-      const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-      const Student = require('../students/student.model');
-      const Notification = require('../notifications/notification.model');
-
-      const students = await Student.find({ collegeId: req.user.collegeId }).select('_id user');
-
-      const notifOps = students.map(student => ({
-        insertOne: {
-          document: {
-            recipient: student.user,
-            title: 'QR Attendance Available',
-            message: `QR Attendance is now active for ${subjectName}`,
-            type: 'System',
-            category: 'Academic',
-            metadata: {
-              type: 'STUDENT_QR_ATTENDANCE',
-              subjectName: subjectName,
-              qrSessionId: token,
-              expiresAt: expiresAt
-            },
-            collegeId: req.user.collegeId,
-            createdAt: new Date(),
-            isRead: false
-          }
-        }
-      }));
-
-      if (notifOps.length > 0) {
-        await Notification.bulkWrite(notifOps);
-      }
-
-      const io = req.app.get('io');
-      if (io) {
-        const notificationPayload = {
-          title: 'QR Attendance Available',
-          message: `QR Attendance is now active for ${subjectName}`,
-          metadata: {
-            type: 'STUDENT_QR_ATTENDANCE',
-            subjectName: subjectName,
-            qrSessionId: token,
-            expiresAt: expiresAt
-          },
-          createdAt: new Date(),
-          isRead: false
-        };
-        // Broadcast to everyone
-        io.emit('new_notification', notificationPayload);
-      }
-    } catch (err) {
-      console.error('Failed to emit QR notification:', err);
-    }
-    
     return res.status(200).json(new ApiResponse(200, { token }, 'QR Token generated'));
   } catch (error) {
     next(error);
@@ -809,7 +751,7 @@ const markQRAttendance = async (req, res, next) => {
     }
 
     const { subject, date, lectureType, facultyId } = decoded;
-    
+
     const student = await Student.findOne({ user: req.user._id });
     if (!student) throw new ApiError(404, 'Student profile not found');
 
@@ -950,10 +892,10 @@ const getDepartmentLectureAnomalies = async (req, res, next) => {
       faculty: { $in: facultyIds },
       $or: [{ lateFlag: true }, { shortFlag: true }]
     })
-    .populate('faculty', 'fullName')
-    .populate({ path: 'timetableId', populate: { path: 'subject', select: 'name code' } })
-    .sort({ date: -1 })
-    .limit(20);
+      .populate('faculty', 'fullName')
+      .populate({ path: 'timetableId', populate: { path: 'subject', select: 'name code' } })
+      .sort({ date: -1 })
+      .limit(20);
 
     const formattedAnomalies = anomalies.map(a => {
       let issue = '';

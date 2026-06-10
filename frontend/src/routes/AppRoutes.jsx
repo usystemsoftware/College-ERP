@@ -18,6 +18,7 @@ import HodGatePassPage from '../pages/faculty/HodGatePassPage';
 import DepartmentsPage from '../pages/admin/DepartmentsPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentAttendancePage from '../pages/student/StudentAttendancePage';
+import StudentFeesPage from '../pages/student/StudentFeesPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -140,6 +141,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Student']}>
               <StudentAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="student/fees"
+          element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentFeesPage />
             </ProtectedRoute>
           }
         />

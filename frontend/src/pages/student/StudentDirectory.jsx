@@ -3,6 +3,7 @@ import { Search, Filter, Phone, MoreVertical, Loader2, Edit2, Trash2, CheckCircl
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import Modal from '../../components/common/Modal';
+import LottieLoader from '../../components/common/LottieLoader';
 import { fetchStudents, createStudent, updateStudent, deleteStudent } from '../../features/students/studentSlice';
 import { getDepartments, getCourses, getSemesters } from '../../api/academic.api';
 
@@ -219,7 +220,7 @@ const StudentDirectory = () => {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="py-8 text-center text-slate-500">
-                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-500" />
+                    <LottieLoader size={60} />
                     <p className="mt-2">Loading students...</p>
                   </td>
                 </tr>
@@ -280,7 +281,7 @@ const StudentDirectory = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editStudentId ? "Edit Student" : "Add New Student"} hideFooter={true}>
         {fetchingOptions ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-brand-500" /></div>
+          <LottieLoader size={60} className="py-8" />
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div className="space-y-2">

@@ -1,4 +1,5 @@
 const Fee = require('./fee.model');
+const FeeStructure = require('./feeStructure.model');
 const Payment = require('./payment.model');
 const Student = require('../students/student.model');
 const ApiError = require('../../utils/apiError');
@@ -10,9 +11,15 @@ const getStudentFees = async (req, res, next) => {
     const studentId = req.params.studentId || (await Student.findOne({ user: req.user._id }))?._id;
     if (!studentId) throw new ApiError(404, 'Student not found');
     const fees = await Fee.find({ student: studentId })
-      .populate('semester', 'name')
       .populate('academicYear', 'name')
-      .sort({ dueDate: 1 });
+      .populate({
+        path: 'feeStructure',
+        populate: {
+          path: 'heads.category',
+          select: 'name isOptional'
+        }
+      })
+      .sort({ createdAt: -1 });
     return res.json(new ApiResponse(200, fees, 'Fees fetched'));
   } catch (error) { next(error); }
 };
@@ -20,19 +27,19 @@ const getStudentFees = async (req, res, next) => {
 // GET all fees (admin view with filters)
 const getAllFees = async (req, res, next) => {
   try {
-    const { status, semester, feeType, page = 1, limit = 20 } = req.query;
+    const { status, academicYear, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
-    if (semester) filter.semester = semester;
-    if (feeType) filter.feeType = feeType;
+    if (academicYear) filter.academicYear = academicYear;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [fees, total] = await Promise.all([
       Fee.find(filter)
         .populate('student', 'rollNumber personalDetails.fullName')
-        .populate('semester', 'name')
-        .sort({ dueDate: 1 }).skip(skip).limit(parseInt(limit)),
+        .populate('academicYear', 'name')
+        .populate('feeStructure', 'name totalAmount')
+        .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       Fee.countDocuments(filter)
     ]);
 
@@ -42,7 +49,63 @@ const getAllFees = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// CREATE fee
+// BULK assign fees using FeeStructure
+const bulkCreateFees = async (req, res, next) => {
+  try {
+    const { studentIds, feeStructureId, installmentsBreakdown, discountAmount = 0, discountRemarks } = req.body;
+    
+    if (!studentIds?.length) throw new ApiError(400, 'Student IDs required');
+    if (!feeStructureId) throw new ApiError(400, 'Fee Structure ID required');
+    
+    let collegeId = req.user.collegeId;
+    if (!collegeId) {
+      const student = await Student.findById(studentIds[0]);
+      if (student) collegeId = student.collegeId;
+    }
+
+    const structure = await FeeStructure.findById(feeStructureId);
+    if (!structure) throw new ApiError(404, 'Fee Structure not found');
+
+    // Calculate installments based on the breakdown, or default to 1 installment
+    let installments = [];
+    const finalTotal = structure.totalAmount - discountAmount;
+    
+    if (installmentsBreakdown && installmentsBreakdown.length > 0) {
+      installments = installmentsBreakdown.map(inst => ({
+        amount: inst.amount,
+        dueDate: new Date(inst.dueDate),
+        status: 'Unpaid',
+        paidAmount: 0
+      }));
+    } else {
+      installments = [{
+        amount: finalTotal,
+        dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)), // default due date 1 month from now
+        status: 'Unpaid',
+        paidAmount: 0
+      }];
+    }
+
+    const feeRecords = studentIds.map(studentId => ({
+      student: studentId,
+      feeStructure: feeStructureId,
+      academicYear: structure.academicYear,
+      installments: installments,
+      totalAmount: finalTotal,
+      paidAmount: 0,
+      discountAmount,
+      discountRemarks,
+      status: 'Unpaid',
+      generatedBy: req.user._id,
+      collegeId
+    }));
+
+    const fees = await Fee.insertMany(feeRecords, { ordered: false });
+    return res.status(201).json(new ApiResponse(201, { created: fees.length }, `${fees.length} fee records created`));
+  } catch (error) { next(error); }
+};
+
+// CREATE ad-hoc fee
 const createFee = async (req, res, next) => {
   try {
     let collegeId = req.user.collegeId;
@@ -52,54 +115,27 @@ const createFee = async (req, res, next) => {
     }
     
     const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId });
-
-    const Notification = require('../notifications/notification.model');
-    const notification = await Notification.create({
-      recipient: req.user._id,
-      title: 'Fee Generated',
-      message: `A new fee of ₹${fee.totalAmount} has been generated.`,
-      type: 'System',
-      category: 'Fee',
-      collegeId: req.user.collegeId
-    });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.to(req.user._id.toString()).emit('notification', notification);
-    }
-
-    return res.status(201).json(new ApiResponse(201, fee, 'Fee created'));
+    return res.status(201).json(new ApiResponse(201, fee, 'Ad-hoc fee created'));
   } catch (error) { next(error); }
 };
 
-// BULK create fees (for whole class/department)
-const bulkCreateFees = async (req, res, next) => {
-  try {
-    const { studentIds, semester, academicYear, feeType, totalAmount, dueDate } = req.body;
-    if (!studentIds?.length) throw new ApiError(400, 'Student IDs required');
-    
-    let collegeId = req.user.collegeId;
-    if (!collegeId) {
-      const student = await Student.findById(studentIds[0]);
-      if (student) collegeId = student.collegeId;
-    }
-
-    const feeRecords = studentIds.map(studentId => ({
-      student: studentId, semester, academicYear, feeType, totalAmount, dueDate,
-      generatedBy: req.user._id, collegeId
-    }));
-    const fees = await Fee.insertMany(feeRecords, { ordered: false });
-    return res.status(201).json(new ApiResponse(201, { created: fees.length }, `${fees.length} fee records created`));
-  } catch (error) { next(error); }
-};
-
-// RECORD payment
+// RECORD payment (updated for installments)
 const recordPayment = async (req, res, next) => {
   try {
-    const { amount, paymentMethod, transactionId } = req.body;
+    const { amount, paymentMethod, transactionId, installmentId } = req.body;
     const fee = await Fee.findById(req.params.feeId);
     if (!fee) throw new ApiError(404, 'Fee record not found');
     if (!amount || !paymentMethod || !transactionId) throw new ApiError(400, 'Amount, method, transactionId required');
+
+    // Handle installment specific payment
+    if (installmentId) {
+      const inst = fee.installments.id(installmentId);
+      if (inst) {
+        inst.paidAmount += amount;
+        if (inst.paidAmount >= inst.amount) inst.status = 'Paid';
+        else if (inst.paidAmount > 0) inst.status = 'Partial';
+      }
+    }
 
     const payment = await Payment.create({
       fee: fee._id, student: fee.student, amount, paymentMethod, transactionId,
@@ -108,26 +144,11 @@ const recordPayment = async (req, res, next) => {
       receiptNumber: `RCP-${Date.now()}`
     });
 
-    // Update fee paid amount and status
+    // Update overall fee paid amount and status
     fee.paidAmount += amount;
     if (fee.paidAmount >= fee.totalAmount) fee.status = 'Paid';
     else if (fee.paidAmount > 0) fee.status = 'Partial';
     await fee.save();
-
-    const Notification = require('../notifications/notification.model');
-    const notification = await Notification.create({
-      recipient: req.user._id,
-      title: 'Payment Recorded',
-      message: `A payment of ₹${amount} has been successfully recorded for receipt ${payment.receiptNumber}.`,
-      type: 'System',
-      category: 'Fee',
-      collegeId: req.user.collegeId
-    });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.to(req.user._id.toString()).emit('notification', notification);
-    }
 
     return res.status(201).json(new ApiResponse(201, { payment, fee }, 'Payment recorded'));
   } catch (error) { next(error); }
@@ -138,13 +159,13 @@ const getPayments = async (req, res, next) => {
   try {
     const studentId = req.params.studentId || (await Student.findOne({ user: req.user._id }))?._id;
     const payments = await Payment.find({ student: studentId })
-      .populate('fee', 'feeType totalAmount')
+      .populate({ path: 'fee', select: 'title totalAmount feeStructure', populate: { path: 'feeStructure', select: 'name' }})
       .sort({ paymentDate: -1 });
     return res.json(new ApiResponse(200, payments, 'Payments fetched'));
   } catch (error) { next(error); }
 };
 
-// GET fee stats (dashboard)
+// GET fee stats (admin dashboard)
 const getFeeStats = async (req, res, next) => {
   try {
     const filter = {};
@@ -178,12 +199,11 @@ const getFeeDashboardStats = async (req, res, next) => {
     if (isStudent) {
       let studentId = req.user._id;
       try {
-        const Student = require('../students/student.model');
         const student = await Student.findOne({ user: req.user._id });
         if (student) studentId = student._id;
       } catch (e) {}
 
-      const invoices = await Fee.find({ student: studentId }).sort({ dueDate: 1 }).lean();
+      const invoices = await Fee.find({ student: studentId }).populate('feeStructure', 'name').sort({ createdAt: -1 }).lean();
       
       let totalFees = 0;
       let totalPaid = 0;
@@ -194,18 +214,15 @@ const getFeeDashboardStats = async (req, res, next) => {
         totalPaid += inv.paidAmount;
         
         let status = inv.status;
-        if (status !== 'Paid' && new Date(inv.dueDate) < new Date()) {
-          status = 'Overdue';
-        }
+        const title = inv.feeStructure ? inv.feeStructure.name : (inv.title || 'General Fee');
 
         formattedInvoices.push({
           id: inv._id,
-          title: `${inv.feeType} Fee`,
+          title: title,
           totalAmount: inv.totalAmount,
           paidAmount: inv.paidAmount,
-          dueDate: new Date(inv.dueDate).toLocaleDateString(),
           status: status,
-          feeType: inv.feeType
+          installments: inv.installments
         });
       }
 

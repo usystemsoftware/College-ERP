@@ -21,6 +21,8 @@ const AttendanceDashboard = () => {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrToken, setQrToken] = useState('');
   const [generatingQR, setGeneratingQR] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
 
   useEffect(() => {
     async function fetchStats() {
@@ -30,6 +32,14 @@ const AttendanceDashboard = () => {
           setStats(response.data.data);
         } else {
           setAttendance(response.data.data.students || []);
+          try {
+            const subRes = await api.get('/subjects');
+            const subs = subRes.data?.data || [];
+            setSubjects(subs);
+            if (subs.length > 0) setSelectedSubject(subs[0]._id);
+          } catch (e) {
+            console.error("Failed to fetch subjects", e);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch attendance stats", error);
@@ -54,10 +64,13 @@ const AttendanceDashboard = () => {
   async function handleGenerateQR() {
     setGeneratingQR(true);
     try {
-      // Using a placeholder ObjectId for the subject since dropdowns are mock data
-      const subjectId = '65fa123b456c789d012e345f'; 
+      if (!selectedSubject) {
+        toast.error('Please select a subject to generate QR');
+        setGeneratingQR(false);
+        return;
+      }
       const res = await generateQRAPI({
-        subject: subjectId,
+        subject: selectedSubject,
         date: selectedDate,
         lectureType: 'Theory'
       });
@@ -151,9 +164,14 @@ const AttendanceDashboard = () => {
             <option>B.Tech CS - 5th Sem</option>
             <option>B.Tech ME - 3rd Sem</option>
           </select>
-          <select className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white">
-            <option>Data Structures</option>
-            <option>Operating Systems</option>
+          <select 
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white"
+          >
+            {subjects.length > 0 ? subjects.map(s => (
+              <option key={s._id} value={s._id}>{s.name} {s.code ? `(${s.code})` : ''}</option>
+            )) : <option value="">No Subjects</option>}
           </select>
         </div>
 

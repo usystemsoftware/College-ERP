@@ -28,19 +28,34 @@ const getStudentFees = async (req, res, next) => {
 // GET all fees (admin view with filters)
 const getAllFees = async (req, res, next) => {
   try {
-    const { status, academicYear, page = 1, limit = 20 } = req.query;
+    const { status, semester, feeType, department, course, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
     if (academicYear) filter.academicYear = academicYear;
 
+    if (department || course) {
+      const studentFilter = {};
+      if (department) studentFilter.department = department;
+      if (course) studentFilter.course = course;
+      const students = await Student.find(studentFilter).select('_id');
+      const studentIds = students.map(s => s._id);
+      filter.student = { $in: studentIds };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [fees, total] = await Promise.all([
       Fee.find(filter)
-        .populate('student', 'rollNumber personalDetails.fullName')
-        .populate('academicYear', 'name')
-        .populate('feeStructure', 'name totalAmount')
-        .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
+        .populate({
+          path: 'student',
+          select: 'rollNumber personalDetails.fullName course department',
+          populate: [
+            { path: 'course', select: 'name' },
+            { path: 'department', select: 'name' }
+          ]
+        })
+        .populate('semester', 'name')
+        .sort({ dueDate: 1 }).skip(skip).limit(parseInt(limit)),
       Fee.countDocuments(filter)
     ]);
 
@@ -54,10 +69,10 @@ const getAllFees = async (req, res, next) => {
 const bulkCreateFees = async (req, res, next) => {
   try {
     const { studentIds, feeStructureId, installmentsBreakdown, discountAmount = 0, discountRemarks } = req.body;
-    
+
     if (!studentIds?.length) throw new ApiError(400, 'Student IDs required');
     if (!feeStructureId) throw new ApiError(400, 'Fee Structure ID required');
-    
+
     let collegeId = req.user.collegeId;
     if (!collegeId) {
       const student = await Student.findById(studentIds[0]);
@@ -70,7 +85,7 @@ const bulkCreateFees = async (req, res, next) => {
     // Calculate installments based on the breakdown, or default to 1 installment
     let installments = [];
     const finalTotal = structure.totalAmount - discountAmount;
-    
+
     if (installmentsBreakdown && installmentsBreakdown.length > 0) {
       installments = installmentsBreakdown.map(inst => ({
         amount: inst.amount,
@@ -114,7 +129,7 @@ const createFee = async (req, res, next) => {
       const student = await Student.findById(req.body.student);
       if (student) collegeId = student.collegeId;
     }
-    
+
     const fee = await Fee.create({ ...req.body, generatedBy: req.user._id, collegeId });
     return res.status(201).json(new ApiResponse(201, fee, 'Ad-hoc fee created'));
   } catch (error) { next(error); }
@@ -160,7 +175,7 @@ const getPayments = async (req, res, next) => {
   try {
     const studentId = req.params.studentId || (await Student.findOne({ user: req.user._id }))?._id;
     const payments = await Payment.find({ student: studentId })
-      .populate({ path: 'fee', select: 'title totalAmount feeStructure', populate: { path: 'feeStructure', select: 'name' }})
+      .populate({ path: 'fee', select: 'title totalAmount feeStructure', populate: { path: 'feeStructure', select: 'name' } })
       .sort({ paymentDate: -1 });
     return res.json(new ApiResponse(200, payments, 'Payments fetched'));
   } catch (error) { next(error); }
@@ -171,7 +186,7 @@ const getFeeStats = async (req, res, next) => {
   try {
     const filter = {};
     if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
-    
+
     const [totalFees, paidFees, unpaidFees, partialFees] = await Promise.all([
       Fee.countDocuments(filter),
       Fee.countDocuments({ ...filter, status: 'Paid' }),
@@ -202,10 +217,10 @@ const getFeeDashboardStats = async (req, res, next) => {
       try {
         const student = await Student.findOne({ user: req.user._id });
         if (student) studentId = student._id;
-      } catch (e) {}
+      } catch (e) { }
 
       const invoices = await Fee.find({ student: studentId }).populate('feeStructure', 'name').sort({ createdAt: -1 }).lean();
-      
+
       let totalFees = 0;
       let totalPaid = 0;
       let formattedInvoices = [];
@@ -213,7 +228,7 @@ const getFeeDashboardStats = async (req, res, next) => {
       for (let inv of invoices) {
         totalFees += inv.totalAmount;
         totalPaid += inv.paidAmount;
-        
+
         let status = inv.status;
         const title = inv.feeStructure ? inv.feeStructure.name : (inv.title || 'General Fee');
 
@@ -238,13 +253,15 @@ const getFeeDashboardStats = async (req, res, next) => {
     } else {
       const fees = await Fee.aggregate([
         { $match: filter },
-        { $group: {
+        {
+          $group: {
             _id: null,
             totalBilled: { $sum: '$totalAmount' },
             totalCollected: { $sum: '$paidAmount' }
-        }}
+          }
+        }
       ]);
-      
+
       const totalBilled = fees.length > 0 ? fees[0].totalBilled : 0;
       const totalCollected = fees.length > 0 ? fees[0].totalCollected : 0;
       const pendingDues = totalBilled - totalCollected;

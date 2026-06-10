@@ -26,8 +26,8 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const deltaLambda = toRad(lon2 - lon1);
 
   const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-            Math.cos(phi1) * Math.cos(phi2) *
-            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    Math.cos(phi1) * Math.cos(phi2) *
+    Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -37,9 +37,9 @@ const CampusLiveWidget = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mapReady, setMapReady] = useState(false);
-  
+
   const { user } = useSelector(state => state.auth);
-  
+
   const mapRef = useRef(null);
   const markersRef = useRef({});
 
@@ -105,7 +105,7 @@ const CampusLiveWidget = () => {
       const lat = payload.location?.lat || payload.lat;
       const lng = payload.location?.lng || payload.lng;
       const dist = calculateDistance(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
-      
+
       setStudents((prev) => {
         const exists = prev.find((s) => normalizeStudentId(s.studentId) === studentId);
         const entry = {
@@ -134,7 +134,7 @@ const CampusLiveWidget = () => {
       }
     };
 
-    let cleanupSocket = () => {};
+    let cleanupSocket = () => { };
     let retryTimer;
 
     const bindSocket = () => {
@@ -144,7 +144,7 @@ const CampusLiveWidget = () => {
       const joinCampusRoom = () => socket.emit('join_room', `campus:${collegeId}`);
       joinCampusRoom();
       socket.on('connect', joinCampusRoom);
-      
+
       // Listen to both event name formats to ensure compatibility
       socket.on('student:checkin', handleCheckin);
       socket.on('student_checkin', handleCheckin);
@@ -177,7 +177,7 @@ const CampusLiveWidget = () => {
     if (mapReady && !mapRef.current && document.getElementById('campus-map')) {
       const L = window.L;
       mapRef.current = L.map('campus-map').setView([CAMPUS_LAT, CAMPUS_LNG], 17);
-      
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(mapRef.current);
@@ -195,20 +195,20 @@ const CampusLiveWidget = () => {
   useEffect(() => {
     if (mapReady && mapRef.current) {
       const L = window.L;
-      
+
       students.forEach(student => {
         if (student.location && student.location.lat && student.location.lng) {
           const studentId = normalizeStudentId(student.studentId);
           const lat = student.location.lat;
           const lng = student.location.lng;
-          
+
           let checkInTimeStr = student.checkInTime;
           try {
             if (checkInTimeStr) {
               const d = new Date(checkInTimeStr);
               checkInTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-          } catch(e) {}
+          } catch (e) { }
 
           const popupContent = `<b>${student.studentName || 'Unknown'}</b><br/>${student.rollNumber || 'N/A'}<br/>${student.onCampus ? 'On Campus' : 'Outside'}<br/>Checked in: ${checkInTimeStr || 'Unknown'}`;
 
@@ -227,7 +227,7 @@ const CampusLiveWidget = () => {
           }
         }
       });
-      
+
       const currentIds = students.map((s) => normalizeStudentId(s.studentId));
       Object.keys(markersRef.current).forEach(id => {
         if (!currentIds.includes(id)) {
@@ -253,7 +253,7 @@ const CampusLiveWidget = () => {
     try {
       const d = new Date(timeStr);
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch(e) {
+    } catch (e) {
       return timeStr;
     }
   };
@@ -274,7 +274,7 @@ const CampusLiveWidget = () => {
           </div>
         </div>
       </div>
-      
+
       <div id="campus-map" style={{ height: '400px', width: '100%' }} className="bg-gray-100 z-0 relative">
         {!mapReady && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -289,13 +289,13 @@ const CampusLiveWidget = () => {
             <span className="text-sm text-gray-400">Loading...</span>
           </div>
         )}
-        
+
         {error && (
           <div className="py-8 text-center">
             <span className="text-sm text-red-500">{error}</span>
           </div>
         )}
-        
+
         {!loading && !error && students.length === 0 && (
           <div className="py-8 text-center">
             <span className="text-sm text-gray-400">No students on campus right now</span>

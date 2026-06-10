@@ -10,7 +10,7 @@ export const registerAPI = async (data) => {
   return response.data;
 };
 
-export const logoutAPI = async () => {
+export async function logoutAPI() {
   const response = await client.post('/auth/logout');
   return response.data;
 };
@@ -35,7 +35,7 @@ export const resetPasswordAPI = async (data) => {
   return response.data;
 };
 
-export const fetchMeAPI = async () => {
+export async function fetchMeAPI() {
   const response = await client.get('/auth/me');
   return response.data;
 };

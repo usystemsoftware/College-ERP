@@ -20,7 +20,7 @@ const LMSPage = () => {
   const [activeSubject, setActiveSubject] = useState('All Subjects');
   const [activeType, setActiveType] = useState('All Types');
 
-  const fetchMaterials = async () => {
+  async function fetchMaterials() {
     try {
       setLoading(true);
       const data = await materialService.getMaterials({

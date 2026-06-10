@@ -8,7 +8,7 @@ export const markAsRead = async (id) => {
   return await client.patch(`/notifications/${id}/read`);
 };
 
-export const markAllAsRead = async () => {
+export async function markAllAsRead() {
   return await client.patch('/notifications/mark-all-read');
 };
 

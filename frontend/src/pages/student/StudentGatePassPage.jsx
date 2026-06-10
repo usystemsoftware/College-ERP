@@ -18,7 +18,7 @@ const StudentGatePassPage = () => {
     fetchGatePasses();
   }, []);
 
-  const fetchGatePasses = async () => {
+  async function fetchGatePasses() {
     setLoading(true);
     try {
       const res = await getGatePassesAPI({ requestType: 'Student' });

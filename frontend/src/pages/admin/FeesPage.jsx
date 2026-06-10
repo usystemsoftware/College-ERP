@@ -31,7 +31,7 @@ const FeesPage = () => {
     fetchFormDependencies();
   }, []);
 
-  const fetchDashboardData = async () => {
+  async function fetchDashboardData() {
     setLoading(true);
     try {
       const [feesRes, statsRes] = await Promise.all([
@@ -47,7 +47,7 @@ const FeesPage = () => {
     }
   };
 
-  const fetchFormDependencies = async () => {
+  async function fetchFormDependencies() {
     try {
       const [ayRes, semRes, stuRes] = await Promise.all([
         getAcademicYears(),

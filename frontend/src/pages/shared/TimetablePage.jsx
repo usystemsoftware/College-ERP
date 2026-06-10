@@ -8,6 +8,7 @@ import { getFacultyAPI } from '../../api/faculty.api';
 import { getTimetableAPI, createTimetableSlotAPI, deleteTimetableSlotAPI } from '../../api/timetable.api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/common/Modal';
+import LottieLoader from '../../components/common/LottieLoader';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const timeslots = ['09:00', '10:00', '11:15', '12:15', '2:00', '3:00'];
@@ -338,7 +339,7 @@ const TimetablePage = () => {
     <div className="hidden lg:block overflow-x-auto p-5">
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+          <LottieLoader size={80} />
         </div>
       ) : (
         <table className="w-full text-left text-sm border-collapse">
@@ -408,7 +409,7 @@ const TimetablePage = () => {
         ))}
       </div>
       <div className="p-4 space-y-4">
-        {loading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>}
+        {loading && <div className="flex justify-center py-8"><LottieLoader size={60} /></div>}
         {!loading && timeslots.map(time => {
           const session = getClass(selectedDay, time);
           if (!session) return null;

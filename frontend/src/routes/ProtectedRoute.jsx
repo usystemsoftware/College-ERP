@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { loadCurrentUser } from '../features/auth/authSlice';
 import { hasRoleAccess } from '../utils/roles';
+import LottieLoader from '../components/common/LottieLoader';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
@@ -18,7 +19,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (loading && localStorage.getItem('accessToken')) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-dark-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
+        <LottieLoader size={100} />
       </div>
     );
   }

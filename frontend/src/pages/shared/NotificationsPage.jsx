@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle2, Clock, Inbox, Search, Trash2, Loader2 } from 'lucide-react';
 import { getMyNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../api/notifications.api';
 import { subscribeToNotifications, unsubscribeFromNotifications } from '../../services/socket';
 import { toast } from 'react-hot-toast';
+import LottieLoader from '../../components/common/LottieLoader';
 
 const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -136,7 +137,7 @@ const NotificationsPage = () => {
         <div className="divide-y divide-slate-100 dark:divide-slate-800 min-h-[300px]">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+              <LottieLoader size={80} />
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

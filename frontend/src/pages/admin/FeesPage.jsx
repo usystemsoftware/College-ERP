@@ -20,6 +20,8 @@ const FeesPage = () => {
   const [selectedFee, setSelectedFee] = useState(null);
   const [isCollectModalOpen, setIsCollectModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Collect Payment Form Data
   const [paymentData, setPaymentData] = useState({
@@ -28,9 +30,21 @@ const FeesPage = () => {
     transactionId: ''
   });
 
+  const [formData, setFormData] = useState({
+    student: '',
+    academicYear: '',
+    semester: '',
+    feeType: 'Tuition',
+    totalAmount: '',
+    dueDate: ''
+  });
+
   // Filters State
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
+  const [students, setStudents] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
@@ -179,7 +193,27 @@ const FeesPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
+      <div className="border-b border-slate-200 dark:border-slate-800">
+        <nav className="-mb-px flex space-x-8">
+          {['records', 'categories', 'structures'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium ${
+                activeTab === tab
+                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+              }`}
+            >
+              {tab === 'records' ? 'Transactions & Records' : tab === 'categories' ? 'Fee Categories' : 'Fee Structures'}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {activeTab === 'records' && (
+        <>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-dark-800">
           <div className="flex justify-between items-center">
             <div className="text-sm font-semibold text-slate-500">Total Revenue</div>
@@ -284,8 +318,8 @@ const FeesPage = () => {
                       <div className="font-semibold text-slate-900 dark:text-white">{fee.student?.personalDetails?.fullName || 'Unknown Student'}</div>
                       <div className="text-xs text-slate-500">{fee.student?.rollNumber || 'No Roll No'}</div>
                     </td>
-                    <td className="px-6 py-4">{fee.feeType}</td>
-                    <td className="px-6 py-4">{new Date(fee.dueDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{fee.feeStructure ? fee.feeStructure.name : (fee.title || 'General Fee')}</td>
+                    <td className="px-6 py-4">{fee.installments?.length > 0 ? new Date(fee.installments[0].dueDate).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="font-semibold text-slate-900 dark:text-white">₹ {(fee.totalAmount || 0).toLocaleString()}</div>
                       {fee.paidAmount > 0 && <div className="text-xs text-green-500">Paid: ₹ {(fee.paidAmount || 0).toLocaleString()}</div>}
@@ -325,110 +359,17 @@ const FeesPage = () => {
         </div>
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Generate New Fee"
-        hideFooter={true}
-      >
-        <form onSubmit={handleGenerateFee} className="space-y-4 mt-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Student</label>
-            <select
-              required
-              value={formData.student}
-              onChange={(e) => setFormData({ ...formData, student: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-            >
-              {students.map(s => (
-                <option key={s._id} value={s._id}>{s.personalDetails?.fullName} ({s.rollNumber})</option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Academic Year</label>
-              <select
-                required
-                value={formData.academicYear}
-                onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-              >
-                {academicYears.map(ay => (
-                  <option key={ay._id} value={ay._id}>{ay.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Semester</label>
-              <select
-                required
-                value={formData.semester}
-                onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-              >
-                {semesters.map(sem => (
-                  <option key={sem._id} value={sem._id}>{sem.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Fee Type</label>
-            <select
-              required
-              value={formData.feeType}
-              onChange={(e) => setFormData({ ...formData, feeType: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-            >
-              <option value="Tuition">Tuition Fee</option>
-              <option value="Hostel">Hostel Fee</option>
-              <option value="Transport">Transport Fee</option>
-              <option value="Library">Library Fine</option>
-              <option value="Exam">Exam Fee</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Amount (₹)</label>
-            <input
-              type="number"
-              required
-              min="0"
-              value={formData.totalAmount}
-              onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-              placeholder="e.g. 45000"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Due Date</label>
-            <input
-              type="date"
-              required
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
-            />
-          </div>
-          <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-brand-500 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Generating...' : 'Generate Fee'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        </>
+      )}
+
+      {activeTab === 'categories' && <FeeCategoriesTab />}
+      {activeTab === 'structures' && <FeeStructuresTab />}
+
+      <BulkAssignFeeModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={fetchDashboardData}
+      />
 
       {/* Collect Fee Modal */}
       <Modal

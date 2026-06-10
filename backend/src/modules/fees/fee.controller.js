@@ -28,7 +28,7 @@ const getStudentFees = async (req, res, next) => {
 // GET all fees (admin view with filters)
 const getAllFees = async (req, res, next) => {
   try {
-    const { status, semester, feeType, department, course, page = 1, limit = 20 } = req.query;
+    const { status, semester, feeType, department, course, academicYear, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
     if (status) filter.status = status;
@@ -54,8 +54,8 @@ const getAllFees = async (req, res, next) => {
             { path: 'department', select: 'name' }
           ]
         })
-        .populate('semester', 'name')
-        .sort({ dueDate: 1 }).skip(skip).limit(parseInt(limit)),
+        .populate('feeStructure', 'name')
+        .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       Fee.countDocuments(filter)
     ]);
 

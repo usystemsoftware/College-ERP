@@ -121,8 +121,38 @@ connectDB().then(async () => {
   server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
+
+  // --- Graceful Shutdown Logic for Windows & Nodemon ---
+  const gracefulShutdown = (signal) => {
+    console.log(`\n[Server] Received ${signal}. Shutting down gracefully...`);
+    server.close(() => {
+      console.log('[Server] HTTP and Socket.io server closed.');
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState === 1) {
+        // Use standard callback/promise for mongoose.connection.close
+        mongoose.connection.close(false).then(() => {
+          console.log('[Server] MongoDB connection closed.');
+          process.exit(0);
+        }).catch(err => {
+          console.error('[Server] Error closing MongoDB connection:', err);
+          process.exit(1);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
+
+    // Fallback: force exit if taking too long
+    setTimeout(() => {
+      console.error('[Server] Could not close connections in time, forcefully shutting down.');
+      process.exit(1);
+    }, 5000).unref(); // unref so timer doesn't keep event loop alive
+  };
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT')); // Ctrl+C in terminal
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Process kill
+  process.once('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // Nodemon restart
 }).catch(err => {
   console.error('Failed to start server due to DB connection failure:', err);
   process.exit(1);
 });
-

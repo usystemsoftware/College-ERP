@@ -26,6 +26,7 @@ import { loadCurrentUser } from '../features/auth/authSlice';
 import AdmissionReview from '../pages/admission/AdmissionReview';
 import AdmissionPortal from '../pages/admission/AdmissionPortal';
 import ParentDashboard from '../pages/parent/ParentDashboard';
+import ParentAttendancePage from '../pages/parent/ParentAttendancePage';
 import ParentFeesPage from '../pages/parent/ParentFeesPage';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
@@ -134,6 +135,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Parent']}>
               <ParentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="parent/attendance"
+          element={
+            <ProtectedRoute allowedRoles={['Parent']}>
+              <ParentAttendancePage />
             </ProtectedRoute>
           }
         />

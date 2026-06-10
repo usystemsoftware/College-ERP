@@ -7,14 +7,38 @@ import {
   MapPin as MapPinIcon, 
   Briefcase as BriefcaseIcon,
   Phone as PhoneIcon,
-  Mail as EnvelopeIcon
+  Mail as EnvelopeIcon,
+  X as CloseIcon,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
+import Modal from '../../components/common/Modal';
+import { getStudentAttendanceAPI } from '../../api/attendance.api';
 
 const ParentDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [selectedStudentForAtt, setSelectedStudentForAtt] = useState(null);
+  const [attModalOpen, setAttModalOpen] = useState(false);
+  const [attData, setAttData] = useState([]);
+  const [attLoading, setAttLoading] = useState(false);
+
+  const openAttendanceModal = async (student) => {
+    setSelectedStudentForAtt(student);
+    setAttModalOpen(true);
+    setAttLoading(true);
+    try {
+      const res = await getStudentAttendanceAPI({ studentId: student._id });
+      setAttData(res.data?.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAttLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchProfile() {
@@ -146,7 +170,10 @@ const ParentDashboard = () => {
                   </div>
                   
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
-                    <button className="rounded-lg bg-brand-50 py-2 text-center text-sm font-semibold text-brand-600 transition-colors hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20">
+                    <button 
+                      onClick={() => openAttendanceModal(student)}
+                      className="rounded-lg bg-brand-50 py-2 text-center text-sm font-semibold text-brand-600 transition-colors hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
+                    >
                       Attendance
                     </button>
                     <button className="rounded-lg bg-indigo-50 py-2 text-center text-sm font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20">
@@ -164,6 +191,60 @@ const ParentDashboard = () => {
           )}
         </div>
       </div>
+
+      <Modal 
+        isOpen={attModalOpen} 
+        onClose={() => setAttModalOpen(false)} 
+        title={`${selectedStudentForAtt?.personalDetails?.fullName || 'Student'} - Attendance`}
+        hideFooter={true}
+      >
+        <div className="py-4 space-y-4">
+          {attLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
+            </div>
+          ) : attData.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-dark-800/50">
+              <p className="text-slate-600 dark:text-slate-400">No attendance records found.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                <thead className="bg-slate-50 font-semibold text-slate-500 dark:bg-dark-800">
+                  <tr>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3 text-center">Total</th>
+                    <th className="px-4 py-3 text-center">Present</th>
+                    <th className="px-4 py-3 text-center">Absent</th>
+                    <th className="px-4 py-3 text-right">Percentage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {attData.map((record, index) => (
+                    <tr key={index} className="bg-white dark:bg-dark-900">
+                      <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                        {record.subject?.name || 'Self Check-in'}
+                      </td>
+                      <td className="px-4 py-3 text-center">{record.total}</td>
+                      <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 font-semibold">{record.present}</td>
+                      <td className="px-4 py-3 text-center text-red-600 dark:text-red-400 font-semibold">{record.absent}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+                          parseFloat(record.percentage) >= 75 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {record.percentage}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

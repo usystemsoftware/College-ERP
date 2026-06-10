@@ -63,7 +63,8 @@ const StudentDirectory = () => {
     setEditStudentId(null);
     reset({
       fullName: '', email: '', password: '', phone: '', enrollmentNumber: '', rollNumber: '',
-      department: '', course: '', semester: '', dob: '', gender: 'Male', division: '', batch: '', address: ''
+      department: '', course: '', semester: '', dob: '', gender: 'Male', division: '', batch: '', address: '',
+      parentEmail: '', parentPassword: ''
     });
     setIsModalOpen(true);
   };
@@ -84,7 +85,9 @@ const StudentDirectory = () => {
       gender: student.personalDetails?.gender || 'Male',
       division: student.division || '',
       batch: student.batch || '',
-      address: student.personalDetails?.address || ''
+      address: student.personalDetails?.address || '',
+      parentEmail: student.parent?.email || '',
+      parentPassword: '' // leave empty
     });
     setIsModalOpen(true);
   };
@@ -119,7 +122,9 @@ const StudentDirectory = () => {
         gender: data.gender,
         phone: data.phone,
         address: data.address
-      }
+      },
+      parentEmail: data.parentEmail,
+      parentPassword: data.parentPassword
     };
 
     if (editStudentId) {
@@ -380,6 +385,27 @@ const StudentDirectory = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
               <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Email (Optional)</label>
+                <input 
+                  type="email"
+                  {...register('parentEmail')}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  placeholder="parent@example.com" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
+                <input 
+                  type="password"
+                  {...register('parentPassword')}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  placeholder="Parent account password" 
+                />
+              </div>
             </div>
 
             <button type="submit" disabled={loading} className="w-full mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">

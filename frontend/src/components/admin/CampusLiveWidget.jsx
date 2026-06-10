@@ -195,6 +195,7 @@ const CampusLiveWidget = () => {
   useEffect(() => {
     if (mapReady && mapRef.current) {
       const L = window.L;
+      console.log('Students array:', students);
 
       students.forEach(student => {
         if (student.location && student.location.lat && student.location.lng) {

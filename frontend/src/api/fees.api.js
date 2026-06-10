@@ -8,6 +8,7 @@ export const recordPaymentAPI = (feeId, data) => api.post(`/fee/${feeId}/pay`, d
 export const getStudentPaymentsAPI = (studentId) => api.get(`/fee/payments/student/${studentId}`);
 export const getFeeStatsAPI = () => api.get('/fee/stats');
 export const getMyFeesAPI = () => api.get('/fee/my');
+export const getParentFeesAPI = () => api.get('/fee/parent-fees');
 
 // Fee Categories
 export const getFeeCategoriesAPI = () => api.get('/fee/categories');

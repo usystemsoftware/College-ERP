@@ -2,6 +2,7 @@ const Fee = require('./fee.model');
 const FeeStructure = require('./feeStructure.model');
 const Payment = require('./payment.model');
 const Student = require('../students/student.model');
+const Parent = require('../parents/parent.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 
@@ -259,4 +260,52 @@ const getFeeDashboardStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats, getFeeDashboardStats };
+// GET fees for all students linked to the logged-in parent
+const getFeesForParent = async (req, res, next) => {
+  try {
+    const parent = await Parent.findOne({ user: req.user._id }).select('students fullName');
+    if (!parent) throw new ApiError(404, 'Parent profile not found');
+
+    if (!parent.students || parent.students.length === 0) {
+      return res.json(new ApiResponse(200, { fees: [], students: [] }, 'No students linked to this parent'));
+    }
+
+    // Fetch student details and fees for all linked students
+    const students = await Student.find({ _id: { $in: parent.students } })
+      .select('rollNumber personalDetails.fullName course department semester')
+      .populate('course', 'name code')
+      .populate('department', 'name code')
+      .lean();
+
+    const feesData = await Promise.all(
+      parent.students.map(async (studentId) => {
+        const fees = await Fee.find({ student: studentId })
+          .populate('academicYear', 'name')
+          .populate({
+            path: 'feeStructure',
+            populate: { path: 'heads.category', select: 'name isOptional' }
+          })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        const student = students.find(s => s._id.toString() === studentId.toString());
+        const totalFees = fees.reduce((sum, f) => sum + (f.totalAmount || 0), 0);
+        const totalPaid = fees.reduce((sum, f) => sum + (f.paidAmount || 0), 0);
+
+        return {
+          student,
+          fees,
+          summary: {
+            totalFees,
+            totalPaid,
+            outstandingBalance: totalFees - totalPaid
+          }
+        };
+      })
+    );
+
+    return res.json(new ApiResponse(200, { feesData }, 'Parent fees fetched successfully'));
+  } catch (error) { next(error); }
+};
+
+module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats, getFeeDashboardStats, getFeesForParent };

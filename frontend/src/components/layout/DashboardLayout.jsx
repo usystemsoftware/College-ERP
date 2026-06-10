@@ -179,6 +179,7 @@ const DashboardLayout = () => {
     navItems = [
       { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
       { name: 'Fees & Payments', path: '/parent/fees', icon: CreditCard },
+      { name: 'Attendance', path: '/parent/attendance', icon: Clock },
       ...navItems,
     ];
   } else if (userRole === 'Accountant') {

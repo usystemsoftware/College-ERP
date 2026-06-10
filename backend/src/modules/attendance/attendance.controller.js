@@ -672,9 +672,76 @@ const endLectureSession = async (req, res, next) => {
 };
 
 // --- DUMMY QR FUNCTIONS TO PREVENT CRASH ---
-const generateQRToken = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const generateQRToken = async (req, res, next) => {
+  try {
+    const { subject, date, lectureType } = req.body;
+    if (!subject || !date) throw new ApiError(400, 'Subject and date are required');
+
+    const payload = {
+      subject,
+      date,
+      lectureType: lectureType || 'Theory',
+      facultyId: req.user._id,
+      collegeId: req.user.collegeId
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
+    
+    return res.status(200).json(new ApiResponse(200, { token }, 'QR Token generated'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const verifyQRToken = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
-const markQRAttendance = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+
+const markQRAttendance = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, 'QR Token is required');
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    const { subject, date, lectureType, facultyId } = decoded;
+    
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const attendanceDate = new Date(date);
+
+    // Check if already marked
+    const existing = await Attendance.findOne({
+      student: student._id,
+      subject,
+      date: attendanceDate
+    });
+
+    if (existing) {
+      return res.status(400).json(new ApiResponse(400, null, 'Attendance already marked for this lecture'));
+    }
+
+    const record = await Attendance.create({
+      student: student._id,
+      subject,
+      date: attendanceDate,
+      status: 'Present',
+      markedBy: facultyId,
+      collegeId: req.user.collegeId,
+      lectureType,
+      selfMarked: false
+    });
+
+    return res.status(200).json(new ApiResponse(200, record, 'Attendance marked successfully via QR'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const sendQRToFaculty = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
 const sendQRToStudents = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
 

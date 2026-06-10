@@ -203,15 +203,34 @@ const studentCheckIn = async (req, res, next) => {
       // Also create a notification for admins
       try {
         const Notification = require('../notifications/notification.model');
-        const notification = await Notification.create({
-          recipient: req.user._id,
-          title: 'Student Check-In',
-          message: `${student.personalDetails?.fullName || 'A student'} (${student.rollNumber}) has checked in at ${now.toLocaleTimeString()}`,
-          type: 'System',
-          category: 'Academic',
-          collegeId: req.user.collegeId
-        });
-        io.to(req.user._id.toString()).emit('notification', notification);
+        const Role = require('../roles/role.model');
+        const User = require('../users/user.model');
+        
+        const targetRoles = await Role.find({ name: { $in: ['College Admin', 'Super Admin'] } });
+        const adminUsers = await User.find({ role: { $in: targetRoles.map(r => r._id) } });
+
+        const notifOps = adminUsers.map(admin => ({
+          insertOne: {
+            document: {
+              recipient: admin._id,
+              title: 'Student Check-In',
+              message: `${student.personalDetails?.fullName || 'A student'} (${student.rollNumber}) has checked in at ${now.toLocaleTimeString()}`,
+              type: 'System',
+              category: 'Academic',
+              collegeId: req.user.collegeId
+            }
+          }
+        }));
+
+        if (notifOps.length > 0) {
+          await Notification.bulkWrite(notifOps);
+          adminUsers.forEach(admin => {
+            io.to(admin._id.toString()).emit('notification', {
+              title: 'Student Check-In',
+              message: `${student.personalDetails?.fullName || 'A student'} (${student.rollNumber}) has checked in at ${now.toLocaleTimeString()}`
+            });
+          });
+        }
       } catch (notifErr) {
         console.error('Notification error:', notifErr.message);
       }
@@ -671,7 +690,7 @@ const endLectureSession = async (req, res, next) => {
   }
 };
 
-// --- DUMMY QR FUNCTIONS TO PREVENT CRASH ---
+// --- QR FUNCTIONS ---
 const generateQRToken = async (req, res, next) => {
   try {
     const { subject, date, lectureType } = req.body;
@@ -687,13 +706,65 @@ const generateQRToken = async (req, res, next) => {
 
     const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
     
+    // Push notification to students via Socket.IO
+    try {
+      const subjectDoc = await require('../subjects/subject.model').findById(subject);
+      const subjectName = subjectDoc ? subjectDoc.name : 'Lecture';
+      
+      const io = req.app.get('io');
+      if (io) {
+        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+        const notificationPayload = {
+          title: 'QR Attendance Available',
+          message: `QR Attendance is now active for ${subjectName}`,
+          metadata: {
+            type: 'STUDENT_QR_ATTENDANCE',
+            subjectName: subjectName,
+            qrSessionId: token,
+            expiresAt: expiresAt
+          },
+          createdAt: new Date(),
+          isRead: false
+        };
+        // Broadcast to everyone (can be optimized to target enrolled students)
+        io.emit('new_notification', notificationPayload);
+      }
+    } catch (err) {
+      console.error('Failed to emit QR notification:', err);
+    }
+    
     return res.status(200).json(new ApiResponse(200, { token }, 'QR Token generated'));
   } catch (error) {
     next(error);
   }
 };
 
-const verifyQRToken = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+const verifyQRToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, 'QR Token is required');
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      throw new ApiError(400, 'Invalid or expired QR Token');
+    }
+
+    const { subject, date, lectureType, facultyId } = decoded;
+    const subjectDoc = await require('../subjects/subject.model').findById(subject);
+    
+    const details = {
+      subjectName: subjectDoc ? subjectDoc.name : 'Unknown Subject',
+      date,
+      lectureType
+    };
+
+    return res.status(200).json(new ApiResponse(200, details, 'QR Token verified'));
+  } catch (error) {
+    next(error);
+  }
+};
 
 const markQRAttendance = async (req, res, next) => {
   try {
@@ -743,7 +814,99 @@ const markQRAttendance = async (req, res, next) => {
 };
 
 const sendQRToFaculty = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
-const sendQRToStudents = async (req, res, next) => { res.status(501).json({ message: 'Not implemented' }); };
+
+const sendQRToStudents = async (req, res, next) => {
+  try {
+    const { qrSessionId, subjectId, facultyIds } = req.body;
+    if (!qrSessionId || !subjectId || !facultyIds || !facultyIds.length) {
+      throw new ApiError(400, 'qrSessionId, subjectId, and facultyIds are required');
+    }
+
+    const subjectDoc = await require('../subjects/subject.model').findById(subjectId);
+    const subjectName = subjectDoc ? subjectDoc.name : 'Lecture';
+
+    // Try to find matching timetables
+    const timetables = await Timetable.find({
+      faculty: { $in: facultyIds },
+      subject: subjectId,
+      isActive: true
+    });
+
+    let studentMatch = {};
+    if (timetables.length > 0) {
+      const orConditions = timetables.map(t => ({
+        department: t.department,
+        course: t.course,
+        semester: t.semester,
+        division: t.division
+      }));
+      studentMatch = { $or: orConditions };
+    } else {
+      // Fallback: If no timetables found, find departments of these faculties
+      const faculties = await require('../faculty/faculty.model').find({ _id: { $in: facultyIds } });
+      const departmentIds = faculties.map(f => f.department).filter(Boolean);
+      if (departmentIds.length > 0) {
+        studentMatch = { department: { $in: departmentIds } };
+      } else {
+        studentMatch = { collegeId: req.user.collegeId }; // fallback to college students
+      }
+    }
+
+    const students = await Student.find(studentMatch).select('_id user');
+
+    if (students.length === 0) {
+      return res.status(200).json(new ApiResponse(200, { sentTo: 0 }, 'No students found to push QR'));
+    }
+
+    const Notification = require('../notifications/notification.model');
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+    const notifOps = students.map(student => ({
+      insertOne: {
+        document: {
+          recipient: student.user,
+          title: 'Lecture QR Attendance',
+          message: `QR Attendance is active for ${subjectName}. Please mark your attendance.`,
+          type: 'Academic',
+          category: 'Attendance',
+          metadata: {
+            type: 'STUDENT_QR_ATTENDANCE',
+            subjectName: subjectName,
+            qrSessionId: qrSessionId,
+            expiresAt: expiresAt
+          },
+          collegeId: req.user.collegeId
+        }
+      }
+    }));
+
+    await Notification.bulkWrite(notifOps);
+
+    // Also emit socket events to specific students
+    const io = req.app.get('io');
+    if (io) {
+      students.forEach(student => {
+        const notificationPayload = {
+          title: 'Lecture QR Attendance',
+          message: `QR Attendance is active for ${subjectName}. Please mark your attendance.`,
+          metadata: {
+            type: 'STUDENT_QR_ATTENDANCE',
+            subjectName: subjectName,
+            qrSessionId: qrSessionId,
+            expiresAt: expiresAt
+          },
+          createdAt: new Date(),
+          isRead: false
+        };
+        io.to(student.user.toString()).emit('new_notification', notificationPayload);
+      });
+    }
+
+    return res.status(200).json(new ApiResponse(200, { sentTo: students.length }, `QR pushed successfully to ${students.length} students`));
+  } catch (error) {
+    next(error);
+  }
+};
 
 const getDepartmentLectureAnomalies = async (req, res, next) => {
   try {

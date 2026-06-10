@@ -168,14 +168,31 @@ const createStudent = async (req, res, next) => {
 // PUT update student
 const updateStudent = async (req, res, next) => {
   try {
-    const { email, personalDetails } = req.body;
+    const { email, password, personalDetails } = req.body;
 
-    // Email format validation (if being updated)
-    if (email !== undefined) {
+    const existingStudent = await Student.findById(req.params.id).populate('user');
+    if (!existingStudent) throw new ApiError(404, 'Student not found');
+
+    // Email validation and update
+    if (email && email !== existingStudent.user.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         throw new ApiError(400, 'Invalid email format');
       }
+      const existingUser = await User.findOne({ email, _id: { $ne: existingStudent.user._id } });
+      if (existingUser) throw new ApiError(400, 'Email already in use');
+      
+      existingStudent.user.email = email;
+    }
+
+    // Password update
+    if (password) {
+      existingStudent.user.password = password;
+    }
+
+    // Save user if credentials changed
+    if (email !== existingStudent.user.email || password) {
+      await existingStudent.user.save();
     }
 
     // Mobile number validation (if being updated)
@@ -190,7 +207,6 @@ const updateStudent = async (req, res, next) => {
       .populate('user', 'email status')
       .populate('department', 'name')
       .populate('course', 'name');
-    if (!student) throw new ApiError(404, 'Student not found');
 
     const { parentEmail, parentPassword } = req.body;
     if (parentEmail && parentPassword) {

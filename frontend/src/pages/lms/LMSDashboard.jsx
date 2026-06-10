@@ -18,7 +18,7 @@ const LMSDashboard = () => {
   // Extract unique subjects from materials
   const subjects = [...new Set(materials.map(m => m.subject))];
 
-  const fetchMaterials = async () => {
+  async function fetchMaterials() {
     try {
       setLoading(true);
       const data = await materialService.getMaterials({

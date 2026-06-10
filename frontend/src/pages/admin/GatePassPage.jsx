@@ -24,7 +24,7 @@ const GatePassPage = () => {
     fetchGatePasses();
   }, [typeFilter]);
 
-  const fetchGatePasses = async () => {
+  async function fetchGatePasses() {
     setLoading(true);
     try {
       const params = typeFilter ? { requestType: typeFilter } : {};

@@ -40,7 +40,7 @@ const StudentDirectory = () => {
 
   useEffect(() => {
     if (isModalOpen && departments.length === 0) {
-      const fetchOptions = async () => {
+      async function fetchOptions() {
         setFetchingOptions(true);
         try {
           const [deptRes, courseRes, semRes] = await Promise.all([

@@ -75,7 +75,7 @@ const DashboardLayout = () => {
     if (user && user._id) {
       initiateSocketConnection(user);
       
-      const fetchUnreadCount = async () => {
+      async function fetchUnreadCount() {
         try {
           const res = await getMyNotifications({ status: 'Unread', limit: 1 });
           if (res?.data?.data?.unreadCount !== undefined) {

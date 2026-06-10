@@ -19,7 +19,7 @@ const FacultyLectureAttendance = () => {
   useEffect(() => {
     if (!isFaculty) {
       // Fetch faculty list for admin/HR
-      const fetchFaculties = async () => {
+      async function fetchFaculties() {
         try {
           const response = await api.get('/faculty');
           if (response.data?.data?.faculty) {
@@ -42,7 +42,7 @@ const FacultyLectureAttendance = () => {
 
   useEffect(() => {
     // If we have a faculty selected and a date, fetch the lectures
-    const fetchLectures = async () => {
+    async function fetchLectures() {
       if (!selectedFaculty || !date) return;
       setLoading(true);
       try {
@@ -57,7 +57,7 @@ const FacultyLectureAttendance = () => {
         setLoading(false);
       }
     };
-    const fetchSummary = async () => {
+    async function fetchSummary() {
       if (!selectedFaculty) return;
       try {
         const response = await api.get(`/attendance/faculty-summary?facultyId=${selectedFaculty}`);

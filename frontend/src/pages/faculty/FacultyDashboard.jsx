@@ -82,7 +82,7 @@ const FacultyDashboard = () => {
   }, [socket]);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
         const response = await api.get('/faculty/dashboard');
         setStats(response.data.data);
@@ -97,7 +97,7 @@ const FacultyDashboard = () => {
 
   useEffect(() => {
     if (isHOD) {
-      const fetchAnomalies = async () => {
+      async function fetchAnomalies() {
         try {
           const res = await api.get('/attendance/faculty-lecture/department-anomalies');
           setDepartmentAnomalies(res.data.data);

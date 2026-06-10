@@ -11,7 +11,7 @@ const ExamDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchExams = async () => {
+    async function fetchExams() {
       try {
         const response = await api.get('/exams/dashboard');
         setExams(response.data.data);

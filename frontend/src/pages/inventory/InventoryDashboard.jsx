@@ -17,7 +17,7 @@ const InventoryDashboard = () => {
     location: ''
   });
 
-  const fetchStats = async () => {
+  async function fetchStats() {
     try {
       const response = await api.get('/inventory/dashboard');
       setStats(response.data.data);

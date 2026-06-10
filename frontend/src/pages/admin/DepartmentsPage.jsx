@@ -33,7 +33,7 @@ const DepartmentsPage = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const [deptRes, courseRes, facultyRes] = await Promise.all([

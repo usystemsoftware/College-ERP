@@ -17,7 +17,7 @@ const ParentDashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    async function fetchProfile() {
       try {
         const response = await getMyParentProfileAPI();
         setProfile(response.data.data.parent);

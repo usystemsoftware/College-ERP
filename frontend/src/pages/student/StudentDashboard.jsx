@@ -10,7 +10,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardStats = async () => {
+    async function fetchDashboardStats() {
       try {
         const response = await api.get('/students/dashboard');
         setStats(response.data.data);

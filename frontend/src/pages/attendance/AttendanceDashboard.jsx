@@ -23,7 +23,7 @@ const AttendanceDashboard = () => {
   const [generatingQR, setGeneratingQR] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
         const response = await api.get('/attendance/dashboard');
         if (isStudent) {
@@ -51,7 +51,7 @@ const AttendanceDashboard = () => {
     toast.success("Attendance saved successfully!");
   };
 
-  const handleGenerateQR = async () => {
+  async function handleGenerateQR() {
     setGeneratingQR(true);
     try {
       // Using a placeholder ObjectId for the subject since dropdowns are mock data

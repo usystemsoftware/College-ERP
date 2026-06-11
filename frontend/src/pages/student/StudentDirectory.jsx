@@ -289,16 +289,17 @@ const StudentDirectory = () => {
           <LottieLoader size={60} className="py-8" />
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-              <input 
-                {...register('fullName', { required: true })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                placeholder="Enter full name" 
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+                <input 
+                  {...register('fullName', { required: true })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  placeholder="Enter full name" 
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
                 <input 
@@ -385,14 +386,13 @@ const StudentDirectory = () => {
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch</label>
                 <input {...register('batch', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. 2023-2027" />
               </div>
-            </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
-              <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
-            </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+                <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="col-span-1 md:col-span-2 pt-2 border-t border-slate-200 dark:border-slate-800"></div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Email (Optional)</label>
                 <input 

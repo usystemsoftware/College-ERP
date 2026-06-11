@@ -151,15 +151,15 @@ const InventoryDashboard = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Asset" hideFooter={true}>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Asset Name</label>
-            <input name="itemName" value={formData.itemName} onChange={handleInputChange} type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter asset name" required />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Location</label>
-            <input name="location" value={formData.location} onChange={handleInputChange} type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. Computer Lab 1" required />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Asset Name</label>
+              <input name="itemName" value={formData.itemName} onChange={handleInputChange} type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter asset name" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Location</label>
+              <input name="location" value={formData.location} onChange={handleInputChange} type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. Computer Lab 1" required />
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
               <select name="category" value={formData.category} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
@@ -170,7 +170,7 @@ const InventoryDashboard = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Quantity</label>
               <input name="quantity" value={formData.quantity} onChange={handleInputChange} type="number" min="1" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="1" required />
             </div>

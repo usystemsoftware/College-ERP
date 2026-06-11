@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldAlert, Search, Filter, Clock, AlertTriangle, CheckCircle2, Eye, ChevronDown, Loader2, MessageSquare, X } from 'lucide-react';
 import { getIncidentsAPI, updateIncidentAPI } from '../../api/incidents.api';
 import toast from 'react-hot-toast';
@@ -219,8 +220,8 @@ const IncidentDashboard = () => {
       </div>
 
       {/* Detail / Action Modal */}
-      {selectedIncident && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setSelectedIncident(null)}>
+      {selectedIncident && createPortal(
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setSelectedIncident(null)}>
           <div
             className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-dark-800 shadow-2xl ring-1 ring-slate-900/5 dark:ring-white/10 animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -321,7 +322,7 @@ const IncidentDashboard = () => {
                       className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white"
                     />
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex justify-end items-center gap-3 flex-wrap pt-2">
                     {selectedIncident.status === 'New' && (
                       <button
                         onClick={() => handleUpdateStatus(selectedIncident._id, 'Under Review')}
@@ -359,7 +360,8 @@ const IncidentDashboard = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -303,7 +303,6 @@ const StudentDirectory = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
                 <input 
@@ -390,12 +389,11 @@ const StudentDirectory = () => {
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch</label>
                 <input {...register('batch', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. 2023-2027" />
               </div>
-            </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
-              <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
-            </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+                <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
+              </div>
 
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
               <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-4">Parents Login Details (Optional)</h3>

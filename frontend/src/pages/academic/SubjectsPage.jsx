@@ -244,8 +244,8 @@ const SubjectsPage = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Subject' : 'Add Subject'} hideFooter={true}>
         <form onSubmit={handleSubmit} className="space-y-4 py-2 mt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
               <label className={labelCls}>Subject Name *</label>
               <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={inputCls} placeholder="e.g. Data Structures" />
             </div>
@@ -265,7 +265,7 @@ const SubjectsPage = () => {
               </select>
             </div>
 
-            <div className="col-span-2 sm:col-span-1">
+            <div>
               <label className={labelCls}>Department *</label>
               <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value, course: ''})} className={selectCls}>
                 <option value="">Select Dept</option>
@@ -273,7 +273,7 @@ const SubjectsPage = () => {
               </select>
             </div>
             
-            <div className="col-span-2 sm:col-span-1">
+            <div>
               <label className={labelCls}>Course *</label>
               <select required value={formData.course} onChange={e => setFormData({...formData, course: e.target.value})} disabled={!formData.department} className={selectCls}>
                 <option value="">Select Course</option>
@@ -304,7 +304,7 @@ const SubjectsPage = () => {
               <input type="number" required value={formData.passingMarks} onChange={e => setFormData({...formData, passingMarks: parseInt(e.target.value) || 0})} className={inputCls} />
             </div>
 
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className={labelCls}>Syllabus / Notes</label>
               <textarea rows="2" value={formData.syllabus} onChange={e => setFormData({...formData, syllabus: e.target.value})} className={inputCls} placeholder="Optional syllabus or notes..."></textarea>
             </div>

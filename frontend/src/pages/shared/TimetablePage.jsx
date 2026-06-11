@@ -640,7 +640,7 @@ const TimetablePage = () => {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
                 Step 1 — Select Target Class Group
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="col-span-2">
                   <Label required>Department</Label>
                   <select value={modal.department} onChange={e => setM('department', e.target.value)} required className={selectCls}>
@@ -692,7 +692,7 @@ const TimetablePage = () => {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
                 Step 2 — Class Details
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label required>Day</Label>
                   <select value={modal.day} onChange={e => setM('day', e.target.value)} className={selectCls}>

@@ -216,58 +216,76 @@ const LeaveDashboard = () => {
       </div>
 
       {/* Review Modal */}
-      <Modal isOpen={!!selectedLeave} onClose={() => setSelectedLeave(null)} title="Leave Application Details">
+      <Modal isOpen={!!selectedLeave} onClose={() => setSelectedLeave(null)} title="Leave Application Details" hideFooter={true}>
         {selectedLeave && (
-          <div className="p-6 space-y-6">
-            {/* User Info */}
-            <div className="flex items-center gap-4 bg-slate-50 dark:bg-dark-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-              <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-dark-700 flex items-center justify-center">
-                <User size={24} className="text-slate-500" />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Employee Information */}
+              <div className="bg-slate-50 dark:bg-dark-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Employee Information</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-dark-700 flex items-center justify-center shrink-0">
+                    <User size={20} className="text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white leading-tight">
+                      {selectedLeave.requester?.email || 'Unknown User'}
+                    </p>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 mt-1 inline-block">
+                      {selectedLeave.requesterType}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-slate-900 dark:text-white text-lg leading-tight">
-                  {selectedLeave.requester?.email || 'Unknown User'}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                    {selectedLeave.requesterType}
-                  </span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${statusConfig[selectedLeave.status]}`}>
+
+              {/* Status Information */}
+              <div className="bg-slate-50 dark:bg-dark-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Status Information</p>
+                <div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${statusConfig[selectedLeave.status]}`}>
+                    {selectedLeave.status === 'Pending' && <Clock size={14} />}
+                    {selectedLeave.status === 'Approved' && <CheckCircle2 size={14} />}
+                    {selectedLeave.status === 'Rejected' && <XCircle size={14} />}
+                    {selectedLeave.status === 'Cancelled' && <AlertTriangle size={14} />}
                     {selectedLeave.status}
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Leave Details */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Leave Type */}
               <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Leave Type</p>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedLeave.leaveType} Leave</p>
               </div>
+
+              {/* Duration */}
               <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Duration</p>
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{selectedLeave.totalDays} Days</p>
               </div>
-              <div className="col-span-2 bg-white dark:bg-dark-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dates</p>
-                <div className="flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="flex items-center gap-2 bg-slate-50 dark:bg-dark-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <Calendar size={14} className="text-emerald-500" />
-                    {new Date(selectedLeave.startDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-600 text-lg">→</span>
-                  <span className="flex items-center gap-2 bg-slate-50 dark:bg-dark-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <Calendar size={14} className="text-red-400" />
-                    {new Date(selectedLeave.endDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
+
+              {/* Start Date */}
+              <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Start Date</p>
+                <span className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <Calendar size={14} className="text-emerald-500" />
+                  {new Date(selectedLeave.startDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+
+              {/* End Date */}
+              <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">End Date</p>
+                <span className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <Calendar size={14} className="text-red-400" />
+                  {new Date(selectedLeave.endDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
               </div>
             </div>
 
             {/* Reason */}
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Reason provided</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Reason provided (Full Width)</p>
               <div className="bg-slate-50 dark:bg-dark-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                 {selectedLeave.reason}
               </div>
@@ -275,10 +293,10 @@ const LeaveDashboard = () => {
 
             {/* Admin Action Area */}
             {selectedLeave.status === 'Pending' ? (
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-6 space-y-4">
+              <div className="space-y-6">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Remarks (Optional, required for rejection)
+                    Remarks (Full Width)
                   </label>
                   <div className="relative">
                     <MessageSquare size={16} className="absolute left-3 top-3 text-slate-400" />
@@ -291,33 +309,51 @@ const LeaveDashboard = () => {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => handleProcess('Approved')}
                     disabled={processing}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/20 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition shadow-sm disabled:opacity-50"
                   >
                     {processing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                    Approve Leave
+                    Approve
                   </button>
                   <button
                     onClick={() => handleProcess('Rejected')}
                     disabled={processing || !remarks.trim()}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition shadow-lg shadow-red-500/20 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition shadow-sm disabled:opacity-50"
                     title={!remarks.trim() ? "Remarks are required to reject" : ""}
                   >
                     {processing ? <Loader2 size={18} className="animate-spin" /> : <XCircle size={18} />}
                     Reject
                   </button>
+                  <button
+                    onClick={() => setSelectedLeave(null)}
+                    className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 dark:bg-dark-700 dark:text-slate-300 dark:hover:bg-dark-600 transition"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             ) : (
-              selectedLeave.remarks && (
-                <div className="bg-slate-50 dark:bg-dark-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 text-sm">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Approver Remarks</p>
-                  <p className="text-slate-700 dark:text-slate-300">{selectedLeave.remarks}</p>
+              <div className="space-y-6">
+                {selectedLeave.remarks && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Approver Remarks (Full Width)</p>
+                    <div className="bg-slate-50 dark:bg-dark-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-300">
+                      {selectedLeave.remarks}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setSelectedLeave(null)}
+                    className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 dark:bg-dark-700 dark:text-slate-300 dark:hover:bg-dark-600 transition"
+                  >
+                    Close
+                  </button>
                 </div>
-              )
+              </div>
             )}
           </div>
         )}

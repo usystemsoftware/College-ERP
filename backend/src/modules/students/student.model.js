@@ -46,6 +46,10 @@ const studentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parent'
   },
+  parents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parent'
+  }],
   personalDetails: {
     fullName: { type: String, required: true },
     dob: { type: Date, required: true },

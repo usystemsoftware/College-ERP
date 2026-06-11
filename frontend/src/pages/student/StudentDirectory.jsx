@@ -64,7 +64,7 @@ const StudentDirectory = () => {
     reset({
       fullName: '', email: '', password: '', phone: '', enrollmentNumber: '', rollNumber: '',
       department: '', course: '', semester: '', dob: '', gender: 'Male', division: '', batch: '', address: '',
-      parentEmail: '', parentPassword: ''
+      fatherEmail: '', fatherPassword: '', motherEmail: '', motherPassword: ''
     });
     setIsModalOpen(true);
   };
@@ -86,8 +86,10 @@ const StudentDirectory = () => {
       division: student.division || '',
       batch: student.batch || '',
       address: student.personalDetails?.address || '',
-      parentEmail: student.parent?.email || '',
-      parentPassword: '' // leave empty
+      fatherEmail: student.parents?.find(p => p.relation === 'Father')?.email || student.parent?.email || '',
+      fatherPassword: '', // leave empty
+      motherEmail: student.parents?.find(p => p.relation === 'Mother')?.email || '',
+      motherPassword: '' // leave empty
     });
     setIsModalOpen(true);
   };
@@ -123,8 +125,10 @@ const StudentDirectory = () => {
         phone: data.phone,
         address: data.address
       },
-      parentEmail: data.parentEmail,
-      parentPassword: data.parentPassword
+      fatherEmail: data.fatherEmail,
+      fatherPassword: data.fatherPassword,
+      motherEmail: data.motherEmail,
+      motherPassword: data.motherPassword
     };
 
     if (editStudentId) {
@@ -288,17 +292,16 @@ const StudentDirectory = () => {
         {fetchingOptions ? (
           <LottieLoader size={60} className="py-8" />
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-                <input 
-                  {...register('fullName', { required: true })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder="Enter full name" 
-                />
-              </div>
-
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[80vh] overflow-y-auto px-1 scrollbar-hide">
+            <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-2">Student Basic Details</h3>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+              <input 
+                {...register('fullName', { required: true })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                placeholder="Enter full name" 
+              />
+            </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
@@ -392,24 +395,49 @@ const StudentDirectory = () => {
                 <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
               </div>
 
-              <div className="col-span-1 md:col-span-2 pt-2 border-t border-slate-200 dark:border-slate-800"></div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Email (Optional)</label>
-                <input 
-                  type="email"
-                  {...register('parentEmail')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder="parent@example.com" 
-                />
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-4">Parents Login Details (Optional)</h3>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Email</label>
+                  <input 
+                    type="email"
+                    {...register('fatherEmail')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="father@example.com" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Password</label>
+                  <input 
+                    type="password"
+                    {...register('fatherPassword')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="Father's account password" 
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
-                <input 
-                  type="password"
-                  {...register('parentPassword')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder="Parent account password" 
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Email</label>
+                  <input 
+                    type="email"
+                    {...register('motherEmail')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="mother@example.com" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Password</label>
+                  <input 
+                    type="password"
+                    {...register('motherPassword')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="Mother's account password" 
+                  />
+                </div>
               </div>
             </div>
 

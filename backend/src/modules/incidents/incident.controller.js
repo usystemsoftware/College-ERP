@@ -65,7 +65,7 @@ const createIncident = async (req, res, next) => {
       urgency: aiResult.urgency,
       location: location || '',
       isAnonymous: isAnonymous !== false, // default true
-      submittedBy: isAnonymous === false ? req.user._id : null,
+      submittedBy: req.user._id, // Always store the user ID to allow tracking "My Reports"
       attachments: attachments || [],
       aiCategorization: aiResult,
       collegeId: req.user.collegeId
@@ -161,6 +161,15 @@ const getIncidents = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// GET /incidents/my-incidents — Get incidents submitted by the logged-in user
+const getMyIncidents = async (req, res, next) => {
+  try {
+    const incidents = await Incident.find({ submittedBy: req.user._id })
+      .sort({ createdAt: -1 });
+    return res.json(new ApiResponse(200, incidents, 'User incidents fetched'));
+  } catch (error) { next(error); }
+};
+
 // GET /incidents/:id — Get single incident
 const getIncidentById = async (req, res, next) => {
   try {
@@ -202,4 +211,4 @@ const updateIncident = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { createIncident, getIncidents, getIncidentById, updateIncident };
+module.exports = { createIncident, getIncidents, getMyIncidents, getIncidentById, updateIncident };

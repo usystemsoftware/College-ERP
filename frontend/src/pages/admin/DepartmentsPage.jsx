@@ -342,24 +342,26 @@ const DepartmentsPage = () => {
             </div>
           )}
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
-            <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
+              <input required type="text" value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. Computer Science" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
+              <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Head of Department (HOD)</label>
+              <select value={deptForm.hod} onChange={(e) => setDeptForm({ ...deptForm, hod: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+                <option value="">Select HOD (Optional)</option>
+                {facultyList.map((faculty) => (
+                  <option key={faculty._id} value={faculty._id}>{faculty.fullName} ({faculty.employeeId})</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
-            <input required type="text" value={deptForm.code} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. CSE" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Head of Department (HOD)</label>
-            <select value={deptForm.hod} onChange={(e) => setDeptForm({ ...deptForm, hod: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
-              <option value="">Select HOD (Optional)</option>
-              {facultyList.map((faculty) => (
-                <option key={faculty._id} value={faculty._id}>{faculty.fullName} ({faculty.employeeId})</option>
-              ))}
-            </select>
-          </div>
-          <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
+          <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button type="button" onClick={() => setIsDeptModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800">Cancel</button>
             <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{editMode ? 'Update' : 'Save'}</button>
           </div>
@@ -368,27 +370,29 @@ const DepartmentsPage = () => {
 
       {/* Add/Edit Course Modal */}
       <Modal isOpen={isCourseModalOpen} onClose={() => setIsCourseModalOpen(false)} title={editMode ? "Edit Course" : "Add Course"} hideFooter={true}>
-        <form className="space-y-4 mt-2" onSubmit={handleCourseSubmit}>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
-            <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
-            <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
-            <select required value={courseForm.department} onChange={(e) => setCourseForm({ ...courseForm, department: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
-              <option value="">Select Department</option>
-              {departments.map((dept) => (
-                <option key={dept._id} value={dept._id}>{dept.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
-            <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({ ...courseForm, durationSemesters: parseInt(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
+        <form className="mt-2" onSubmit={handleCourseSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
+              <input required type="text" value={courseForm.name} onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. B.Tech Computer Science" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
+              <input required type="text" value={courseForm.code} onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" placeholder="e.g. BTECH-CSE" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+              <select required value={courseForm.department} onChange={(e) => setCourseForm({ ...courseForm, department: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800">
+                <option value="">Select Department</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
+              <input required type="number" min="1" max="12" value={courseForm.durationSemesters} onChange={(e) => setCourseForm({ ...courseForm, durationSemesters: parseInt(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800" />
+            </div>
           </div>
           <div className="mt-6 flex justify-end gap-3 flex-shrink-0 pt-4">
             <button type="button" onClick={() => setIsCourseModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-800">Cancel</button>

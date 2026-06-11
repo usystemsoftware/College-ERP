@@ -1,6 +1,7 @@
 const Note = require('./note.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getNotes = async (req, res, next) => {
   try {
@@ -39,7 +40,8 @@ const createNote = async (req, res, next) => {
 
 const updateNote = async (req, res, next) => {
   try {
-    const note = await Note.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const allowedUpdates = pick(req.body, ['title', 'subject', 'fileUrl', 'fileType', 'description', 'chapter', 'semester']);
+    const note = await Note.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true });
     if (!note) throw new ApiError(404, 'Note not found');
     return res.json(new ApiResponse(200, note, 'Note updated'));
   } catch (error) { next(error); }

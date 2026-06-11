@@ -1,6 +1,7 @@
 const College = require('./college.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 // GET all colleges
 const getColleges = async (req, res, next) => {
@@ -53,7 +54,8 @@ const updateCollege = async (req, res, next) => {
        throw new ApiError(403, 'You do not have permission to update this college');
     }
 
-    const college = await College.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'code', 'address', 'status']);
+    const college = await College.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!college) throw new ApiError(404, 'College not found');
     
     return res.json(new ApiResponse(200, college, 'College updated'));

@@ -3,6 +3,7 @@ const User = require('../users/user.model');
 const Role = require('../roles/role.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getFaculty = async (req, res, next) => {
   try {
@@ -88,7 +89,8 @@ const createFaculty = async (req, res, next) => {
 
 const updateFaculty = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const allowedUpdates = pick(req.body, ['employeeId', 'fullName', 'designation', 'department', 'joiningDate']);
+    const faculty = await Faculty.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name');
     if (!faculty) throw new ApiError(404, 'Faculty not found');

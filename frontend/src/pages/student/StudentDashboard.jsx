@@ -54,7 +54,7 @@ const StudentDashboard = () => {
               Hello, {user?.email?.split('@')[0] || 'Student'}!
             </h1>
             <p className="mt-1 text-sm text-brand-100">
-              B.Tech Computer Science • Semester 5 • Division A
+              {stats?.studentDetails?.course || 'B.Tech Computer Science'} • {stats?.studentDetails?.semester || 'Semester 5'} • {stats?.studentDetails?.division || 'Division A'}
             </p>
           </div>
         </div>

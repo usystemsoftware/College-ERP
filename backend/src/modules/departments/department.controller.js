@@ -2,6 +2,7 @@ const Department = require('./department.model');
 const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 // GET all departments
 const getDepartments = async (req, res, next) => {
@@ -67,7 +68,8 @@ const createDepartment = async (req, res, next) => {
 // PUT update department
 const updateDepartment = async (req, res, next) => {
   try {
-    const dept = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'code', 'hod']);
+    const dept = await Department.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!dept) throw new ApiError(404, 'Department not found');
     return res.json(new ApiResponse(200, dept, 'Department updated'));
   } catch (error) { next(error); }

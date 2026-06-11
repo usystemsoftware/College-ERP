@@ -11,7 +11,15 @@ const getParents = async (req, res, next) => {
 
     const parents = await Parent.find(filter)
       .populate('user', 'email status isVerified')
-      .populate('students', 'rollNumber personalDetails.fullName course')
+      .populate({
+        path: 'students',
+        select: 'rollNumber personalDetails.fullName course department semester',
+        populate: [
+          { path: 'course', select: 'name code' },
+          { path: 'department', select: 'name code' },
+          { path: 'semester', select: 'name' }
+        ]
+      })
       .populate('collegeId', 'name code');
 
     return res.status(200).json(new ApiResponse(200, { parents }, 'Parents fetched successfully'));
@@ -50,7 +58,15 @@ const getParentById = async (req, res, next) => {
   try {
     const parent = await Parent.findById(req.params.id)
       .populate('user', 'email status profileImage')
-      .populate('students', 'rollNumber personalDetails.fullName course department semester')
+      .populate({
+        path: 'students',
+        select: 'rollNumber personalDetails.fullName course department semester',
+        populate: [
+          { path: 'course', select: 'name code' },
+          { path: 'department', select: 'name code' },
+          { path: 'semester', select: 'name' }
+        ]
+      })
       .populate('collegeId', 'name code');
 
     if (!parent) {
@@ -90,7 +106,15 @@ const getMyProfile = async (req, res, next) => {
   try {
     const parent = await Parent.findOne({ user: req.user._id })
       .populate('user', 'email status profileImage')
-      .populate('students', 'rollNumber personalDetails.fullName course department semester')
+      .populate({
+        path: 'students',
+        select: 'rollNumber personalDetails.fullName course department semester',
+        populate: [
+          { path: 'course', select: 'name code' },
+          { path: 'department', select: 'name code' },
+          { path: 'semester', select: 'name' }
+        ]
+      })
       .populate('collegeId', 'name code');
 
     if (!parent) {

@@ -3,6 +3,7 @@ const Student = require('../students/student.model');
 const Notification = require('../notifications/notification.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getTimetable = async (req, res, next) => {
   try {
@@ -141,7 +142,8 @@ const createTimetableEntry = async (req, res, next) => {
       }
     }
 
-    const entry = await Timetable.create({ ...req.body, collegeId: req.user.collegeId });
+    const allowedData = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive']);
+    const entry = await Timetable.create({ ...allowedData, collegeId: req.user.collegeId });
 
     // Notify all students in the assigned department/course/semester/division
     const { course, division: div } = req.body;
@@ -182,7 +184,8 @@ const createTimetableEntry = async (req, res, next) => {
 
 const updateTimetableEntry = async (req, res, next) => {
   try {
-    const entry = await Timetable.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const allowedUpdates = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive']);
+    const entry = await Timetable.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true });
     if (!entry) throw new ApiError(404, 'Timetable entry not found');
     return res.json(new ApiResponse(200, entry, 'Timetable entry updated'));
   } catch (error) { next(error); }

@@ -1,6 +1,7 @@
 const Event = require('./event.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getEvents = async (req, res, next) => {
   try {
@@ -28,14 +29,16 @@ const getEvent = async (req, res, next) => {
 
 const createEvent = async (req, res, next) => {
   try {
-    const event = await Event.create({ ...req.body, organizer: req.user._id, collegeId: req.user.collegeId });
+    const allowedData = pick(req.body, ['title', 'description', 'type', 'startDate', 'endDate', 'venue', 'coOrdinators', 'maxParticipants', 'bannerUrl', 'status', 'isPublic']);
+    const event = await Event.create({ ...allowedData, organizer: req.user._id, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, event, 'Event created'));
   } catch (error) { next(error); }
 };
 
 const updateEvent = async (req, res, next) => {
   try {
-    const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const allowedUpdates = pick(req.body, ['title', 'description', 'type', 'startDate', 'endDate', 'venue', 'coOrdinators', 'maxParticipants', 'bannerUrl', 'status', 'isPublic']);
+    const event = await Event.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true });
     if (!event) throw new ApiError(404, 'Event not found');
     return res.json(new ApiResponse(200, event, 'Event updated'));
   } catch (error) { next(error); }

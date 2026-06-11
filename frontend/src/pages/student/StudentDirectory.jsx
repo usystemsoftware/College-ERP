@@ -297,102 +297,116 @@ const StudentDirectory = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
               <input 
-                {...register('fullName', { required: true })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                {...register('fullName', { required: 'Full Name is required' })}
+                className={`w-full rounded-lg border ${errors.fullName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                 placeholder="Enter full name" 
               />
+              {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
             </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
                 <input 
                   type="email"
-                  {...register('email', { required: true })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  {...register('email', { required: 'Email is required' })}
+                  className={`w-full rounded-lg border ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                   placeholder="student@erp.com" 
                 />
+                {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
                 <input 
                   type="password"
-                  {...register('password', { required: !editStudentId })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  {...register('password', { required: !editStudentId ? 'Password is required' : false })}
+                  className={`w-full rounded-lg border ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                   placeholder={editStudentId ? "Leave empty to keep same" : "Secret password"} 
                 />
+                {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone</label>
                 <input 
-                  {...register('phone', { required: true })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  {...register('phone', { required: 'Phone is required' })}
+                  className={`w-full rounded-lg border ${errors.phone ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                   placeholder="Phone number" 
                 />
+                {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Enrollment Number</label>
                 <input 
-                  {...register('enrollmentNumber', { required: true })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  {...register('enrollmentNumber', { required: 'Enrollment Number is required' })}
+                  className={`w-full rounded-lg border ${errors.enrollmentNumber ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                 />
+                {errors.enrollmentNumber && <p className="text-xs text-red-500 mt-1">{errors.enrollmentNumber.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Roll Number</label>
                 <input 
-                  {...register('rollNumber', { required: true })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                  {...register('rollNumber', { required: 'Roll Number is required' })}
+                  className={`w-full rounded-lg border ${errors.rollNumber ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
                 />
+                {errors.rollNumber && <p className="text-xs text-red-500 mt-1">{errors.rollNumber.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
-                <select {...register('department', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                <select {...register('department', { required: 'Department is required' })} className={`w-full rounded-lg border ${errors.department ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
                   <option value="">Select Dept</option>
                   {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                 </select>
+                {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course</label>
-                <select {...register('course', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                <select {...register('course', { required: 'Course is required' })} className={`w-full rounded-lg border ${errors.course ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
                   <option value="">Select Course</option>
                   {courses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
+                {errors.course && <p className="text-xs text-red-500 mt-1">{errors.course.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Semester</label>
-                <select {...register('semester', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                <select {...register('semester', { required: 'Semester is required' })} className={`w-full rounded-lg border ${errors.semester ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
                   <option value="">Select Semester</option>
                   {filteredSemesters.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
+                {errors.semester && <p className="text-xs text-red-500 mt-1">{errors.semester.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">DOB</label>
-                <input type="date" {...register('dob', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" />
+                <input type="date" {...register('dob', { required: 'Date of Birth is required' })} className={`w-full rounded-lg border ${errors.dob ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} />
+                {errors.dob && <p className="text-xs text-red-500 mt-1">{errors.dob.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gender</label>
-                <select {...register('gender', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                <select {...register('gender', { required: 'Gender is required' })} className={`w-full rounded-lg border ${errors.gender ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
+                {errors.gender && <p className="text-xs text-red-500 mt-1">{errors.gender.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Division</label>
-                <select {...register('division', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">
+                <select {...register('division', { required: 'Division is required' })} className={`w-full rounded-lg border ${errors.division ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
                   <option value="Division A">Division A</option>
                   <option value="Division B">Division B</option>
                   <option value="Division C">Division C</option>
                   <option value="Division D">Division D</option>
                 </select>
+                {errors.division && <p className="text-xs text-red-500 mt-1">{errors.division.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch</label>
-                <input {...register('batch', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="e.g. 2023-2027" />
+                <input {...register('batch', { required: 'Batch is required' })} className={`w-full rounded-lg border ${errors.batch ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} placeholder="e.g. 2023-2027" />
+                {errors.batch && <p className="text-xs text-red-500 mt-1">{errors.batch.message}</p>}
               </div>
             
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
-                <input {...register('address', { required: true })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Full Address" />
+                <input {...register('address', { required: 'Address is required' })} className={`w-full rounded-lg border ${errors.address ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} placeholder="Full Address" />
+                {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
               </div>
 
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800">

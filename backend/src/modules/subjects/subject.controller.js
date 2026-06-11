@@ -1,6 +1,7 @@
 const Subject = require('./subject.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getSubjects = async (req, res, next) => {
   try {
@@ -42,7 +43,8 @@ const createSubject = async (req, res, next) => {
 
 const updateSubject = async (req, res, next) => {
   try {
-    const subject = await Subject.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'code', 'course', 'semester', 'department', 'credits', 'type']);
+    const subject = await Subject.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!subject) throw new ApiError(404, 'Subject not found');
     return res.json(new ApiResponse(200, subject, 'Subject updated'));
   } catch (error) { next(error); }

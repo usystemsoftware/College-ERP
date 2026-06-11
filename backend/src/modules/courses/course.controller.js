@@ -1,6 +1,7 @@
 const Course = require('./course.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getCourses = async (req, res, next) => {
   try {
@@ -33,7 +34,8 @@ const createCourse = async (req, res, next) => {
 
 const updateCourse = async (req, res, next) => {
   try {
-    const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'code', 'department', 'durationSemesters']);
+    const course = await Course.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!course) throw new ApiError(404, 'Course not found');
     return res.json(new ApiResponse(200, course, 'Course updated'));
   } catch (error) { next(error); }

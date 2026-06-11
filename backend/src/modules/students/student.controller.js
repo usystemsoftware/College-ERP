@@ -6,7 +6,7 @@ const Parent = require('../parents/parent.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const { emitNotification } = require('../../services/notification.service');
-
+const pick = require('../../utils/pick');
 // GET all students (with pagination + filters)
 const getStudents = async (req, res, next) => {
   try {
@@ -216,7 +216,12 @@ const updateStudent = async (req, res, next) => {
       }
     }
 
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const allowedUpdates = pick(req.body, [
+      'rollNumber', 'enrollmentNumber', 'department', 'course', 'semester', 
+      'division', 'batch', 'personalDetails'
+    ]);
+
+    const student = await Student.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name')
       .populate('course', 'name');
@@ -337,7 +342,9 @@ const getMyProfile = async (req, res, next) => {
 // GET student dashboard stats
 const getStudentDashboardStats = async (req, res, next) => {
   try {
-    const student = await Student.findOne({ user: req.user._id });
+    const student = await Student.findOne({ user: req.user._id })
+      .populate('course', 'name')
+      .populate('semester', 'name');
     if (!student) throw new ApiError(404, 'Student profile not found');
 
     const filter = { student: student._id };
@@ -400,7 +407,12 @@ const getStudentDashboardStats = async (req, res, next) => {
       todaysClasses: formattedClasses,
       feesDue: 25000, // Placeholder
       assignmentsDue: assignmentsDue,
-      libraryBooksDue: 1 // Placeholder
+      libraryBooksDue: 1, // Placeholder
+      studentDetails: {
+        course: student.course?.name || 'Unknown Course',
+        semester: student.semester?.name || 'Unknown Semester',
+        division: student.division || 'Unknown Division'
+      }
     };
 
     return res.json(new ApiResponse(200, stats, 'Dashboard stats fetched'));

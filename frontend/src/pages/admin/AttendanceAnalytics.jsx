@@ -3,51 +3,53 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Users, Clock, Calendar as CalendarIcon, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Clock, Calendar as CalendarIcon, TrendingUp, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { getAttendanceAnalyticsAPI } from '../../api/attendance.api';
 
 const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'];
 
-const mockDailyData = [
-  { name: 'Mon', present: 85, absent: 15 },
-  { name: 'Tue', present: 88, absent: 12 },
-  { name: 'Wed', present: 92, absent: 8 },
-  { name: 'Thu', present: 80, absent: 20 },
-  { name: 'Fri', present: 87, absent: 13 },
-];
-
-const mockSubjectData = [
-  { name: 'Data Structures', rate: 92 },
-  { name: 'Operating Sys', rate: 85 },
-  { name: 'Networks', rate: 78 },
-  { name: 'Databases', rate: 88 },
-  { name: 'Algorithms', rate: 95 },
-];
-
-const mockMonthlyData = [
-  { name: 'Jan', rate: 88 },
-  { name: 'Feb', rate: 90 },
-  { name: 'Mar', rate: 85 },
-  { name: 'Apr', rate: 92 },
-  { name: 'May', rate: 89 },
-];
-
-const mockTeacherData = [
-  { name: 'Dr. Smith', rate: 98 },
-  { name: 'Prof. Johnson', rate: 95 },
-  { name: 'Dr. Williams', rate: 100 },
-  { name: 'Prof. Brown', rate: 92 },
-];
-
 const AttendanceAnalytics = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [analyticsData, setAnalyticsData] = useState({
+    overallAttendance: 0,
+    totalStudents: 0,
+    totalTeachers: 0,
+    presentToday: 0,
+    lateArrivals: 0,
+    dailyData: [],
+    monthlyData: [],
+    subjectData: [],
+    teacherData: []
+  });
 
-  // In a real app, you would fetch the data from the backend here
-  // useEffect(() => { fetchAnalyticsData(); }, []);
+  useEffect(() => { 
+    fetchAnalyticsData(); 
+  }, []);
 
-  const overallAttendance = 88.5;
-  const totalStudents = 1250;
-  const totalTeachers = 85;
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      const res = await getAttendanceAnalyticsAPI();
+      if (res.data && res.data.data) {
+        setAnalyticsData(res.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const { overallAttendance, totalStudents, totalTeachers, presentToday, lateArrivals, dailyData, monthlyData, subjectData, teacherData } = analyticsData;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="animate-spin text-brand-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -76,7 +78,8 @@ const AttendanceAnalytics = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {(activeTab === 'Overview' || activeTab === 'Students') && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-brand-300 transition-colors">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-50 dark:bg-brand-900/20 rounded-full blur-2xl group-hover:bg-brand-100 transition-colors"></div>
           <div className="flex items-center gap-4 relative z-10">
@@ -117,7 +120,7 @@ const AttendanceAnalytics = () => {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Students Present Today</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">1,105</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{presentToday}</h3>
             </div>
           </div>
           <div className="mt-4 w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5">
@@ -133,7 +136,7 @@ const AttendanceAnalytics = () => {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Late Arrivals</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">42</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{lateArrivals}</h3>
             </div>
           </div>
           <div className="mt-4 flex items-center gap-1 text-sm text-rose-500 font-medium">
@@ -141,8 +144,10 @@ const AttendanceAnalytics = () => {
           </div>
         </div>
       </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(activeTab === 'Overview' || activeTab === 'Students') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Attendance Trend */}
         <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between mb-6">
@@ -151,7 +156,7 @@ const AttendanceAnalytics = () => {
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockDailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
@@ -175,7 +180,7 @@ const AttendanceAnalytics = () => {
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockMonthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -194,9 +199,12 @@ const AttendanceAnalytics = () => {
           </div>
         </div>
       </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subject-Wise Attendance */}
+      {(activeTab === 'Overview' || activeTab === 'Subjects' || activeTab === 'Faculty') && (
+        <div className={`grid grid-cols-1 ${activeTab === 'Overview' ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-6`}>
+          {/* Subject-Wise Attendance */}
+          {(activeTab === 'Overview' || activeTab === 'Subjects') && (
         <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-800 dark:text-white">Subject-Wise Attendance</h3>
@@ -207,13 +215,13 @@ const AttendanceAnalytics = () => {
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockSubjectData} layout="vertical" margin={{ top: 0, right: 10, left: 20, bottom: 0 }}>
+              <BarChart data={subjectData} layout="vertical" margin={{ top: 0, right: 10, left: 20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                 <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12, fontWeight: 500 }} width={100} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="rate" name="Attendance %" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20}>
-                  {mockSubjectData.map((entry, index) => (
+                  {subjectData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.rate > 85 ? '#10b981' : entry.rate > 75 ? '#f59e0b' : '#ef4444'} />
                   ))}
                 </Bar>
@@ -221,14 +229,16 @@ const AttendanceAnalytics = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
         {/* Teacher Report */}
+        {(activeTab === 'Overview' || activeTab === 'Faculty') && (
         <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-800 dark:text-white">Faculty Attendance Report</h3>
           </div>
           <div className="h-72 flex flex-col justify-center">
-            {mockTeacherData.map((teacher, idx) => (
+            {teacherData.map((teacher, idx) => (
               <div key={idx} className="mb-4 last:mb-0">
                 <div className="flex justify-between items-end mb-1">
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{teacher.name}</span>
@@ -244,7 +254,9 @@ const AttendanceAnalytics = () => {
             ))}
           </div>
         </div>
+        )}
       </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { ShieldAlert, Send, Eye, EyeOff, MapPin, Paperclip, Sparkles, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
-import { submitIncidentAPI } from '../../api/incidents.api';
+import React, { useState, useEffect } from 'react';
+import { ShieldAlert, Send, Eye, EyeOff, MapPin, Paperclip, Sparkles, AlertTriangle, CheckCircle2, Loader2, List, FileText } from 'lucide-react';
+import { submitIncidentAPI, getMyIncidentsAPI } from '../../api/incidents.api';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -30,6 +30,29 @@ const IncidentReportPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [aiResult, setAiResult] = useState(null);
+
+  const [activeTab, setActiveTab] = useState('submit');
+  const [myIncidents, setMyIncidents] = useState([]);
+  const [loadingIncidents, setLoadingIncidents] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'my-reports') {
+      fetchMyIncidents();
+    }
+  }, [activeTab]);
+
+  const fetchMyIncidents = async () => {
+    setLoadingIncidents(true);
+    try {
+      const res = await getMyIncidentsAPI();
+      setMyIncidents(res.data?.data || []);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast.error('Failed to load your reports');
+    } finally {
+      setLoadingIncidents(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,13 +159,41 @@ const IncidentReportPage = () => {
           <ShieldAlert size={32} className="text-white" />
         </div>
         <h1 className="text-3xl font-extrabold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-orange-400">
-          Anonymous Incident Report
+          Incident Reports
         </h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          Report safety concerns, harassment, or emergencies. Your identity is protected by default. AI will automatically categorize and prioritize your report.
+          Report safety concerns, harassment, or emergencies. Your identity will be hidden from administrators.
         </p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex bg-slate-100 dark:bg-dark-800 p-1 rounded-xl">
+          <button
+            onClick={() => setActiveTab('submit')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'submit'
+                ? 'bg-white dark:bg-dark-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Send size={16} /> Submit Report
+          </button>
+          <button
+            onClick={() => setActiveTab('my-reports')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'my-reports'
+                ? 'bg-white dark:bg-dark-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <List size={16} /> My Reports
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'submit' ? (
+        <>
       {/* Anonymous Toggle */}
       <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
         <div className="flex items-center justify-between">
@@ -162,7 +213,7 @@ const IncidentReportPage = () => {
               </p>
               <p className="text-xs text-slate-400">
                 {isAnonymous
-                  ? 'Your identity will not be stored or shared with anyone.'
+                  ? 'Your identity will be hidden from administrators.'
                   : 'Your identity will be visible to administrators reviewing this report.'}
               </p>
             </div>
@@ -291,9 +342,51 @@ const IncidentReportPage = () => {
         </button>
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          🔒 All reports are encrypted and stored securely. Anonymous reports cannot be traced back to you.
+          🔒 All reports are encrypted and stored securely. Your identity will be hidden from administrators.
         </p>
       </form>
+        </>
+      ) : (
+        <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">My Submitted Reports</h2>
+          {loadingIncidents ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <Loader2 size={32} className="animate-spin mb-4" />
+              <p>Loading your reports...</p>
+            </div>
+          ) : myIncidents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-center">
+              <FileText size={48} className="text-slate-300 mb-4 dark:text-slate-600" />
+              <p className="font-medium text-slate-600 dark:text-slate-300">No reports found.</p>
+              <p className="text-sm mt-1">You haven't submitted any incident reports yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {myIncidents.map((incident) => (
+                <div key={incident._id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:bg-slate-50 dark:hover:bg-dark-750 transition-colors">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">{incident.title}</h3>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${
+                      incident.status === 'Resolved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      incident.status === 'Pending' || incident.status === 'New' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                      incident.status === 'Dismissed' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {incident.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">{incident.description}</p>
+                  <div className="flex items-center gap-3 flex-wrap text-xs font-medium">
+                    <span className="text-slate-500 dark:text-slate-400">{new Date(incident.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span className={`px-2 py-0.5 rounded text-white ${urgencyColors[incident.urgency] || 'bg-slate-500'}`}>{incident.urgency}</span>
+                    <span className="text-slate-500 bg-slate-100 dark:bg-dark-700 px-2 py-0.5 rounded">{incident.category}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import StudentsPage from '../pages/student/StudentDirectory';
 import FacultyPage from '../pages/admin/FacultyPage';
 import AttendancePage from '../pages/admin/AttendancePage';
+import AttendanceAnalytics from '../pages/admin/AttendanceAnalytics';
 import FeesPage from '../pages/admin/FeesPage';
 import TimetablePage from '../pages/shared/TimetablePage';
 import LMSPage from '../pages/shared/LMSPage';
@@ -31,6 +32,12 @@ import ParentFeesPage from '../pages/parent/ParentFeesPage';
 import SubjectsPage from '../pages/academic/SubjectsPage';
 import InventoryDashboard from '../pages/inventory/InventoryDashboard';
 import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
+import IncidentReportPage from '../pages/incidents/IncidentReportPage';
+import IncidentDashboard from '../pages/incidents/IncidentDashboard';
+import QRAttendancePage from '../pages/attendance/QRAttendancePage';
+import LeaveApplicationPage from '../pages/leave/LeaveApplicationPage';
+import LeaveDashboard from '../pages/leave/LeaveDashboard';
+
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
     <h1 className="text-4xl font-extrabold text-red-500">403 - Access Denied</h1>
@@ -219,6 +226,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="attendance-analytics"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD']}>
+              <AttendanceAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="faculty-attendance"
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty']}>
@@ -279,6 +294,46 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="report-incident"
+          element={
+            <ProtectedRoute>
+              <IncidentReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="incidents"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Security Officer']}>
+              <IncidentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="qr-attendance"
+          element={
+            <ProtectedRoute>
+              <QRAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="leave-application"
+          element={
+            <ProtectedRoute>
+              <LeaveApplicationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="leave-approvals"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD', 'Vice Principal']}>
+              <LeaveDashboard />
             </ProtectedRoute>
           }
         />

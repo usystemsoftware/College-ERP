@@ -22,7 +22,7 @@ const StudentDirectory = () => {
   const [semesters, setSemesters] = useState([]);
   const [fetchingOptions, setFetchingOptions] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
 
   const selectedCourseId = watch('course');
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
@@ -87,7 +87,7 @@ const StudentDirectory = () => {
       batch: student.batch || '',
       address: student.personalDetails?.address || '',
       parentEmail: student.parent?.email || '',
-      parentPassword: '' // leave empty
+      parentPassword: student.parent ? '********' : '' // Fake password for display
     });
     setIsModalOpen(true);
   };
@@ -128,7 +128,8 @@ const StudentDirectory = () => {
     };
 
     if (editStudentId) {
-      if (!data.password) delete payload.password; // Don't send empty password on edit
+      if (!data.password || data.password === '********') delete payload.password; // Don't send empty password on edit
+      if (!data.parentPassword || data.parentPassword === '********') delete payload.parentPassword;
       const res = await dispatch(updateStudent({ id: editStudentId, data: payload }));
       if (!res.error) {
         setIsModalOpen(false);
@@ -403,12 +404,23 @@ const StudentDirectory = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
+                  {editStudentId && watch('parentEmail') && watch('parentPassword') === '********' && (
+                    <button 
+                      type="button" 
+                      onClick={() => setValue('parentPassword', '')}
+                      className="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium"
+                    >
+                      Change Password
+                    </button>
+                  )}
+                </div>
                 <input 
                   type="password"
                   {...register('parentPassword')}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder="Parent account password" 
+                  placeholder={editStudentId && watch('parentEmail') ? "Leave empty to keep same" : "Parent account password"} 
                 />
               </div>
             </div>

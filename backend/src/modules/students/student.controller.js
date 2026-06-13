@@ -105,11 +105,14 @@ const createStudent = async (req, res, next) => {
         collegeId: collegeId || req.user.collegeId
       });
 
-      if (parentEmail && parentPassword) {
+      if (parentEmail) {
         const parentRole = await Role.findOne({ name: 'Parent' });
         if (parentRole) {
           let parentUser = await User.findOne({ email: parentEmail });
           if (!parentUser) {
+            if (!parentPassword) {
+              throw new ApiError(400, 'Password is required to create a new parent account');
+            }
             parentUser = await User.create({
               email: parentEmail,
               password: parentPassword,
@@ -209,11 +212,14 @@ const updateStudent = async (req, res, next) => {
       .populate('course', 'name');
 
     const { parentEmail, parentPassword } = req.body;
-    if (parentEmail && parentPassword) {
+    if (parentEmail) {
       const parentRole = await Role.findOne({ name: 'Parent' });
       if (parentRole) {
         let parentUser = await User.findOne({ email: parentEmail });
         if (!parentUser) {
+          if (!parentPassword) {
+             throw new ApiError(400, 'Password is required to create a new parent account');
+          }
           parentUser = await User.create({
             email: parentEmail,
             password: parentPassword,
@@ -232,7 +238,12 @@ const updateStudent = async (req, res, next) => {
             collegeId: student.collegeId
           });
         } else {
-          // Parent user already exists, check profile
+          // Parent user already exists
+          if (parentPassword) {
+            parentUser.password = parentPassword;
+            await parentUser.save();
+          }
+          // check profile
           const parentProfile = await Parent.findOne({ user: parentUser._id });
           if (parentProfile && !parentProfile.students.includes(student._id)) {
             parentProfile.students.push(student._id);

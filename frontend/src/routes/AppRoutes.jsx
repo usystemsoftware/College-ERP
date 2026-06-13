@@ -38,6 +38,20 @@ import QRAttendancePage from '../pages/attendance/QRAttendancePage';
 import LeaveApplicationPage from '../pages/leave/LeaveApplicationPage';
 import LeaveDashboard from '../pages/leave/LeaveDashboard';
 
+// Exams
+import ExamDashboard from '../pages/exams/ExamDashboard';
+import StudentResultsPage from '../pages/exams/StudentResultsPage';
+
+// Transport
+import TransportDashboard from '../pages/transport/TransportDashboard';
+import BusTrackingPage from '../pages/transport/BusTrackingPage';
+
+// Parents
+import ParentConsentPage from '../pages/parent/ParentConsentPage';
+import ParentTrackingPage from '../pages/parent/ParentTrackingPage';
+
+// Checkpoints
+import CheckpointPage from '../pages/attendance/CheckpointPage';
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
     <h1 className="text-4xl font-extrabold text-red-500">403 - Access Denied</h1>
@@ -201,6 +215,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/student/results" element={<ProtectedRoute allowedRoles={['Student']}><StudentResultsPage /></ProtectedRoute>} />
         <Route
           path="subjects"
           element={
@@ -257,6 +272,9 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/bus-tracking" element={<ProtectedRoute><BusTrackingPage /></ProtectedRoute>} />
+        <Route path="/parent/consent" element={<ProtectedRoute allowedRoles={['Parent']}><ParentConsentPage /></ProtectedRoute>} />
+        <Route path="/parent/tracking" element={<ProtectedRoute allowedRoles={['Parent']}><ParentTrackingPage /></ProtectedRoute>} />
         <Route
           path="inventory"
           element={
@@ -305,6 +323,8 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/incidents/report" element={<ProtectedRoute><IncidentReportPage /></ProtectedRoute>} />
+        <Route path="/checkpoints" element={<ProtectedRoute><CheckpointPage /></ProtectedRoute>} />
         <Route
           path="incidents"
           element={

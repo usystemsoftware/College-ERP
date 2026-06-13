@@ -77,7 +77,9 @@ const CampusLiveWidget = () => {
               rollNumber: r.student?.rollNumber || r.rollNumber,
               location: { lat, lng },
               checkInTime: r.checkInTime,
-              onCampus: dist <= CAMPUS_RADIUS
+              onCampus: dist <= CAMPUS_RADIUS,
+              status: r.status,
+              statusLabel: r.statusLabel
             };
           });
           setStudents(formatted);
@@ -114,7 +116,9 @@ const CampusLiveWidget = () => {
           studentName,
           rollNumber,
           location: { lat, lng },
-          onCampus: dist <= CAMPUS_RADIUS
+          onCampus: dist <= CAMPUS_RADIUS,
+          status: payload.status,
+          statusLabel: payload.statusLabel
         };
         if (exists) {
           return prev.map((s) =>
@@ -134,25 +138,29 @@ const CampusLiveWidget = () => {
       }
     };
 
-    const handleLocationUpdate = (payload) => {
-      const studentId = normalizeStudentId(payload.studentId);
-      const lat = payload.lat;
-      const lng = payload.lng;
-      const dist = calculateDistance(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
-
-      setStudents((prev) => {
-        return prev.map((s) => {
-          if (normalizeStudentId(s.studentId) === studentId) {
-            return {
-              ...s,
-              location: { lat, lng },
-              onCampus: dist <= CAMPUS_RADIUS,
-              isLiveTracking: true
+    const handleLocationUpdate = (data) => {
+      if (data && data.studentId && data.lat && data.lng) {
+        const sId = normalizeStudentId(data.studentId);
+        console.log(`[Socket] Location updated for ${sId}: ${data.statusLabel} (${data.status})`);
+        setStudents(prev => {
+          const index = prev.findIndex(s => normalizeStudentId(s.studentId) === sId);
+          if (index >= 0) {
+            const updated = [...prev];
+            updated[index] = { 
+              ...updated[index], 
+              location: { lat: data.lat, lng: data.lng }, 
+              onCampus: data.isOnCampus !== undefined ? data.isOnCampus : updated[index].onCampus,
+              status: data.status || 'unknown',
+              statusLabel: data.statusLabel || 'Unknown',
+              distanceFromCampus: data.distanceFromCampus,
+              isLiveTracking: true 
             };
+            return updated;
+          } else {
+            return prev;
           }
-          return s;
         });
-      });
+      }
     };
 
     let cleanupSocket = () => { };
@@ -218,7 +226,6 @@ const CampusLiveWidget = () => {
   useEffect(() => {
     if (mapReady && mapRef.current) {
       const L = window.L;
-      console.log('Students array:', students);
 
       students.forEach(student => {
         if (student.location && student.location.lat && student.location.lng) {
@@ -234,18 +241,28 @@ const CampusLiveWidget = () => {
             }
           } catch (e) { }
 
-          const popupContent = `<b>${student.studentName || 'Unknown'}</b><br/>${student.rollNumber || 'N/A'}<br/>${student.onCampus ? 'On Campus' : 'Outside'}<br/>Checked in: ${checkInTimeStr || 'Unknown'}`;
+          const statusColors = {
+            at_school: '#10b981',
+            on_way_to_school: '#f59e0b',
+            on_way_home: '#8b5cf6',
+            at_home: '#3b82f6',
+            unknown: '#64748b'
+          };
+          const color = statusColors[student.status] || (student.onCampus ? '#10b981' : '#ef4444');
+          
+          const popupContent = `<b>${student.studentName || 'Unknown'}</b><br/>
+            ${student.rollNumber || 'N/A'}<br/>
+            <span style="color: ${color}; font-weight: bold;">${student.statusLabel || (student.onCampus ? 'On Campus' : 'Outside')}</span><br/>
+            Checked in: ${checkInTimeStr || 'Unknown'}`;
 
-          const isOutside = !student.onCampus;
           const pulseCss = student.isLiveTracking ? 'box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5); animation: pulse 1.5s infinite;' : 'box-shadow: 0 0 4px rgba(0,0,0,0.4);';
-          const iconHtml = `<div style="background-color: ${isOutside ? '#ef4444' : '#10b981'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${pulseCss}"></div>`;
+          const iconHtml = `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${pulseCss}"></div>`;
           const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [18, 18], iconAnchor: [9, 9] });
 
           const handleMarkerClick = () => {
             const socket = getSocket();
             if (socket) {
               socket.emit('join_tracking', studentId);
-              console.log(`[Tracking] Requested live tracking for ${student.studentName}`);
             }
           };
 
@@ -273,11 +290,10 @@ const CampusLiveWidget = () => {
         }
       });
 
-      // Adjust map bounds to show all markers plus campus
       const validStudents = students.filter(s => s.location && s.location.lat && s.location.lng);
       if (validStudents.length > 0) {
         const bounds = L.latLngBounds(validStudents.map(s => [s.location.lat, s.location.lng]));
-        bounds.extend([CAMPUS_LAT, CAMPUS_LNG]); // Ensure campus is always in view
+        bounds.extend([CAMPUS_LAT, CAMPUS_LNG]);
         mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
       } else {
         mapRef.current.setView([CAMPUS_LAT, CAMPUS_LNG], 17);
@@ -339,25 +355,59 @@ const CampusLiveWidget = () => {
           </div>
         )}
 
-        {!loading && !error && students.map((student) => (
-          <div 
-            key={student.studentId} 
-            className="flex gap-3 px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors items-center cursor-pointer"
-            onClick={() => {
-              const socket = getSocket();
-              if (socket) socket.emit('join_tracking', student.studentId);
-            }}
-          >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${student.onCampus ? 'bg-green-500' : 'bg-red-500'} ${student.isLiveTracking ? 'animate-pulse scale-150' : ''}`}></div>
-            <div className="text-sm font-medium text-gray-800">
-              {student.studentName || 'Unknown'}
-              {!student.onCampus && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Outside</span>}
-              {student.isLiveTracking && <span className="ml-2 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Live</span>}
+        {!loading && !error && students.map((student) => {
+          const statusColors = {
+            at_school: 'bg-emerald-100 text-emerald-800',
+            on_way_to_school: 'bg-amber-100 text-amber-800',
+            on_way_home: 'bg-purple-100 text-purple-800',
+            at_home: 'bg-blue-100 text-blue-800',
+            unknown: 'bg-slate-100 text-slate-800'
+          };
+          const dotColors = {
+            at_school: 'bg-emerald-500',
+            on_way_to_school: 'bg-amber-500',
+            on_way_home: 'bg-purple-500',
+            at_home: 'bg-blue-500',
+            unknown: 'bg-slate-500'
+          };
+          const statusClass = student.status ? statusColors[student.status] : (student.onCampus ? statusColors.at_school : 'bg-red-100 text-red-800');
+          const dotClass = student.status ? dotColors[student.status] : (student.onCampus ? dotColors.at_school : 'bg-red-500');
+          const statusText = student.statusLabel || (student.onCampus ? 'On Campus' : 'Outside');
+
+          return (
+            <div 
+              key={student.studentId} 
+              className="flex gap-3 px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors items-center cursor-pointer"
+              onClick={() => {
+                if (mapRef.current && student.location && student.location.lat) {
+                  mapRef.current.setView([student.location.lat, student.location.lng], 18);
+                  const sId = normalizeStudentId(student.studentId);
+                  if (markersRef.current[sId]) {
+                    markersRef.current[sId].openPopup();
+                  }
+                }
+                const socket = getSocket();
+                if (socket) socket.emit('join_tracking', student.studentId);
+              }}
+            >
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass} ${student.isLiveTracking ? 'animate-pulse scale-150 ring-2 ring-blue-300' : ''}`}></div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
+                  {student.studentName || 'Unknown'}
+                  {student.isLiveTracking && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Live</span>}
+                </span>
+                <span className="text-xs text-gray-500">{student.rollNumber || 'N/A'}</span>
+              </div>
+              
+              <div className="flex flex-col items-end gap-1 ml-auto">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${statusClass}`}>
+                  {statusText}
+                </span>
+                <div className="text-xs text-gray-400">{formatTime(student.checkInTime) || 'No scan'}</div>
+              </div>
             </div>
-            <div className="text-xs text-gray-500 ml-auto">{student.rollNumber || 'N/A'}</div>
-            <div className="text-xs text-gray-400">{formatTime(student.checkInTime)}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

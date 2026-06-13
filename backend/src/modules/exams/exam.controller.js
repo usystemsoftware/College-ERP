@@ -98,6 +98,66 @@ const getStudentResults = async (req, res, next) => {
   }
 };
 
+// Get my own results (student self-service)
+const getMyResults = async (req, res, next) => {
+  try {
+    const Student = require('../students/student.model');
+    const student = await Student.findOne({ user: req.user._id });
+    if (!student) throw new ApiError(404, 'Student profile not found');
+
+    const studentId = student._id.toString();
+
+    const exams = await Exam.find({ 'results.studentId': student._id, isPublished: true })
+      .populate('subjectId', 'name code');
+
+    const formattedResults = exams.map(exam => {
+      const studentResult = exam.results.find(r => r.studentId.toString() === studentId);
+      if (!studentResult) return null;
+
+      const percentage = exam.totalMarks > 0 ? ((studentResult.marksObtained / exam.totalMarks) * 100).toFixed(1) : 0;
+      let grade = 'F';
+      if (percentage >= 90) grade = 'A+';
+      else if (percentage >= 80) grade = 'A';
+      else if (percentage >= 70) grade = 'B+';
+      else if (percentage >= 60) grade = 'B';
+      else if (percentage >= 50) grade = 'C';
+      else if (percentage >= 40) grade = 'D';
+
+      return {
+        _id: exam._id,
+        examTitle: exam.title,
+        examType: exam.examType,
+        date: exam.date,
+        subject: exam.subjectId,
+        totalMarks: exam.totalMarks,
+        passingMarks: exam.passingMarks,
+        marksObtained: studentResult.marksObtained,
+        grade: studentResult.grade || grade,
+        percentage: parseFloat(percentage),
+        passed: studentResult.marksObtained >= (exam.passingMarks || 0),
+        remarks: studentResult.remarks
+      };
+    }).filter(Boolean);
+
+    // Summary stats
+    const totalExams = formattedResults.length;
+    const passedExams = formattedResults.filter(r => r.passed).length;
+    const avgPercentage = totalExams > 0 ? (formattedResults.reduce((sum, r) => sum + r.percentage, 0) / totalExams).toFixed(1) : 0;
+
+    return res.status(200).json(new ApiResponse(200, {
+      results: formattedResults,
+      summary: {
+        totalExams,
+        passedExams,
+        failedExams: totalExams - passedExams,
+        averagePercentage: parseFloat(avgPercentage)
+      }
+    }, 'My results fetched successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getExamDashboardStats = async (req, res, next) => {
   try {
     const isStudent = req.user.role.name === 'Student';
@@ -180,5 +240,6 @@ module.exports = {
   getExams,
   updateResults,
   getStudentResults,
+  getMyResults,
   getExamDashboardStats
 };

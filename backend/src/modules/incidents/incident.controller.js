@@ -52,8 +52,32 @@ function categorizeIncident(title, description) {
 // POST /incidents — Submit an incident (available to all authenticated users)
 const createIncident = async (req, res, next) => {
   try {
-    const { title, description, category, location, isAnonymous, attachments } = req.body;
+    const { title, description, category, location, isAnonymous } = req.body;
     if (!title || !description) throw new ApiError(400, 'Title and description are required');
+
+    // Handle file uploads from multer
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      attachments = req.files.map(file => {
+        let fileType = 'document';
+        if (file.mimetype.startsWith('image/')) fileType = 'image';
+        else if (file.mimetype.startsWith('audio/')) fileType = 'audio';
+
+        return {
+          type: fileType,
+          url: `/uploads/incidents/${file.filename}`,
+          filename: file.originalname
+        };
+      });
+    }
+
+    // Also handle any attachments passed as JSON in the body
+    if (req.body.attachments && typeof req.body.attachments === 'string') {
+      try {
+        const bodyAttachments = JSON.parse(req.body.attachments);
+        attachments = [...attachments, ...bodyAttachments];
+      } catch (e) { /* ignore parse errors */ }
+    }
 
     // Run AI categorization
     const aiResult = categorizeIncident(title, description);
@@ -65,8 +89,8 @@ const createIncident = async (req, res, next) => {
       urgency: aiResult.urgency,
       location: location || '',
       isAnonymous: isAnonymous !== false, // default true
-      submittedBy: req.user._id, // Always store the user ID to allow tracking "My Reports"
-      attachments: attachments || [],
+      submittedBy: req.user._id,
+      attachments,
       aiCategorization: aiResult,
       collegeId: req.user.collegeId
     });

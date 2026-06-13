@@ -13,6 +13,10 @@ router.post('/vehicles', authorize('Super Admin', 'College Admin', 'Transport Ma
 router.get('/vehicles', authorize('Super Admin', 'College Admin', 'Transport Manager'), transportController.getVehicles);
 
 router.post('/allocate', authorize('Super Admin', 'College Admin', 'Transport Manager'), transportController.allocateTransport);
-router.get('/allocation/:studentId', authorize('Super Admin', 'College Admin', 'Transport Manager', 'Student'), transportController.getStudentTransport);
+router.get('/allocation/:studentId', authorize('Super Admin', 'College Admin', 'Transport Manager', 'Student', 'Parent'), transportController.getStudentTransport);
+
+// Real-time tracking
+router.get('/live', authorize('Super Admin', 'College Admin', 'Transport Manager', 'Student', 'Parent'), transportController.getBusLiveLocations);
+router.get('/eta/:vehicleId', authorize('Super Admin', 'College Admin', 'Transport Manager', 'Student', 'Parent'), transportController.getBusETA);
 
 module.exports = router;

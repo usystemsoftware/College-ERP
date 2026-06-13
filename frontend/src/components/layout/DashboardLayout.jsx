@@ -29,7 +29,9 @@ import {
   BarChart2,
   ShieldAlert,
   QrCode,
-  FileText
+  FileText,
+  MapPin,
+  ClipboardList
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -152,6 +154,8 @@ const DashboardLayout = () => {
       { name: 'Inventory', path: '/inventory', icon: Archive },
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+      { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
+      { name: 'Checkpoints', path: '/checkpoints', icon: QrCode },
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
@@ -188,8 +192,10 @@ const DashboardLayout = () => {
       { name: 'Fees & Payments', path: '/student/fees', icon: CreditCard },
       { name: 'Attendance', path: '/student/attendance', icon: Clock },
       { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
+      { name: 'Checkpoints', path: '/checkpoints', icon: QrCode },
       { name: 'Gate Pass', path: '/student/gatepass', icon: ShieldCheck },
       { name: 'Timetable', path: '/timetable', icon: Calendar },
+      { name: 'Exam Results', path: '/student/results', icon: ClipboardList },
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
       { name: 'Report Incident', path: '/report-incident', icon: ShieldAlert },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
@@ -199,6 +205,8 @@ const DashboardLayout = () => {
       { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
       { name: 'Fees & Payments', path: '/parent/fees', icon: CreditCard },
       { name: 'Attendance', path: '/parent/attendance', icon: Clock },
+      { name: 'Live Tracking', path: '/parent/tracking', icon: MapPin },
+      { name: 'Consent Settings', path: '/parent/consent', icon: ShieldCheck },
       ...navItems,
     ];
   } else if (userRole === 'Accountant') {

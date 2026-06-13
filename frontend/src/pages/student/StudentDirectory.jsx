@@ -86,15 +86,8 @@ const StudentDirectory = () => {
       division: student.division || '',
       batch: student.batch || '',
       address: student.personalDetails?.address || '',
-<<<<<<< HEAD
       parentEmail: student.parent?.email || '',
       parentPassword: student.parent ? '********' : '' // Fake password for display
-=======
-      fatherEmail: student.parents?.find(p => p.relation === 'Father')?.email || student.parent?.email || '',
-      fatherPassword: '', // leave empty
-      motherEmail: student.parents?.find(p => p.relation === 'Mother')?.email || '',
-      motherPassword: '' // leave empty
->>>>>>> 98a79ebdc6a40a460360e7033741a2a8dfc94c50
     });
     setIsModalOpen(true);
   };
@@ -414,7 +407,6 @@ const StudentDirectory = () => {
                 <input {...register('address', { required: 'Address is required' })} className={`w-full rounded-lg border ${errors.address ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} placeholder="Full Address" />
                 {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
               </div>
-<<<<<<< HEAD
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
@@ -434,54 +426,7 @@ const StudentDirectory = () => {
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
                   placeholder={editStudentId && watch('parentEmail') ? "Leave empty to keep same" : "Parent account password"} 
                 />
-=======
-
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-4">Parents Login Details (Optional)</h3>
-              
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Email</label>
-                  <input 
-                    type="email"
-                    {...register('fatherEmail')}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                    placeholder="father@example.com" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Password</label>
-                  <input 
-                    type="password"
-                    {...register('fatherPassword')}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                    placeholder="Father's account password" 
-                  />
-                </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Email</label>
-                  <input 
-                    type="email"
-                    {...register('motherEmail')}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                    placeholder="mother@example.com" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Password</label>
-                  <input 
-                    type="password"
-                    {...register('motherPassword')}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                    placeholder="Mother's account password" 
-                  />
-                </div>
->>>>>>> 98a79ebdc6a40a460360e7033741a2a8dfc94c50
-              </div>
-            </div>
 
             <button type="submit" disabled={loading} className="w-full mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
               {loading ? 'Creating...' : 'Submit'}

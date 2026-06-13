@@ -1,6 +1,7 @@
 const Semester = require('./semester.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getSemesters = async (req, res, next) => {
   try {
@@ -32,7 +33,8 @@ const createSemester = async (req, res, next) => {
 const updateSemester = async (req, res, next) => {
   try {
     if (req.body.isCurrent) await Semester.updateMany({ _id: { $ne: req.params.id } }, { isCurrent: false });
-    const sem = await Semester.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'academicYear', 'startDate', 'endDate', 'isCurrent']);
+    const sem = await Semester.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!sem) throw new ApiError(404, 'Semester not found');
     return res.json(new ApiResponse(200, sem, 'Semester updated'));
   } catch (error) { next(error); }

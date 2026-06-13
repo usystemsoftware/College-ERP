@@ -216,7 +216,7 @@ const AcademicStructure = () => {
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           
           {modalType.includes('Department') && (
-            <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department Name</label>
                 <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. Computer Science" />
@@ -225,45 +225,41 @@ const AcademicStructure = () => {
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department Code</label>
                 <input required type="text" onChange={e => setFormData({...formData, code: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. CSE" />
               </div>
-            </>
+            </div>
           )}
 
           {modalType.includes('Course') && (
-            <>
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course Name</label>
                 <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. B.Tech IT" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
-                  <input required type="text" onChange={e => setFormData({...formData, code: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. BTECH-IT" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
-                  <input required type="number" min="1" max="12" onChange={e => setFormData({...formData, durationSemesters: parseInt(e.target.value, 10)})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. 8" />
-                </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course Code</label>
+                <input required type="text" onChange={e => setFormData({...formData, code: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. BTECH-IT" />
               </div>
-            </>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Duration (Semesters)</label>
+                <input required type="number" min="1" max="12" onChange={e => setFormData({...formData, durationSemesters: parseInt(e.target.value, 10)})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. 8" />
+              </div>
+            </div>
           )}
 
           {modalType.includes('Batch') && (
-            <>
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch Name</label>
                 <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="e.g. 2021-2025" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Start Year</label>
-                  <input required type="number" onChange={e => setFormData({...formData, startYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2021" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">End Year</label>
-                  <input required type="number" onChange={e => setFormData({...formData, endYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2025" />
-                </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Start Year</label>
+                <input required type="number" onChange={e => setFormData({...formData, startYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2021" />
               </div>
-            </>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">End Year</label>
+                <input required type="number" onChange={e => setFormData({...formData, endYear: e.target.value})} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white mt-1" placeholder="2025" />
+              </div>
+            </div>
           )}
 
           <div className="flex justify-end gap-2 mt-6">

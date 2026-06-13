@@ -134,6 +134,27 @@ const CampusLiveWidget = () => {
       }
     };
 
+    const handleLocationUpdate = (payload) => {
+      const studentId = normalizeStudentId(payload.studentId);
+      const lat = payload.lat;
+      const lng = payload.lng;
+      const dist = calculateDistance(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
+
+      setStudents((prev) => {
+        return prev.map((s) => {
+          if (normalizeStudentId(s.studentId) === studentId) {
+            return {
+              ...s,
+              location: { lat, lng },
+              onCampus: dist <= CAMPUS_RADIUS,
+              isLiveTracking: true
+            };
+          }
+          return s;
+        });
+      });
+    };
+
     let cleanupSocket = () => { };
     let retryTimer;
 
@@ -150,6 +171,7 @@ const CampusLiveWidget = () => {
       socket.on('student_checkin', handleCheckin);
       socket.on('student:checkout', handleCheckout);
       socket.on('student_checkout', handleCheckout);
+      socket.on('location_updated', handleLocationUpdate);
 
       cleanupSocket = () => {
         socket.off('connect', joinCampusRoom);
@@ -157,6 +179,7 @@ const CampusLiveWidget = () => {
         socket.off('student_checkin', handleCheckin);
         socket.off('student:checkout', handleCheckout);
         socket.off('student_checkout', handleCheckout);
+        socket.off('location_updated', handleLocationUpdate);
       };
       return true;
     };
@@ -214,16 +237,29 @@ const CampusLiveWidget = () => {
           const popupContent = `<b>${student.studentName || 'Unknown'}</b><br/>${student.rollNumber || 'N/A'}<br/>${student.onCampus ? 'On Campus' : 'Outside'}<br/>Checked in: ${checkInTimeStr || 'Unknown'}`;
 
           const isOutside = !student.onCampus;
-          const iconHtml = `<div style="background-color: ${isOutside ? '#ef4444' : '#10b981'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`;
+          const pulseCss = student.isLiveTracking ? 'box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5); animation: pulse 1.5s infinite;' : 'box-shadow: 0 0 4px rgba(0,0,0,0.4);';
+          const iconHtml = `<div style="background-color: ${isOutside ? '#ef4444' : '#10b981'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${pulseCss}"></div>`;
           const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [18, 18], iconAnchor: [9, 9] });
+
+          const handleMarkerClick = () => {
+            const socket = getSocket();
+            if (socket) {
+              socket.emit('join_tracking', studentId);
+              console.log(`[Tracking] Requested live tracking for ${student.studentName}`);
+            }
+          };
 
           if (markersRef.current[studentId]) {
             markersRef.current[studentId].setLatLng([lat, lng]);
             markersRef.current[studentId].setPopupContent(popupContent);
             markersRef.current[studentId].setIcon(customIcon);
+            markersRef.current[studentId].off('click');
+            markersRef.current[studentId].on('click', handleMarkerClick);
           } else {
             const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapRef.current);
             marker.bindPopup(popupContent);
+            marker.bindTooltip(student.studentName || 'Unknown', { permanent: true, direction: 'top', offset: [0, -10], className: 'bg-white/90 text-xs font-bold px-1 rounded border border-gray-200' });
+            marker.on('click', handleMarkerClick);
             markersRef.current[studentId] = marker;
           }
         }
@@ -304,11 +340,19 @@ const CampusLiveWidget = () => {
         )}
 
         {!loading && !error && students.map((student) => (
-          <div key={student.studentId} className="flex gap-3 px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors items-center">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${student.onCampus ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <div 
+            key={student.studentId} 
+            className="flex gap-3 px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors items-center cursor-pointer"
+            onClick={() => {
+              const socket = getSocket();
+              if (socket) socket.emit('join_tracking', student.studentId);
+            }}
+          >
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${student.onCampus ? 'bg-green-500' : 'bg-red-500'} ${student.isLiveTracking ? 'animate-pulse scale-150' : ''}`}></div>
             <div className="text-sm font-medium text-gray-800">
               {student.studentName || 'Unknown'}
               {!student.onCampus && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Outside</span>}
+              {student.isLiveTracking && <span className="ml-2 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Live</span>}
             </div>
             <div className="text-xs text-gray-500 ml-auto">{student.rollNumber || 'N/A'}</div>
             <div className="text-xs text-gray-400">{formatTime(student.checkInTime)}</div>

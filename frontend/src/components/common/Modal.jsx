@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, title, hideFooter, children, maxWidth = "max-w-md" }) => {
+const Modal = ({ isOpen, onClose, title, hideFooter, children, maxWidth = "w-[95vw] md:w-[80vw] lg:max-w-5xl" }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ const Modal = ({ isOpen, onClose, title, hideFooter, children, maxWidth = "max-w
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm dark:bg-black/60 p-4">
-      <div className={`relative w-full ${maxWidth} rounded-xl bg-white p-6 shadow-2xl dark:bg-dark-900 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[95vh]`}>
+      <div className={`relative ${maxWidth} rounded-xl bg-white p-6 shadow-2xl dark:bg-dark-900 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[95vh]`}>
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
           <button

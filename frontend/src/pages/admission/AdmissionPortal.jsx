@@ -30,7 +30,23 @@ const AdmissionPortal = () => {
     fetchFormData();
   }, []);
   
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors }, trigger } = useForm({
+    shouldUnregister: false
+  });
+
+  const handleNext = async () => {
+    let fieldsToValidate = [];
+    if (step === 1) {
+      fieldsToValidate = ['firstName', 'lastName', 'email', 'phone', 'dob', 'address'];
+    } else if (step === 2) {
+      fieldsToValidate = ['collegeId', 'courseId'];
+    }
+    
+    const isValid = await trigger(fieldsToValidate);
+    if (isValid) {
+      setStep(step + 1);
+    }
+  };
 
   const handleFileChange = (e, type) => {
     setFiles({
@@ -150,28 +166,34 @@ const AdmissionPortal = () => {
               
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name</label>
-                  <input {...register("firstName", { required: true })} type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
+                  <input {...register("firstName", { required: "First Name is required" })} type="text" className={`w-full rounded-lg border ${errors.firstName ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`} />
+                  {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
-                  <input {...register("lastName", { required: true })} type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name *</label>
+                  <input {...register("lastName", { required: "Last Name is required" })} type="text" className={`w-full rounded-lg border ${errors.lastName ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`} />
+                  {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
-                  <input {...register("email", { required: true })} type="email" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
+                  <input {...register("email", { required: "Email is required" })} type="email" className={`w-full rounded-lg border ${errors.email ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`} />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
-                  <input {...register("phone", { required: true })} type="tel" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
+                  <input {...register("phone", { required: "Phone Number is required" })} type="tel" className={`w-full rounded-lg border ${errors.phone ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`} />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
-                  <textarea {...register("address", { required: true })} rows="2" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"></textarea>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address *</label>
+                  <textarea {...register("address", { required: "Address is required" })} rows="2" className={`w-full rounded-lg border ${errors.address ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`}></textarea>
+                  {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date of Birth</label>
-                  <input {...register("dob", { required: true })} type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date of Birth *</label>
+                  <input {...register("dob", { required: "Date of Birth is required" })} type="date" className={`w-full rounded-lg border ${errors.dob ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`} />
+                  {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob.message}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Gender</label>
@@ -195,12 +217,13 @@ const AdmissionPortal = () => {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select College *</label>
-                  <select {...register("collegeId", { required: true })} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                  <select {...register("collegeId", { required: "College is required" })} className={`w-full rounded-lg border ${errors.collegeId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`}>
                     <option value="">Select a college...</option>
                     {formDataList.colleges.map(college => (
                       <option key={college._id} value={college._id}>{college.name}</option>
                     ))}
                   </select>
+                  {errors.collegeId && <p className="text-red-500 text-xs mt-1">{errors.collegeId.message}</p>}
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Department (Optional filter)</label>
@@ -217,7 +240,7 @@ const AdmissionPortal = () => {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Course *</label>
-                  <select {...register("courseId", { required: true })} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                  <select {...register("courseId", { required: "Course is required" })} className={`w-full rounded-lg border ${errors.courseId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'} bg-white dark:bg-dark-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none`}>
                     <option value="">Select a course...</option>
                     {formDataList.courses
                       .filter(course => !selectedDepartment || course.department === selectedDepartment)
@@ -225,6 +248,7 @@ const AdmissionPortal = () => {
                         <option key={course._id} value={course._id}>{course.name} ({course.code})</option>
                       ))}
                   </select>
+                  {errors.courseId && <p className="text-red-500 text-xs mt-1">{errors.courseId.message}</p>}
                 </div>
               </div>
             </div>
@@ -307,7 +331,7 @@ const AdmissionPortal = () => {
             {step < 3 ? (
               <button
                 type="button"
-                onClick={() => setStep(step + 1)}
+                onClick={handleNext}
                 className="px-6 py-2.5 rounded-lg font-medium text-white bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 transition shadow-md"
               >
                 Continue

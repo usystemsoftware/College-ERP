@@ -1,6 +1,7 @@
 const Batch = require('./batch.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getBatches = async (req, res, next) => {
   try {
@@ -27,7 +28,8 @@ const createBatch = async (req, res, next) => {
 
 const updateBatch = async (req, res, next) => {
   try {
-    const batch = await Batch.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'courseId', 'startYear', 'endYear', 'isActive']);
+    const batch = await Batch.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!batch) throw new ApiError(404, 'Batch not found');
     return res.json(new ApiResponse(200, batch, 'Batch updated'));
   } catch (error) { next(error); }

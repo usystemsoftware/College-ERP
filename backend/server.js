@@ -100,6 +100,10 @@ connectDB().then(async () => {
   const notificationService = require('./src/services/notification.service');
   notificationService.setIo(io);
 
+  // Register Location Tracking Socket Handlers
+  const registerLocationHandlers = require('./src/sockets/locationSocket');
+  registerLocationHandlers(io);
+
   // Socket connection handler
   io.on('connection', (socket) => {
     console.log(`[Socket.io] User connected: ${socket.id}`);

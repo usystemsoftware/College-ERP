@@ -25,7 +25,11 @@ import {
   Building,
   UserPlus,
   Archive,
-  CheckCircle
+  CheckCircle,
+  BarChart2,
+  ShieldAlert,
+  QrCode,
+  FileText
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -141,11 +145,16 @@ const DashboardLayout = () => {
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Faculty', path: '/faculty', icon: GraduationCap },
       { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
+      { name: 'Attendance Analytics', path: '/attendance-analytics', icon: BarChart2 },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
       { name: 'Inventory', path: '/inventory', icon: Archive },
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+      { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
+      { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
+      { name: 'Apply Leave', path: '/leave-application', icon: FileText },
     ];
   } else if (userRole === 'HOD' || (userRole === 'Faculty' && userIsDepartmentHod)) {
     navItems = [
@@ -154,8 +163,13 @@ const DashboardLayout = () => {
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
+      { name: 'Attendance Analytics', path: '/attendance-analytics', icon: BarChart2 },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       ...navItems,
+      { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
+      { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
+      { name: 'Apply Leave', path: '/leave-application', icon: FileText },
     ];
   } else if (userRole === 'Faculty') {
     navItems = [
@@ -163,7 +177,9 @@ const DashboardLayout = () => {
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Students', path: '/students', icon: Users },
       { name: 'Attendance', path: '/attendance', icon: Clock },
+      { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
+      { name: 'Apply Leave', path: '/leave-application', icon: FileText },
       ...navItems,
     ];
   } else if (userRole === 'Student') {
@@ -171,9 +187,12 @@ const DashboardLayout = () => {
       { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
       { name: 'Fees & Payments', path: '/student/fees', icon: CreditCard },
       { name: 'Attendance', path: '/student/attendance', icon: Clock },
+      { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Gate Pass', path: '/student/gatepass', icon: ShieldCheck },
       { name: 'Timetable', path: '/timetable', icon: Calendar },
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
+      { name: 'Report Incident', path: '/report-incident', icon: ShieldAlert },
+      { name: 'Apply Leave', path: '/leave-application', icon: FileText },
     ];
   } else if (userRole === 'Parent') {
     navItems = [
@@ -191,6 +210,7 @@ const DashboardLayout = () => {
   } else if (userRole === 'Security Officer') {
     navItems = [
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
+      { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       ...navItems,
     ];
   } else if (userRole === 'Parent') {

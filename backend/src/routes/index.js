@@ -66,6 +66,8 @@ const placementRoutes = require('../modules/placements/placement.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
+// Incidents (Anonymous Reporting)
+const incidentRoutes = require('../modules/incidents/incident.routes');
 // Analytics
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 
@@ -121,6 +123,7 @@ router.use('/placements', placementRoutes);
 router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/incidents', incidentRoutes);
 
 router.use('/analytics', analyticsRoutes);
 

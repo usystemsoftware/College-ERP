@@ -6,7 +6,7 @@ const Parent = require('../parents/parent.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const { emitNotification } = require('../../services/notification.service');
-
+const pick = require('../../utils/pick');
 // GET all students (with pagination + filters)
 const getStudents = async (req, res, next) => {
   try {
@@ -25,7 +25,8 @@ const getStudents = async (req, res, next) => {
       .populate('department', 'name code')
       .populate('course', 'name code')
       .populate('semester', 'name')
-      .populate('parent', 'fullName phone email')
+      .populate('parent', 'fullName phone email relation')
+      .populate('parents', 'fullName phone email relation')
       .sort({ 'personalDetails.fullName': 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -47,7 +48,8 @@ const getStudent = async (req, res, next) => {
       .populate('department', 'name code')
       .populate('course', 'name code durationSemesters')
       .populate('semester', 'name startDate endDate')
-      .populate('parent', 'fullName phone email relation');
+      .populate('parent', 'fullName phone email relation')
+      .populate('parents', 'fullName phone email relation');
     if (!student) throw new ApiError(404, 'Student not found');
     return res.json(new ApiResponse(200, student, 'Student fetched'));
   } catch (error) { next(error); }
@@ -59,7 +61,7 @@ const createStudent = async (req, res, next) => {
     const {
       email, password, rollNumber, enrollmentNumber,
       department, course, semester, division, batch,
-      personalDetails, collegeId, parentEmail, parentPassword
+      personalDetails, collegeId, fatherEmail, fatherPassword, motherEmail, motherPassword
     } = req.body;
 
     if (!email || !password || !rollNumber || !enrollmentNumber || !personalDetails?.fullName) {
@@ -123,32 +125,42 @@ const createStudent = async (req, res, next) => {
             });
             
             await Parent.create({
-              user: parentUser._id,
-              fullName: `Parent of ${personalDetails.fullName}`,
+              user: pUser._id,
+              fullName: `${pRelation} of ${personalDetails.fullName}`,
               phone: personalDetails.phone || '0000000000',
-              email: parentEmail,
+              email: pEmail,
+              relation: pRelation,
               students: [student._id],
               collegeId: collegeId || req.user.collegeId
             });
           } else {
-            const parentProfile = await Parent.findOne({ user: parentUser._id });
-            if (parentProfile && !parentProfile.students.includes(student._id)) {
-              parentProfile.students.push(student._id);
-              await parentProfile.save();
+            const pProfile = await Parent.findOne({ user: pUser._id });
+            if (pProfile && !pProfile.students.includes(student._id)) {
+              pProfile.students.push(student._id);
+              await pProfile.save();
             }
           }
-          const parentProfile = await Parent.findOne({ user: parentUser._id });
-          if (parentProfile) {
-             student.parent = parentProfile._id;
-             await student.save();
-          }
+          const pProfile = await Parent.findOne({ user: pUser._id });
+          return pProfile ? pProfile._id : null;
+        };
+
+        const fatherId = await processParent(fatherEmail, fatherPassword, 'Father');
+        const motherId = await processParent(motherEmail, motherPassword, 'Mother');
+        
+        if (fatherId || motherId) {
+          student.parents = [];
+          if (fatherId) student.parents.push(fatherId);
+          if (motherId) student.parents.push(motherId);
+          await student.save();
         }
       }
 
       const populated = await Student.findById(student._id)
         .populate('user', 'email status')
         .populate('department', 'name')
-        .populate('course', 'name');
+        .populate('course', 'name')
+        .populate('parent', 'fullName phone email relation')
+        .populate('parents', 'fullName phone email relation');
 
       await emitNotification({
         title: 'New Student Added',
@@ -206,7 +218,12 @@ const updateStudent = async (req, res, next) => {
       }
     }
 
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const allowedUpdates = pick(req.body, [
+      'rollNumber', 'enrollmentNumber', 'department', 'course', 'semester', 
+      'division', 'batch', 'personalDetails'
+    ]);
+
+    const student = await Student.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name')
       .populate('course', 'name');
@@ -230,10 +247,11 @@ const updateStudent = async (req, res, next) => {
           });
           
           await Parent.create({
-            user: parentUser._id,
-            fullName: `Parent of ${student.personalDetails?.fullName || 'Student'}`,
+            user: pUser._id,
+            fullName: `${pRelation} of ${student.personalDetails?.fullName || 'Student'}`,
             phone: student.personalDetails?.phone || '0000000000',
-            email: parentEmail,
+            email: pEmail,
+            relation: pRelation,
             students: [student._id],
             collegeId: student.collegeId
           });
@@ -250,23 +268,44 @@ const updateStudent = async (req, res, next) => {
             await parentProfile.save();
           }
         }
-        
-        const parentProfile = await Parent.findOne({ user: parentUser._id });
-        if (parentProfile) {
-           student.parent = parentProfile._id;
-           await student.save();
-        }
+        const pProfile = await Parent.findOne({ user: pUser._id });
+        return pProfile ? pProfile._id : null;
+      };
+
+      const fatherId = await processParent(fatherEmail, fatherPassword, 'Father');
+      const motherId = await processParent(motherEmail, motherPassword, 'Mother');
+      
+      let updatedParents = false;
+      if (!student.parents) student.parents = [];
+      
+      if (fatherId && !student.parents.includes(fatherId)) {
+        student.parents.push(fatherId);
+        updatedParents = true;
+      }
+      if (motherId && !student.parents.includes(motherId)) {
+        student.parents.push(motherId);
+        updatedParents = true;
+      }
+      if (updatedParents) {
+        await student.save();
       }
     }
 
+    const populatedStudent = await Student.findById(student._id)
+      .populate('user', 'email status')
+      .populate('department', 'name')
+      .populate('course', 'name')
+      .populate('parent', 'fullName phone email relation')
+      .populate('parents', 'fullName phone email relation');
+
     await emitNotification({
       title: 'Student Updated',
-      message: `${student.personalDetails?.fullName || 'A student'}'s profile was updated`,
+      message: `${populatedStudent.personalDetails?.fullName || 'A student'}'s profile was updated`,
       type: 'Academic',
       category: 'Academic'
     });
 
-    return res.json(new ApiResponse(200, student, 'Student updated'));
+    return res.json(new ApiResponse(200, populatedStudent, 'Student updated'));
   } catch (error) { next(error); }
 };
 
@@ -297,7 +336,8 @@ const getMyProfile = async (req, res, next) => {
       .populate('department', 'name code')
       .populate('course', 'name code')
       .populate('semester', 'name')
-      .populate('parent', 'fullName phone');
+      .populate('parent', 'fullName phone email relation')
+      .populate('parents', 'fullName phone email relation');
     if (!student) throw new ApiError(404, 'Student profile not found');
     return res.json(new ApiResponse(200, student, 'Profile fetched'));
   } catch (error) { next(error); }
@@ -306,7 +346,9 @@ const getMyProfile = async (req, res, next) => {
 // GET student dashboard stats
 const getStudentDashboardStats = async (req, res, next) => {
   try {
-    const student = await Student.findOne({ user: req.user._id });
+    const student = await Student.findOne({ user: req.user._id })
+      .populate('course', 'name')
+      .populate('semester', 'name');
     if (!student) throw new ApiError(404, 'Student profile not found');
 
     const filter = { student: student._id };
@@ -369,7 +411,12 @@ const getStudentDashboardStats = async (req, res, next) => {
       todaysClasses: formattedClasses,
       feesDue: 25000, // Placeholder
       assignmentsDue: assignmentsDue,
-      libraryBooksDue: 1 // Placeholder
+      libraryBooksDue: 1, // Placeholder
+      studentDetails: {
+        course: student.course?.name || 'Unknown Course',
+        semester: student.semester?.name || 'Unknown Semester',
+        division: student.division || 'Unknown Division'
+      }
     };
 
     return res.json(new ApiResponse(200, stats, 'Dashboard stats fetched'));

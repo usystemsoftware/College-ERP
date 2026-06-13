@@ -22,11 +22,13 @@ const {
   getFacultyAttendanceSummary,
   startLectureSession,
   endLectureSession,
-  getDepartmentLectureAnomalies
+  getDepartmentLectureAnomalies,
+  getAttendanceAnalytics
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
 router.get('/dashboard', protect, getAttendanceDashboardStats);
+router.get('/analytics', protect, authorize('Super Admin', 'College Admin', 'Principal'), getAttendanceAnalytics);
 router.post('/mark', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), markAttendance);
 router.get('/by-subject-date', protect, getAttendanceBySubjectDate);
 router.get('/my-summary', protect, getStudentAttendance);

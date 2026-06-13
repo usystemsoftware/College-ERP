@@ -4,19 +4,12 @@ import { Calendar, Filter, CheckCircle, XCircle, Clock, Search, Download, Radio,
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSubjects } from '../../api/academic.api';
 import { getStudentsAPI } from '../../api/students.api';
-import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI, sendQRToStudentsAPI } from '../../api/attendance.api';
+import { getAttendanceBySubjectDateAPI, markAttendanceAPI, getAdminLiveFeedAPI, generateQRAPI, sendQRToStudentsAPI, getAttendanceDashboardStatsAPI } from '../../api/attendance.api';
 import { getFacultyAPI } from '../../api/faculty.api';
 import { getSocket } from '../../services/socket';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import Modal from '../../components/common/Modal';
-
-const mockTrendData = [
-  { name: 'Week 1', rate: 95 },
-  { name: 'Week 2', rate: 92 },
-  { name: 'Week 3', rate: 88 },
-  { name: 'Week 4', rate: 94 },
-];
 
 
 const AttendancePage = () => {
@@ -26,6 +19,7 @@ const AttendancePage = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [trendData, setTrendData] = useState([]);
 
   // Live feed state
   const [liveFeed, setLiveFeed] = useState([]);
@@ -68,7 +62,19 @@ const AttendancePage = () => {
     fetchSubjects();
     fetchLiveFeed();
     fetchFaculties();
+    fetchDashboardStats();
   }, []);
+
+  async function fetchDashboardStats() {
+    try {
+      const res = await getAttendanceDashboardStatsAPI();
+      if (res.data?.data?.trendData) {
+        setTrendData(res.data.data.trendData);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+    }
+  }
 
   async function fetchFaculties() {
     try {
@@ -520,10 +526,10 @@ const AttendancePage = () => {
 
         {/* Sidebar trend graph */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-dark-800">
-          <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-200">Attendance Trends (Mock)</h3>
+          <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-200">Attendance Trends</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockTrendData}>
+              <AreaChart data={trendData}>
                 <defs>
                   <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />

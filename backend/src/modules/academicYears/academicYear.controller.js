@@ -1,6 +1,7 @@
 const AcademicYear = require('./academicYear.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const pick = require('../../utils/pick');
 
 const getAcademicYears = async (req, res, next) => {
   try {
@@ -31,7 +32,8 @@ const createAcademicYear = async (req, res, next) => {
 const updateAcademicYear = async (req, res, next) => {
   try {
     if (req.body.isCurrent) await AcademicYear.updateMany({ _id: { $ne: req.params.id } }, { isCurrent: false });
-    const year = await AcademicYear.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowedUpdates = pick(req.body, ['name', 'startDate', 'endDate', 'isCurrent']);
+    const year = await AcademicYear.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true });
     if (!year) throw new ApiError(404, 'Academic year not found');
     return res.json(new ApiResponse(200, year, 'Academic year updated'));
   } catch (error) { next(error); }

@@ -1,21 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, MoreVertical, Briefcase } from 'lucide-react';
 import Modal from '../../components/common/Modal';
-
-const mockFaculty = [
-  { id: 'EMP-001', name: 'Dr. Alan Turing', email: 'alan@institute.edu', department: 'Computer Science', designation: 'HOD', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=5' },
-  { id: 'EMP-002', name: 'Dr. Grace Hopper', email: 'grace@institute.edu', department: 'Computer Science', designation: 'Professor', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=6' },
-  { id: 'EMP-003', name: 'Prof. Richard Feynman', email: 'richard@institute.edu', department: 'Mechanical Engineering', designation: 'Assistant Professor', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=7' },
-];
+import { getFacultyAPI } from '../../api/faculty.api';
 
 const FacultyDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [facultyList, setFacultyList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredFaculty = mockFaculty.filter(fac => 
-    fac.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    fac.department.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchFaculties();
+  }, []);
+
+  async function fetchFaculties() {
+    try {
+      setLoading(true);
+      const res = await getFacultyAPI({ limit: 1000 });
+      setFacultyList(res.data?.data?.faculty || []);
+    } catch (err) {
+      console.error('Error fetching faculties:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredFaculty = facultyList.filter(fac => {
+    const fName = fac.fullName || '';
+    const dName = fac.department?.name || '';
+    return fName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           dName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
@@ -51,25 +66,31 @@ const FacultyDirectory = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredFaculty.map((faculty) => (
-            <div key={faculty.id} className="group relative rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-800">
+          {loading ? (
+            <div className="col-span-full py-8 text-center text-slate-500">Loading faculty...</div>
+          ) : filteredFaculty.length === 0 ? (
+            <div className="col-span-full py-8 text-center text-slate-500">No faculty found.</div>
+          ) : filteredFaculty.map((faculty) => (
+            <div key={faculty._id} className="group relative rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-dark-800">
               <button className="absolute right-4 top-4 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:text-brand-600">
                 <MoreVertical size={18} />
               </button>
               
               <div className="flex flex-col items-center text-center">
-                <img src={faculty.avatar} alt={faculty.name} className="mb-4 h-20 w-20 rounded-full object-cover shadow-sm ring-4 ring-slate-50 dark:ring-dark-900" />
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{faculty.name}</h3>
-                <p className="text-sm font-medium text-brand-600 dark:text-brand-400">{faculty.designation}</p>
+                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-brand-100 text-3xl font-bold text-brand-600 shadow-sm ring-4 ring-slate-50 dark:bg-brand-900/40 dark:text-brand-400 dark:ring-dark-900">
+                  {faculty.fullName ? faculty.fullName.charAt(0).toUpperCase() : 'F'}
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{faculty.fullName || 'Unknown'}</h3>
+                <p className="text-sm font-medium text-brand-600 dark:text-brand-400">{faculty.designation || 'Faculty'}</p>
                 
                 <div className="mt-4 flex w-full flex-col gap-2 rounded-lg bg-slate-50 p-3 text-left dark:bg-dark-900/50">
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-500">Employee ID:</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-300">{faculty.id}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-300">{faculty.employeeId || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-500">Department:</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-300">{faculty.department}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-300">{faculty.department?.name || 'General'}</span>
                   </div>
                 </div>
                 
@@ -89,15 +110,15 @@ const FacultyDirectory = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Faculty Member">
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-            <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter full name" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-            <input type="email" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="faculty@institute.edu" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+              <input type="text" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="Enter full name" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
+              <input type="email" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" placeholder="faculty@institute.edu" />
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
               <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white">

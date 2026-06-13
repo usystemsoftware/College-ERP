@@ -19,3 +19,5 @@ export const verifyQRTokenAPI = (data) => api.post('/attendance/qr/verify', data
 export const markQRAttendanceAPI = (data) => api.post('/attendance/qr/mark', data);
 export const sendQRToFacultyAPI = (data) => api.post('/attendance/qr/send-to-faculty', data);
 export const sendQRToStudentsAPI = (data) => api.post('/attendance/qr/send-to-students', data);
+export const getAttendanceAnalyticsAPI = () => api.get('/attendance/analytics');
+export const getAttendanceDashboardStatsAPI = () => api.get('/attendance/dashboard');

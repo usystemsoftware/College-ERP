@@ -5,7 +5,9 @@ describe('authSlice reducer', () => {
     user: null,
     isAuthenticated: false,
     loading: false,
-    error: null
+    error: null,
+    campusLocation: null,
+    onCampus: false
   };
 
   it('should return the initial state', () => {

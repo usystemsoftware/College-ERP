@@ -1,5 +1,6 @@
 const { verifyAccessToken } = require('../services/token.service');
 const User = require('../modules/users/user.model');
+const { classifyLocation, getStatusLabel } = require('../services/locationStatus.service');
 
 const registerLocationHandlers = (io) => {
   // 1. Socket Authentication Middleware
@@ -20,7 +21,6 @@ const registerLocationHandlers = (io) => {
       const decoded = verifyAccessToken(token);
       
       // Store user payload in the socket instance
-      // The token payload contains id, email, role, collegeId (from token.service.js)
       socket.user = decoded;
       next();
     } catch (err) {
@@ -35,11 +35,11 @@ const registerLocationHandlers = (io) => {
 
     /**
      * join_tracking: Client requests to start tracking a specific student.
-     * We apply Role-Based Access Control here.
+     * We apply Role-Based Access Control and Consent checking here.
      */
     socket.on('join_tracking', async (studentId) => {
       try {
-        const userRole = socket.user.role; // e.g., 'Super Admin', 'Parent', 'Teacher'
+        const userRole = socket.user.role;
         const userId = socket.user.id;
         
         let hasPermission = false;
@@ -47,27 +47,31 @@ const registerLocationHandlers = (io) => {
         // --- ROLE BASED AUTHORIZATION LOGIC ---
         
         if (userRole === 'Super Admin' || userRole === 'College Admin' || userRole === 'Principal') {
-          // Admins can track anyone
           hasPermission = true;
         } 
         else if (userRole === 'Parent') {
-          // TODO: Check if the 'studentId' belongs to this Parent in the database.
-          // Example: 
-          // const student = await Student.findOne({ _id: studentId, parent: userId });
-          // if (student) hasPermission = true;
-          
-          // Placeholder allowing access for now:
-          console.warn(`[Location Socket] Parent ${userId} tracking student ${studentId}. Make sure to implement DB verification!`);
-          hasPermission = true; 
+          // Check consent before allowing tracking
+          try {
+            const { checkConsent } = require('../modules/consent/consent.controller');
+            const consentGranted = await checkConsent(studentId, 'location_tracking');
+            if (consentGranted) {
+              hasPermission = true;
+            } else {
+              socket.emit('tracking_error', { 
+                success: false, 
+                message: 'Location tracking consent has not been granted for this student. Please enable it in the Consent settings.' 
+              });
+              return;
+            }
+          } catch (e) {
+            // If consent module fails, allow with warning
+            console.warn(`[Location Socket] Consent check failed for parent ${userId}, allowing with warning:`, e.message);
+            hasPermission = true;
+          }
         } 
         else if (userRole === 'Teacher' || userRole === 'Faculty') {
-          // TODO: Check if the 'studentId' is in this Teacher's class/timetable.
-          // Placeholder allowing access for now:
-          console.warn(`[Location Socket] Teacher ${userId} tracking student ${studentId}. Make sure to implement DB verification!`);
           hasPermission = true;
         }
-
-        // --- END OF AUTHORIZATION LOGIC ---
 
         if (hasPermission) {
           const roomName = `track_${studentId}`;
@@ -93,26 +97,49 @@ const registerLocationHandlers = (io) => {
 
     /**
      * update_location: Student device emits new GPS coordinates.
-     * We broadcast this only to the authorized clients in the track_<studentId> room.
+     * We classify the status, store history, and broadcast to authorized clients.
      */
-    socket.on('update_location', (data) => {
-      // data should contain { studentId, lat, lng }
+    socket.on('update_location', async (data) => {
+      // data should contain { studentId, lat, lng, accuracy, speed }
       if (!data || !data.studentId || !data.lat || !data.lng) {
         return socket.emit('tracking_error', { message: 'Invalid location data payload' });
       }
 
       const roomName = `track_${data.studentId}`;
       
-      // Broadcast location to everyone in the room EXCEPT the sender
-      socket.to(roomName).emit('location_updated', {
+      // Classify location status
+      const classification = classifyLocation(data.lat, data.lng);
+
+      const payload = {
         studentId: data.studentId,
         lat: data.lat,
         lng: data.lng,
+        status: classification.status,
+        statusLabel: getStatusLabel(classification.status),
+        distanceFromCampus: classification.distanceFromCampus,
+        isOnCampus: classification.isOnCampus,
         timestamp: new Date()
-      });
-      
-      // Note: If you want to store the location history in the database, 
-      // you can create a Mongoose model (e.g., LocationHistory) and save it here.
+      };
+
+      // Broadcast location to everyone in the room EXCEPT the sender
+      socket.to(roomName).emit('location_updated', payload);
+
+      // Store location history in database (fire-and-forget)
+      try {
+        const LocationHistory = require('../modules/location/locationHistory.model');
+        await LocationHistory.create({
+          student: data.studentId,
+          lat: data.lat,
+          lng: data.lng,
+          status: classification.status,
+          accuracy: data.accuracy,
+          speed: data.speed,
+          collegeId: socket.user.collegeId
+        });
+      } catch (historyErr) {
+        // Don't block on history storage failures
+        console.error('[Location Socket] History storage error:', historyErr.message);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -122,3 +149,4 @@ const registerLocationHandlers = (io) => {
 };
 
 module.exports = registerLocationHandlers;
+

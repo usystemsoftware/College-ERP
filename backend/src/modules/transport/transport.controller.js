@@ -176,6 +176,72 @@ const getTransportDashboardStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Real-time tracking: Get all live bus locations
+const getBusLiveLocations = async (req, res, next) => {
+  try {
+    const filter = { 'gpsDevice.lastLat': { $exists: true } };
+    if (req.user.role.name !== 'Super Admin') filter.collegeId = req.user.collegeId;
+
+    const vehicles = await Vehicle.find(filter)
+      .select('vehicleNumber driverName gpsDevice routeId')
+      .populate('routeId', 'routeName');
+
+    const liveData = vehicles.map(v => ({
+      vehicleId: v._id,
+      vehicleNumber: v.vehicleNumber,
+      driverName: v.driverName,
+      routeName: v.routeId ? v.routeId.routeName : 'Unassigned',
+      lat: v.gpsDevice.lastLat,
+      lng: v.gpsDevice.lastLng,
+      lastUpdated: v.gpsDevice.lastUpdated
+    }));
+
+    return res.json(new ApiResponse(200, liveData, 'Live bus locations fetched'));
+  } catch (error) { next(error); }
+};
+
+// Real-time tracking: Estimate ETA for a student's assigned stop
+const getBusETA = async (req, res, next) => {
+  try {
+    const { vehicleId } = req.params;
+    const { studentId } = req.query; // If querying for a specific student's ETA
+
+    const vehicle = await Vehicle.findById(vehicleId).populate('routeId');
+    if (!vehicle || !vehicle.gpsDevice || !vehicle.gpsDevice.lastLat) {
+      throw new ApiError(404, 'Vehicle location not available');
+    }
+
+    // Mock ETA calculation based on distance
+    // In a real app, this would use Google Distance Matrix API
+    let etaMinutes = 15; // default fallback
+    let distanceKm = 5;
+    let stopName = 'Your Stop';
+
+    if (studentId && vehicle.routeId) {
+      const allocation = await TransportAllocation.findOne({ studentId, vehicleId });
+      if (allocation) {
+        const stop = vehicle.routeId.stops.id(allocation.stopId);
+        if (stop && stop.distanceFromCampus) {
+          // Very rough mock: 1km = 3 mins bus ride
+          distanceKm = stop.distanceFromCampus;
+          etaMinutes = Math.round(distanceKm * 3);
+          stopName = stop.stopName;
+        }
+      }
+    }
+
+    return res.json(new ApiResponse(200, {
+      vehicleNumber: vehicle.vehicleNumber,
+      currentLat: vehicle.gpsDevice.lastLat,
+      currentLng: vehicle.gpsDevice.lastLng,
+      etaMinutes,
+      distanceKm,
+      stopName,
+      lastUpdated: vehicle.gpsDevice.lastUpdated
+    }, 'ETA calculated'));
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createRoute,
   getRoutes,
@@ -183,5 +249,7 @@ module.exports = {
   getVehicles,
   allocateTransport,
   getStudentTransport,
-  getTransportDashboardStats
+  getTransportDashboardStats,
+  getBusLiveLocations,
+  getBusETA
 };

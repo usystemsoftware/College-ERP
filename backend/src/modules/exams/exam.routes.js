@@ -6,6 +6,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 router.use(protect);
 
 router.get('/dashboard', examController.getExamDashboardStats);
+router.get('/my-results', authorize('Student'), examController.getMyResults);
 router.post('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), examController.createExam);
 router.get('/', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty', 'Student'), examController.getExams);
 router.put('/:id/results', authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), examController.updateResults);

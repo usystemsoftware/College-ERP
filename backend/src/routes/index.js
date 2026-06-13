@@ -70,6 +70,10 @@ const notificationRoutes = require('../modules/notifications/notification.routes
 const incidentRoutes = require('../modules/incidents/incident.routes');
 // Analytics
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
+// Consent (Parent Opt-in/Opt-out)
+const consentRoutes = require('../modules/consent/consent.routes');
+// Checkpoints (QR Location Tracking)
+const checkpointRoutes = require('../modules/checkpoints/checkpoint.routes');
 
 // --- Mount all routes ---
 
@@ -126,6 +130,10 @@ router.use('/notifications', notificationRoutes);
 router.use('/incidents', incidentRoutes);
 
 router.use('/analytics', analyticsRoutes);
+
+// Consent & Checkpoints
+router.use('/consent', consentRoutes);
+router.use('/checkpoints', checkpointRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

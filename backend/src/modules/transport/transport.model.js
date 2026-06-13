@@ -19,6 +19,12 @@ const vehicleSchema = new mongoose.Schema({
   driverName: { type: String, required: true },
   driverContact: { type: String, required: true },
   routeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Route' }, // Assigned route
+  gpsDevice: {
+    deviceId: { type: String },
+    lastLat: { type: Number },
+    lastLng: { type: Number },
+    lastUpdated: { type: Date }
+  },
   collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true }
 }, { timestamps: true });
 

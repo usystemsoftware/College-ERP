@@ -33,16 +33,16 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 };
 
+const { sendSMSViaTwilio, sendWhatsAppViaTwilio, isConfigured: isTwilioConfigured } = require('../modules/notifications/smsAlert.service');
+
 const sendSMS = async (to, message) => {
-  // Mock SMS implementation
-  console.log(`[Notification Engine] SMS sent to ${to}: ${message}`);
-  return true;
+  const result = await sendSMSViaTwilio(to, message);
+  return result.success;
 };
 
 const sendWhatsApp = async (to, message) => {
-  // Mock WhatsApp implementation
-  console.log(`[Notification Engine] WhatsApp sent to ${to}: ${message}`);
-  return true;
+  const result = await sendWhatsAppViaTwilio(to, message);
+  return result.success;
 };
 
 const emitNotification = async ({ title, message, type, category = 'General', recipient = null, metadata = null }) => {

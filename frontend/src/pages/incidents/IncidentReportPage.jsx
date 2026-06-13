@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Send, Eye, EyeOff, MapPin, Paperclip, Sparkles, AlertTriangle, CheckCircle2, Loader2, List, FileText } from 'lucide-react';
+import { ShieldAlert, Send, Eye, EyeOff, MapPin, Paperclip, Sparkles, AlertTriangle, CheckCircle2, Loader2, List, FileText, Image, Mic, X } from 'lucide-react';
 import { submitIncidentAPI, getMyIncidentsAPI } from '../../api/incidents.api';
 import toast from 'react-hot-toast';
 
@@ -27,6 +27,7 @@ const IncidentReportPage = () => {
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
+  const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -62,13 +63,19 @@ const IncidentReportPage = () => {
     }
     setSubmitting(true);
     try {
-      const res = await submitIncidentAPI({
-        title: title.trim(),
-        description: description.trim(),
-        category: category || undefined,
-        location: location.trim() || undefined,
-        isAnonymous,
+      // Use FormData for file upload
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      if (category) formData.append('category', category);
+      if (location.trim()) formData.append('location', location.trim());
+      formData.append('isAnonymous', isAnonymous);
+      
+      files.forEach(file => {
+        formData.append('attachments', file);
       });
+
+      const res = await submitIncidentAPI(formData);
       setAiResult(res.data?.data?.aiCategorization || null);
       setSubmitted(true);
       toast.success('Your report has been submitted securely.');
@@ -85,8 +92,35 @@ const IncidentReportPage = () => {
     setCategory('');
     setLocation('');
     setIsAnonymous(true);
+    setFiles([]);
     setSubmitted(false);
     setAiResult(null);
+  };
+
+  const handleFileSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (files.length + selectedFiles.length > 5) {
+      toast.error('You can upload a maximum of 5 files.');
+      return;
+    }
+    const validFiles = selectedFiles.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      const isAudio = file.type.startsWith('audio/');
+      if (!isImage && !isAudio) {
+        toast.error(`${file.name} is not a valid image or audio file.`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 5MB.`);
+        return false;
+      }
+      return true;
+    });
+    setFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (indexToRemove) => {
+    setFiles(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
   // Success state
@@ -309,6 +343,45 @@ const IncidentReportPage = () => {
               />
             </div>
           </div>
+
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              Attachments <span className="text-slate-400 font-normal">(Photos/Audio)</span>
+            </label>
+            <div className="mt-2 flex justify-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-6 py-8 bg-slate-50 dark:bg-dark-900/50 hover:bg-slate-100 dark:hover:bg-dark-900 transition-colors">
+              <div className="text-center">
+                <Paperclip className="mx-auto h-8 w-8 text-slate-400" aria-hidden="true" />
+                <div className="mt-4 flex text-sm leading-6 text-slate-600 dark:text-slate-400 justify-center">
+                  <label
+                    htmlFor="file-upload"
+                    className="relative cursor-pointer rounded-md font-semibold text-brand-600 focus-within:outline-none hover:text-brand-500 dark:text-brand-400"
+                  >
+                    <span>Upload a file</span>
+                    <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple accept="image/*,audio/*" onChange={handleFileSelect} />
+                  </label>
+                  <p className="pl-1">or drag and drop</p>
+                </div>
+                <p className="text-xs leading-5 text-slate-500 mt-1">PNG, JPG, MP3, WAV up to 5MB (Max 5)</p>
+              </div>
+            </div>
+            
+            {files.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {files.map((file, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-800">
+                    <div className="flex items-center gap-3">
+                      {file.type.startsWith('image/') ? <Image size={18} className="text-blue-500" /> : <Mic size={18} className="text-amber-500" />}
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px] sm:max-w-xs">{file.name}</span>
+                    </div>
+                    <button type="button" onClick={() => removeFile(idx)} className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* AI Info Banner */}
@@ -380,6 +453,11 @@ const IncidentReportPage = () => {
                     <span className="text-slate-500 dark:text-slate-400">{new Date(incident.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     <span className={`px-2 py-0.5 rounded text-white ${urgencyColors[incident.urgency] || 'bg-slate-500'}`}>{incident.urgency}</span>
                     <span className="text-slate-500 bg-slate-100 dark:bg-dark-700 px-2 py-0.5 rounded">{incident.category}</span>
+                    {incident.attachments && incident.attachments.length > 0 && (
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <Paperclip size={12} /> {incident.attachments.length}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

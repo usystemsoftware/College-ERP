@@ -223,7 +223,10 @@ const TimetablePage = () => {
 
   // ── 6. Modal: load courses when modal dept changes ───────────────────────
   useEffect(() => {
-    if (!modal.department) { setModalCourses([]); setM('course', ''); return; }
+    if (!modal.department) {
+      setTimeout(() => { setModalCourses([]); setM('course', ''); }, 0);
+      return;
+    }
     setLoadingCourses(true);
     get(`/courses?department=${modal.department}`)
       .then(res => {
@@ -237,7 +240,10 @@ const TimetablePage = () => {
 
   // ── 7. Modal: load subjects when modal course + semester change ───────────
   useEffect(() => {
-    if (!modal.course || !modal.semester) { setModalSubjects([]); return; }
+    if (!modal.course || !modal.semester) {
+      setTimeout(() => setModalSubjects([]), 0);
+      return;
+    }
     setShowAddSubject(false);
     setLoadingSubjects(true);
     getSubjects({ course: modal.course, semester: modal.semester })
@@ -372,7 +378,7 @@ const TimetablePage = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   // Sub-component: desktop grid
-  const DesktopGrid = () => (
+  const renderDesktopGrid = () => (
     <div className="hidden lg:block overflow-x-auto p-5">
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -435,7 +441,7 @@ const TimetablePage = () => {
   );
 
   // Sub-component: mobile list
-  const MobileList = () => (
+  const renderMobileList = () => (
     <div className="lg:hidden">
       <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 p-2 hide-scrollbar gap-1">
         {days.map(d => (
@@ -624,8 +630,8 @@ const TimetablePage = () => {
 
         {(isAdmin || schedule.length > 0 || loading) && (
           <>
-            <DesktopGrid />
-            <MobileList />
+            {renderDesktopGrid()}
+            {renderMobileList()}
           </>
         )}
       </div>

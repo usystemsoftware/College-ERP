@@ -82,9 +82,9 @@ const Profile = () => {
                   <div className="ml-4">
                     <p className="text-xs font-medium text-slate-500">Member Since</p>
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-200">
-                      {new Date(user?.createdAt || Date.now()).toLocaleDateString('en-US', {
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric', month: 'long', day: 'numeric'
-                      })}
+                      }) : 'Unknown'}
                     </p>
                   </div>
                 </div>

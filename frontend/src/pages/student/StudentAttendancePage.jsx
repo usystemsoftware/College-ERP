@@ -66,7 +66,7 @@ const StudentAttendancePage = () => {
   // ── Fetch today's status ─────────────────────────
   const fetchTodayStatus = useCallback(async () => {
     try {
-      setLoadingToday(true);
+      setTimeout(() => setLoadingToday(true), 0);
       const res = await getStudentTodayAPI();
       setTodayRecord(res.data?.data || null);
     } catch (err) {

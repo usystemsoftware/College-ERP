@@ -13,7 +13,7 @@ const NotificationsPage = () => {
 
   async function fetchNotifications() {
     try {
-      setLoading(true);
+      setTimeout(() => setLoading(true), 0);
       const params = {};
       if (activeTab !== 'All') {
         if (activeTab === 'Unread') params.status = 'Unread';

@@ -57,7 +57,7 @@ const CampusLiveWidget = () => {
       script.onload = () => setMapReady(true);
       document.body.appendChild(script);
     } else {
-      setMapReady(true);
+      setTimeout(() => setMapReady(true), 0);
     }
 
     async function fetchLiveStudents() {

@@ -196,7 +196,7 @@ const LeaveDashboard = () => {
                         {new Date(leave.createdAt).toLocaleDateString('en-IN')}
                       </p>
                     </div>
-                    {leave.status === 'Pending' ? (
+                    {leave.status === 'Pending' && leave.canApprove !== false ? (
                       <button
                         onClick={() => { setSelectedLeave(leave); setRemarks(''); }}
                         className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-all"
@@ -299,7 +299,7 @@ const LeaveDashboard = () => {
             </div>
 
             {/* Admin Action Area */}
-            {selectedLeave.status === 'Pending' ? (
+            {selectedLeave.status === 'Pending' && selectedLeave.canApprove !== false ? (
               <div className="space-y-6">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">

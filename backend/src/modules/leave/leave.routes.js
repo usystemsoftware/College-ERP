@@ -6,7 +6,7 @@ const { getLeaveRequests, createLeaveRequest, processLeaveRequest, cancelLeaveRe
 
 router.get('/', protect, getLeaveRequests);
 router.post('/', protect, createLeaveRequest);
-router.patch('/:id/process', protect, authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Vice Principal'), processLeaveRequest);
+router.patch('/:id/process', protect, authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Vice Principal', 'Faculty', 'Class Coordinator'), processLeaveRequest);
 router.patch('/:id/cancel', protect, cancelLeaveRequest);
 
 module.exports = router;

@@ -27,6 +27,7 @@ const getStudents = async (req, res, next) => {
       .populate('semester', 'name')
       .populate('parent', 'fullName phone email relation')
       .populate('parents', 'fullName phone email relation')
+      .populate('mentor', 'fullName employeeId')
       .sort({ 'personalDetails.fullName': 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -49,7 +50,8 @@ const getStudent = async (req, res, next) => {
       .populate('course', 'name code durationSemesters')
       .populate('semester', 'name startDate endDate')
       .populate('parent', 'fullName phone email relation')
-      .populate('parents', 'fullName phone email relation');
+      .populate('parents', 'fullName phone email relation')
+      .populate('mentor', 'fullName employeeId');
     if (!student) throw new ApiError(404, 'Student not found');
     return res.json(new ApiResponse(200, student, 'Student fetched'));
   } catch (error) { next(error); }
@@ -61,7 +63,7 @@ const createStudent = async (req, res, next) => {
     const {
       email, password, rollNumber, enrollmentNumber,
       department, course, semester, division, batch,
-      personalDetails, collegeId, fatherEmail, fatherPassword, motherEmail, motherPassword
+      personalDetails, collegeId, fatherEmail, fatherPassword, motherEmail, motherPassword, mentor
     } = req.body;
 
     if (!email || !password || !rollNumber || !enrollmentNumber || !personalDetails?.fullName) {
@@ -103,7 +105,7 @@ const createStudent = async (req, res, next) => {
         user: user._id,
         rollNumber, enrollmentNumber,
         department, course, semester, division, batch,
-        personalDetails,
+        personalDetails, mentor,
         collegeId: collegeId || req.user.collegeId
       });
 
@@ -160,7 +162,8 @@ const createStudent = async (req, res, next) => {
         .populate('department', 'name')
         .populate('course', 'name')
         .populate('parent', 'fullName phone email relation')
-        .populate('parents', 'fullName phone email relation');
+        .populate('parents', 'fullName phone email relation')
+        .populate('mentor', 'fullName employeeId');
 
       await emitNotification({
         title: 'New Student Added',
@@ -220,13 +223,14 @@ const updateStudent = async (req, res, next) => {
 
     const allowedUpdates = pick(req.body, [
       'rollNumber', 'enrollmentNumber', 'department', 'course', 'semester', 
-      'division', 'batch', 'personalDetails'
+      'division', 'batch', 'personalDetails', 'mentor'
     ]);
 
     const student = await Student.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true, runValidators: true })
       .populate('user', 'email status')
       .populate('department', 'name')
-      .populate('course', 'name');
+      .populate('course', 'name')
+      .populate('mentor', 'fullName employeeId');
 
     const { parentEmail, parentPassword } = req.body;
     if (parentEmail) {
@@ -296,7 +300,8 @@ const updateStudent = async (req, res, next) => {
       .populate('department', 'name')
       .populate('course', 'name')
       .populate('parent', 'fullName phone email relation')
-      .populate('parents', 'fullName phone email relation');
+      .populate('parents', 'fullName phone email relation')
+      .populate('mentor', 'fullName employeeId');
 
     await emitNotification({
       title: 'Student Updated',
@@ -337,7 +342,8 @@ const getMyProfile = async (req, res, next) => {
       .populate('course', 'name code')
       .populate('semester', 'name')
       .populate('parent', 'fullName phone email relation')
-      .populate('parents', 'fullName phone email relation');
+      .populate('parents', 'fullName phone email relation')
+      .populate('mentor', 'fullName email phone');
     if (!student) throw new ApiError(404, 'Student profile not found');
     return res.json(new ApiResponse(200, student, 'Profile fetched'));
   } catch (error) { next(error); }

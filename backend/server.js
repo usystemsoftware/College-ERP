@@ -106,11 +106,13 @@ connectDB().then(async () => {
 
   // Register Bus GPS Tracking Socket Handlers
   const registerBusTrackingHandlers = require('./src/sockets/busTrackingSocket');
-  registerBusTrackingHandlers(io);
 
   // Socket connection handler
   io.on('connection', (socket) => {
     console.log(`[Socket.io] User connected: ${socket.id}`);
+
+    // Register bus tracking events on this socket
+    registerBusTrackingHandlers(socket);
 
     // Handle user joining their specific workspace/role room
     socket.on('join_room', (roomId) => {

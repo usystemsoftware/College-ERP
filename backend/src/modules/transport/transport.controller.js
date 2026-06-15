@@ -78,13 +78,23 @@ const allocateTransport = async (req, res, next) => {
     if (generateInvoice) {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 15);
-      await Invoice.create({
-        studentId,
-        title: `Transport Fee - ${route.routeName}`,
-        totalAmount: stop.baseFee,
-        dueDate,
-        feeType: 'Transport'
-      });
+      const activeYear = await require('../academicYears/academicYear.model').findOne({ isCurrent: true });
+      if (activeYear) {
+        await require('../fees/fee.model').create({
+          student: studentId,
+          academicYear: activeYear._id,
+          title: `Transport Fee - ${route.routeName}`,
+          totalAmount: stop.baseFee,
+          installments: [{
+            amount: stop.baseFee,
+            dueDate: dueDate,
+            status: 'Unpaid'
+          }],
+          status: 'Unpaid',
+          generatedBy: req.user._id,
+          collegeId: req.user.collegeId
+        });
+      }
     }
 
     return res.status(201).json(new ApiResponse(201, { allocation }, 'Transport allocated successfully'));

@@ -257,6 +257,13 @@ const LeaveApplicationPage = () => {
                             </span>
                           </div>
                           
+                          {['Super Admin', 'College Admin', 'Principal', 'HOD'].includes(roleName) && leave.requester && (
+                            <div className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                              <User size={14} className="text-slate-400" />
+                              <span className="font-medium">{leave.requester.name || leave.requester.email}</span>
+                            </div>
+                          )}
+
                           <div className="text-sm text-slate-600 dark:text-slate-400">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">
                               {new Date(leave.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}

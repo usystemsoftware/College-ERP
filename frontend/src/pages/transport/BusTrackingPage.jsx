@@ -110,6 +110,10 @@ const BusTrackingPage = () => {
 
     return () => {
       socket.off('bus_location_updated', handleLocationUpdated);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, [mapReady, loading]);
 
@@ -149,7 +153,13 @@ const BusTrackingPage = () => {
           markersRef.current[bus.vehicleId].setIcon(customIcon);
         } else {
           const marker = L.marker([bus.lat, bus.lng], { icon: customIcon }).addTo(mapRef.current);
-          marker.on('click', () => setSelectedBus(bus));
+          marker.on('click', () => {
+            setBuses(prev => {
+              const currentBus = prev.find(b => b.vehicleId === bus.vehicleId);
+              setSelectedBus(currentBus || bus);
+              return prev;
+            });
+          });
           markersRef.current[bus.vehicleId] = marker;
         }
       }

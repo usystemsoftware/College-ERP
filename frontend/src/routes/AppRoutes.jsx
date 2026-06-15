@@ -272,6 +272,14 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="transport"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Transport Manager']}>
+              <TransportDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/bus-tracking" element={<ProtectedRoute><BusTrackingPage /></ProtectedRoute>} />
         <Route path="/parent/consent" element={<ProtectedRoute allowedRoles={['Parent']}><ParentConsentPage /></ProtectedRoute>} />
         <Route path="/parent/tracking" element={<ProtectedRoute allowedRoles={['Parent']}><ParentTrackingPage /></ProtectedRoute>} />

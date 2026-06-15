@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const stopSchema = new mongoose.Schema({
   stopName: { type: String, required: true },
   pickupTime: { type: String, required: true }, // e.g., "07:30 AM"
+  dropTime: { type: String }, // e.g., "05:30 PM"
   distanceFromCampus: { type: Number }, // In km
   baseFee: { type: Number, required: true } // Fee for this specific stop
 });

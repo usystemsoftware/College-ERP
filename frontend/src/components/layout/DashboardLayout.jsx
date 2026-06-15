@@ -199,6 +199,7 @@ const DashboardLayout = () => {
       { name: 'LMS / Library', path: '/library', icon: BookOpen },
       { name: 'Report Incident', path: '/report-incident', icon: ShieldAlert },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
+      { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
     ];
   } else if (userRole === 'Parent') {
     navItems = [
@@ -206,6 +207,7 @@ const DashboardLayout = () => {
       { name: 'Fees & Payments', path: '/parent/fees', icon: CreditCard },
       { name: 'Attendance', path: '/parent/attendance', icon: Clock },
       { name: 'Live Tracking', path: '/parent/tracking', icon: MapPin },
+      { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
       { name: 'Consent Settings', path: '/parent/consent', icon: ShieldCheck },
       ...navItems,
     ];

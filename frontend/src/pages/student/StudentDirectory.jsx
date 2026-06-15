@@ -6,6 +6,7 @@ import Modal from '../../components/common/Modal';
 import LottieLoader from '../../components/common/LottieLoader';
 import { fetchStudents, createStudent, updateStudent, deleteStudent } from '../../features/students/studentSlice';
 import { getDepartments, getCourses, getSemesters } from '../../api/academic.api';
+import { getFacultyAPI } from '../../api/faculty.api';
 
 const StudentDirectory = () => {
   const dispatch = useDispatch();
@@ -20,6 +21,7 @@ const StudentDirectory = () => {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [semesters, setSemesters] = useState([]);
+  const [faculties, setFaculties] = useState([]);
   const [fetchingOptions, setFetchingOptions] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
@@ -43,12 +45,13 @@ const StudentDirectory = () => {
       async function fetchOptions() {
         setFetchingOptions(true);
         try {
-          const [deptRes, courseRes, semRes] = await Promise.all([
-            getDepartments(), getCourses(), getSemesters()
+          const [deptRes, courseRes, semRes, facultyRes] = await Promise.all([
+            getDepartments(), getCourses(), getSemesters(), getFacultyAPI({ limit: 100 })
           ]);
           setDepartments(deptRes.data?.data || []);
           setCourses(courseRes.data?.data || []);
           setSemesters(semRes.data?.data || []);
+          setFaculties(facultyRes.data?.data?.faculty || []);
         } catch (err) {
           console.error("Failed to fetch academic options", err);
         } finally {
@@ -64,7 +67,7 @@ const StudentDirectory = () => {
     reset({
       fullName: '', email: '', password: '', phone: '', enrollmentNumber: '', rollNumber: '',
       department: '', course: '', semester: '', dob: '', gender: 'Male', division: '', batch: '', address: '',
-      fatherEmail: '', fatherPassword: '', motherEmail: '', motherPassword: ''
+      fatherEmail: '', fatherPassword: '', motherEmail: '', motherPassword: '', mentor: ''
     });
     setIsModalOpen(true);
   };
@@ -81,6 +84,7 @@ const StudentDirectory = () => {
       department: student.department?._id || '',
       course: student.course?._id || '',
       semester: student.semester?._id || '',
+      mentor: student.mentor?._id || '',
       dob: student.personalDetails?.dob ? new Date(student.personalDetails.dob).toISOString().split('T')[0] : '',
       gender: student.personalDetails?.gender || 'Male',
       division: student.division || '',
@@ -116,6 +120,7 @@ const StudentDirectory = () => {
       semester: data.semester,
       division: data.division,
       batch: data.batch,
+      mentor: data.mentor,
       personalDetails: {
         fullName: data.fullName,
         dob: data.dob,
@@ -371,6 +376,13 @@ const StudentDirectory = () => {
                   {filteredSemesters.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
                 {errors.semester && <p className="text-xs text-red-500 mt-1">{errors.semester.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Assigned Teacher / Mentor</label>
+                <select {...register('mentor')} className={`w-full rounded-lg border border-slate-200 focus:border-brand-500 bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}>
+                  <option value="">No Mentor</option>
+                  {faculties.map(f => <option key={f._id} value={f._id}>{f.fullName} ({f.employeeId})</option>)}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">DOB</label>

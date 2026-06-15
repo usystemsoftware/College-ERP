@@ -50,6 +50,10 @@ const studentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parent'
   }],
+  mentor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Faculty'
+  },
   personalDetails: {
     fullName: { type: String, required: true },
     dob: { type: Date, required: true },

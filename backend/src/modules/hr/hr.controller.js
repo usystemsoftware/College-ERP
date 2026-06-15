@@ -1,11 +1,23 @@
 const { Leave, Payroll } = require('./hr.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
+const Joi = require('joi');
 
 // --- Leave Management ---
 const applyLeave = async (req, res, next) => {
   try {
-    const { facultyId, leaveType, startDate, endDate, reason } = req.body;
+    const schema = Joi.object({
+      facultyId: Joi.string().required(),
+      leaveType: Joi.string().required(),
+      startDate: Joi.date().iso().required(),
+      endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
+      reason: Joi.string().required()
+    });
+
+    const { error, value } = schema.validate(req.body);
+    if (error) throw new ApiError(400, `Validation Error: ${error.details[0].message}`);
+
+    const { facultyId, leaveType, startDate, endDate, reason } = value;
     const leave = await Leave.create({ facultyId, leaveType, startDate, endDate, reason, collegeId: req.user.collegeId });
     return res.status(201).json(new ApiResponse(201, { leave }, 'Leave applied successfully'));
   } catch (error) {
@@ -50,7 +62,18 @@ const updateLeaveStatus = async (req, res, next) => {
 // --- Payroll Management ---
 const generatePayroll = async (req, res, next) => {
   try {
-    const { facultyId, month, basicSalary, allowances, deductions } = req.body;
+    const schema = Joi.object({
+      facultyId: Joi.string().required(),
+      month: Joi.string().required(),
+      basicSalary: Joi.number().min(0).required(),
+      allowances: Joi.number().min(0).required(),
+      deductions: Joi.number().min(0).required()
+    });
+
+    const { error, value } = schema.validate(req.body);
+    if (error) throw new ApiError(400, `Validation Error: ${error.details[0].message}`);
+
+    const { facultyId, month, basicSalary, allowances, deductions } = value;
     const netSalary = basicSalary + allowances - deductions;
 
     const payroll = await Payroll.create({

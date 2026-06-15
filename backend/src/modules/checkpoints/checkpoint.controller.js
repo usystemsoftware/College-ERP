@@ -19,7 +19,7 @@ const generateCheckpointQR = async (req, res, next) => {
       date: new Date().toISOString().split('T')[0]
     };
 
-    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(payload, process.env.JWT_CHECKPOINT_SECRET, { expiresIn: '2h' });
 
     return res.status(200).json(new ApiResponse(200, {
       token,
@@ -37,7 +37,7 @@ const scanCheckpoint = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_CHECKPOINT_SECRET);
     } catch (err) {
       throw new ApiError(400, 'Invalid or expired checkpoint QR code');
     }

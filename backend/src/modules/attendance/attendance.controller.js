@@ -809,7 +809,7 @@ const generateQRToken = async (req, res, next) => {
       collegeId: req.user.collegeId
     };
 
-    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '10m' });
+    const token = jwt.sign(payload, process.env.JWT_ATTENDANCE_SECRET, { expiresIn: '10m' });
     return res.status(200).json(new ApiResponse(200, { token }, 'QR Token generated'));
   } catch (error) {
     next(error);
@@ -823,7 +823,7 @@ const verifyQRToken = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_ATTENDANCE_SECRET);
     } catch (err) {
       throw new ApiError(400, 'Invalid or expired QR Token');
     }
@@ -850,7 +850,7 @@ const markQRAttendance = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_ATTENDANCE_SECRET);
     } catch (err) {
       throw new ApiError(400, 'Invalid or expired QR Token');
     }

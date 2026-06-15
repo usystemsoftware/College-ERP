@@ -11,12 +11,12 @@ import { getFacultyAPI } from '../../api/faculty.api';
 const StudentDirectory = () => {
   const dispatch = useDispatch();
   const { list: students, loading, error } = useSelector((state) => state.students);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editStudentId, setEditStudentId] = useState(null);
   const [toast, setToast] = useState(null);
-  
+
   // Academic Form Data
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -90,8 +90,10 @@ const StudentDirectory = () => {
       division: student.division || '',
       batch: student.batch || '',
       address: student.personalDetails?.address || '',
-      parentEmail: student.parent?.email || '',
-      parentPassword: student.parent ? '********' : '' // Fake password for display
+      fatherEmail: student.parents?.find(p => p.relation === 'Father')?.email || student.parent?.email || '',
+      fatherPassword: student.parents?.find(p => p.relation === 'Father') ? '********' : '',
+      motherEmail: student.parents?.find(p => p.relation === 'Mother')?.email || '',
+      motherPassword: student.parents?.find(p => p.relation === 'Mother') ? '********' : ''
     });
     setIsModalOpen(true);
   };
@@ -136,7 +138,8 @@ const StudentDirectory = () => {
 
     if (editStudentId) {
       if (!data.password || data.password === '********') delete payload.password; // Don't send empty password on edit
-      if (!data.parentPassword || data.parentPassword === '********') delete payload.parentPassword;
+      if (!data.fatherPassword || data.fatherPassword === '********') delete payload.fatherPassword;
+      if (!data.motherPassword || data.motherPassword === '********') delete payload.motherPassword;
       const res = await dispatch(updateStudent({ id: editStudentId, data: payload }));
       if (!res.error) {
         setIsModalOpen(false);
@@ -158,8 +161,8 @@ const StudentDirectory = () => {
     }
   };
 
-  const filteredStudents = (students || []).filter(student => 
-    student.personalDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredStudents = (students || []).filter(student =>
+    student.personalDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.enrollmentNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -167,11 +170,10 @@ const StudentDirectory = () => {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-6 right-6 z-[9999] flex items-center gap-3 rounded-xl px-5 py-4 shadow-2xl text-sm font-semibold transition-all duration-300 ${
-          toast.type === 'error'
+        <div className={`fixed top-6 right-6 z-[9999] flex items-center gap-3 rounded-xl px-5 py-4 shadow-2xl text-sm font-semibold transition-all duration-300 ${toast.type === 'error'
             ? 'bg-red-600 text-white'
             : 'bg-emerald-600 text-white'
-        }`}>
+          }`}>
           <CheckCircle2 size={18} />
           <span>{toast.message}</span>
           <button onClick={() => setToast(null)} className="ml-2 opacity-75 hover:opacity-100">
@@ -185,7 +187,7 @@ const StudentDirectory = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Student Directory</h1>
           <p className="text-sm text-slate-500">Manage and view all enrolled students.</p>
         </div>
-        <button 
+        <button
           onClick={handleOpenAdd}
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-colors"
         >
@@ -264,13 +266,12 @@ const StudentDirectory = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-1 text-xs"><Phone size={12}/> {student.personalDetails?.phone}</span>
+                        <span className="flex items-center gap-1 text-xs"><Phone size={12} /> {student.personalDetails?.phone}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                        student.user?.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      }`}>
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${student.user?.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        }`}>
                         {student.user?.status || 'Unknown'}
                       </span>
                     </td>
@@ -300,10 +301,10 @@ const StudentDirectory = () => {
             <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-2">Student Basic Details</h3>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-              <input 
+              <input
                 {...register('fullName', { required: 'Full Name is required' })}
                 className={`w-full rounded-lg border ${errors.fullName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`}
-                placeholder="Enter full name" 
+                placeholder="Enter full name"
               />
               {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
             </div>
@@ -414,31 +415,78 @@ const StudentDirectory = () => {
                 {errors.batch && <p className="text-xs text-red-500 mt-1">{errors.batch.message}</p>}
               </div>
             
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
-                <input {...register('address', { required: 'Address is required' })} className={`w-full rounded-lg border ${errors.address ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} placeholder="Full Address" />
-                {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parent Password</label>
-                  {editStudentId && watch('parentEmail') && watch('parentPassword') === '********' && (
-                    <button 
-                      type="button" 
-                      onClick={() => setValue('parentPassword', '')}
-                      className="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium"
-                    >
-                      Change Password
-                    </button>
-                  )}
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+              <input {...register('address', { required: 'Address is required' })} className={`w-full rounded-lg border ${errors.address ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-500'} bg-white px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-dark-900 dark:text-white`} placeholder="Full Address" />
+              {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
+            </div>
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400 mb-4">Parents Login Details (Optional)</h3>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Email</label>
+                  <input 
+                    type="email"
+                    {...register('fatherEmail')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="father@example.com" 
+                  />
                 </div>
-                <input 
-                  type="password"
-                  {...register('parentPassword')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
-                  placeholder={editStudentId && watch('parentEmail') ? "Leave empty to keep same" : "Parent account password"} 
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Father Password</label>
+                    {editStudentId && watch('fatherEmail') && watch('fatherPassword') === '********' && (
+                      <button 
+                        type="button" 
+                        onClick={() => setValue('fatherPassword', '')}
+                        className="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium"
+                      >
+                        Change Password
+                      </button>
+                    )}
+                  </div>
+                  <input 
+                    type="password"
+                    {...register('fatherPassword')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder={editStudentId && watch('fatherEmail') ? "Leave empty to keep same" : "Father's account password"} 
+                  />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Email</label>
+                  <input 
+                    type="email"
+                    {...register('motherEmail')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder="mother@example.com" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mother Password</label>
+                    {editStudentId && watch('motherEmail') && watch('motherPassword') === '********' && (
+                      <button 
+                        type="button" 
+                        onClick={() => setValue('motherPassword', '')}
+                        className="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium"
+                      >
+                        Change Password
+                      </button>
+                    )}
+                  </div>
+                  <input 
+                    type="password"
+                    {...register('motherPassword')}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white" 
+                    placeholder={editStudentId && watch('motherEmail') ? "Leave empty to keep same" : "Mother's account password"} 
+                  />
+                </div>
+              </div>
+            </div>
 
             <button type="submit" disabled={loading} className="w-full mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
               {loading ? 'Creating...' : 'Submit'}

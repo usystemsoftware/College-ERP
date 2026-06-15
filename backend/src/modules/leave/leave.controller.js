@@ -67,7 +67,32 @@ const getLeaveRequests = async (req, res, next) => {
       return leave;
     });
 
-    return res.json(new ApiResponse(200, { leaves, pagination: { total, pages: Math.ceil(total / parseInt(limit)) } }, 'Leave requests fetched'));
+    const StudentModel = require('../students/student.model');
+    const FacultyModel = require('../faculty/faculty.model');
+
+    const populatedLeaves = await Promise.all(leaves.map(async (leave) => {
+      let name = leave.requester?.email || 'Unknown User';
+      const plainLeave = leave.toObject ? leave.toObject() : leave;
+      
+      try {
+        if (leave.requester && leave.requesterType === 'Student') {
+          const student = await StudentModel.findOne({ user: leave.requester._id }).select('personalDetails.fullName');
+          if (student && student.personalDetails) name = student.personalDetails.fullName;
+        } else if (leave.requester && leave.requesterType === 'Faculty') {
+          const faculty = await FacultyModel.findOne({ user: leave.requester._id }).select('fullName');
+          if (faculty) name = faculty.fullName;
+        }
+      } catch (err) {
+        // Ignore error and fallback to email
+      }
+      
+      if (plainLeave.requester) {
+        plainLeave.requester.name = name;
+      }
+      return plainLeave;
+    }));
+
+    return res.json(new ApiResponse(200, { leaves: populatedLeaves, pagination: { total, pages: Math.ceil(total / parseInt(limit)) } }, 'Leave requests fetched'));
   } catch (error) { next(error); }
 };
 

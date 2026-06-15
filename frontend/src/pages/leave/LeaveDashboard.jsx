@@ -76,6 +76,7 @@ const LeaveDashboard = () => {
   };
 
   const filteredLeaves = leaves.filter(l => 
+    l.requester?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.requester?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.leaveType?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -107,7 +108,7 @@ const LeaveDashboard = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by email, reason, or type..."
+            placeholder="Search by name, email, reason, or type..."
             className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-dark-900 dark:text-white"
           />
         </div>
@@ -161,7 +162,10 @@ const LeaveDashboard = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-bold text-slate-900 dark:text-white truncate">
-                          {leave.requester?.email || 'Unknown User'}
+                          {leave.requester?.name || 'Unknown User'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          ({leave.requester?.email})
                         </span>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                           {leave.requesterType}
@@ -229,7 +233,10 @@ const LeaveDashboard = () => {
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                      {selectedLeave.requester?.email || 'Unknown User'}
+                      {selectedLeave.requester?.name || 'Unknown User'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {selectedLeave.requester?.email}
                     </p>
                     <span className="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 mt-1 inline-block">
                       {selectedLeave.requesterType}

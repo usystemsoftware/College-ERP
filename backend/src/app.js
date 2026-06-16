@@ -3,11 +3,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorMiddleware');
 const ApiError = require('./utils/apiError');
 
 const app = express();
+
+// Compress all responses
+app.use(compression());
 
 // Security Headers
 app.use(helmet());

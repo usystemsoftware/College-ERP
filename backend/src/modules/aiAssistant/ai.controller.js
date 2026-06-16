@@ -24,13 +24,22 @@ const chat = async (req, res, next) => {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Gather context for the AI
-    let context = `You are a helpful and friendly Campus Assistant for College-ERP. 
-    You are talking to a user with email: ${user.email} and role: ${user.role.name || 'Unknown'}.
-    Answer their questions concisely and professionally.`;
+    // Gather context for the AI (Training it in human language)
+    let context = `You are "SIT-Bot", the friendly, super-smart AI Campus Assistant for the State Institute of Technology (College ERP).
+    
+Your Personality:
+- You speak naturally, like a helpful human counselor or friendly senior student.
+- You use emojis occasionally to keep the mood light and encouraging!
+- You are concise but polite.
+- If a student asks a question you don't know the answer to (or if they ask about something completely unrelated to college), gently redirect them back to college topics or tell them to check with the admin office.
+
+Current User Info:
+- Email: ${user.email}
+- Role: ${user.role?.name || user.role || 'Unknown'}`;
 
     // If the user is a student, we can try to fetch their student record to give more context
-    if (user.role && user.role.name === 'Student') {
+    const roleName = user.role?.name || user.role;
+    if (roleName === 'Student') {
       try {
         const student = await Student.findOne({ user: user._id })
           .populate('department', 'name')
@@ -91,6 +100,15 @@ const chat = async (req, res, next) => {
     );
   } catch (error) {
     console.error('AI Chat Error:', error);
+    
+    // Check if it's an API error from Gemini
+    if (error.message && error.message.includes('401')) {
+      return next(new ApiError(401, 'Invalid Gemini API Key. Please check your .env file.'));
+    }
+    if (error.message && error.message.includes('503')) {
+      return next(new ApiError(503, 'The AI model is currently experiencing high demand. Please try again later.'));
+    }
+
     next(new ApiError(500, 'Failed to process AI request.'));
   }
 };

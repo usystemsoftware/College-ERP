@@ -31,15 +31,16 @@ const AIChatWidget = () => {
     try {
       // Send context of conversation history if needed, but for now just the message
       const res = await client.post('/ai/chat', { message: userText });
-      
+
       if (res.data?.success) {
         setMessages((prev) => [...prev, { sender: 'bot', text: res.data.data.response }]);
       } else {
-        setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, I encountered an error. Please try again.' }]);
+        setMessages((prev) => [...prev, { sender: 'bot', text: res.data?.message || 'Sorry, I encountered an error. Please try again.' }]);
       }
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, the server is unreachable right now.' }]);
+      const errorMsg = error.response?.data?.message || 'Sorry, the server encountered an error right now.';
+      setMessages((prev) => [...prev, { sender: 'bot', text: errorMsg }]);
     } finally {
       setIsLoading(false);
     }
@@ -80,11 +81,10 @@ const AIChatWidget = () => {
             className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`flex max-w-[85%] items-start gap-2 rounded-2xl px-4 py-2 ${
-                msg.sender === 'user'
-                  ? 'bg-brand-500 text-white rounded-br-none'
-                  : 'bg-white text-slate-800 border border-slate-100 dark:border-slate-800 dark:bg-dark-800 dark:text-slate-200 rounded-bl-none shadow-sm'
-              }`}
+              className={`flex max-w-[85%] items-start gap-2 rounded-2xl px-4 py-2 ${msg.sender === 'user'
+                ? 'bg-brand-500 text-white rounded-br-none'
+                : 'bg-white text-slate-800 border border-slate-100 dark:border-slate-800 dark:bg-dark-800 dark:text-slate-200 rounded-bl-none shadow-sm'
+                }`}
             >
               <div className="text-sm whitespace-pre-wrap">{msg.text}</div>
             </div>

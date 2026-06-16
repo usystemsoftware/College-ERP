@@ -131,6 +131,10 @@ router.use('/incidents', incidentRoutes);
 
 router.use('/analytics', analyticsRoutes);
 
+// AI Assistant
+const aiRoutes = safeRequire('aiAssistant/ai.routes');
+if (aiRoutes) router.use('/ai', aiRoutes);
+
 // Consent & Checkpoints
 router.use('/consent', consentRoutes);
 router.use('/checkpoints', checkpointRoutes);

@@ -38,6 +38,7 @@ import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } 
 import { getMyNotifications } from '../../api/notifications.api';
 import { performStudentCampusCheckin, clearCampusCheckinSession } from '../../utils/campusCheckin';
 import { getUserRole, isDepartmentHod, getDisplayRole } from '../../utils/roles';
+import AIChatWidget from '../AIChatWidget';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -393,6 +394,7 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      <AIChatWidget />
     </div>
   );
 };

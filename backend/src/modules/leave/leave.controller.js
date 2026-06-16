@@ -15,10 +15,8 @@ const getLeaveRequests = async (req, res, next) => {
     let mentoredStudentUserIds = [];
     
     if (isAdmin) {
-      if (requesterType && requesterType !== 'Student') {
+      if (requesterType) {
         filter.requesterType = requesterType;
-      } else {
-        filter.requesterType = { $ne: 'Student' };
       }
     } else if (isFaculty) {
       if (requesterType) filter.requesterType = requesterType;
@@ -57,12 +55,8 @@ const getLeaveRequests = async (req, res, next) => {
 
     const leaves = leavesRaw.map(leave => {
       leave.canApprove = false;
-      if (isAdmin && leave.requesterType !== 'Student') {
+      if (isAdmin) {
         leave.canApprove = true;
-      } else if (isFaculty && leave.requesterType === 'Student') {
-        if (leave.requester && mentoredStudentUserIds.includes(leave.requester._id.toString())) {
-          leave.canApprove = true;
-        }
       }
       return leave;
     });
@@ -114,18 +108,7 @@ const processLeaveRequest = async (req, res, next) => {
     const isAdmin = ['Super Admin', 'College Admin', 'Principal', 'HOD'].includes(req.user.role.name);
     const isFaculty = req.user.role.name === 'Faculty' || req.user.role.name === 'Class Coordinator';
     
-    if (leave.requesterType === 'Student') {
-      if (!isFaculty) throw new ApiError(403, 'Only faculty mentors can approve student leaves');
-      const Faculty = require('../faculty/faculty.model');
-      const Student = require('../students/student.model');
-      const faculty = await Faculty.findOne({ user: req.user._id });
-      const student = await Student.findOne({ user: leave.requester._id });
-      if (!student || !student.mentor || !student.mentor.equals(faculty._id)) {
-        throw new ApiError(403, 'You can only approve leaves for students you mentor');
-      }
-    } else {
-      if (!isAdmin) throw new ApiError(403, 'Only admins can approve faculty/staff leaves');
-    }
+    if (!isAdmin) throw new ApiError(403, 'Only admins can approve leave requests');
 
     leave.status = status;
     leave.approvedBy = req.user._id;
@@ -147,4 +130,20 @@ const cancelLeaveRequest = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getLeaveRequests, createLeaveRequest, processLeaveRequest, cancelLeaveRequest };
+const updateLeaveRequest = async (req, res, next) => {
+  try {
+    const leave = await LeaveRequest.findOne({ _id: req.params.id, requester: req.user._id, status: 'Pending' });
+    if (!leave) throw new ApiError(404, 'Leave request not found or cannot be edited');
+    
+    const { leaveType, startDate, endDate, reason } = req.body;
+    if (leaveType) leave.leaveType = leaveType;
+    if (startDate) leave.startDate = startDate;
+    if (endDate) leave.endDate = endDate;
+    if (reason) leave.reason = reason;
+    
+    await leave.save();
+    return res.json(new ApiResponse(200, leave, 'Leave request updated'));
+  } catch (error) { next(error); }
+};
+
+module.exports = { getLeaveRequests, createLeaveRequest, processLeaveRequest, cancelLeaveRequest, updateLeaveRequest };

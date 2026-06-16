@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Calendar, FileText, Send, Loader2, CheckCircle2, Clock, XCircle, AlertTriangle, User, Paperclip } from 'lucide-react';
-import { getLeaveRequestsAPI, createLeaveRequestAPI, cancelLeaveRequestAPI } from '../../api/leave.api';
+import { getLeaveRequestsAPI, createLeaveRequestAPI, cancelLeaveRequestAPI, updateLeaveRequestAPI, processLeaveRequestAPI } from '../../api/leave.api';
 import toast from 'react-hot-toast';
 
 const LEAVE_TYPES = ['Casual', 'Medical', 'Earned', 'Duty', 'Maternity', 'Emergency'];
@@ -34,6 +34,7 @@ const LeaveApplicationPage = () => {
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     fetchLeaveRequests();
@@ -64,24 +65,45 @@ const LeaveApplicationPage = () => {
 
     setSubmitting(true);
     try {
-      await createLeaveRequestAPI({
-        requesterType,
-        leaveType,
-        startDate,
-        endDate,
-        reason: reason.trim()
-      });
-      toast.success('Leave application submitted successfully');
+      if (editingId) {
+        await updateLeaveRequestAPI(editingId, {
+          leaveType,
+          startDate,
+          endDate,
+          reason: reason.trim()
+        });
+        toast.success('Leave application updated successfully');
+        setEditingId(null);
+      } else {
+        await createLeaveRequestAPI({
+          requesterType,
+          leaveType,
+          startDate,
+          endDate,
+          reason: reason.trim()
+        });
+        toast.success('Leave application submitted successfully');
+      }
       setLeaveType('Casual');
       setStartDate('');
       setEndDate('');
       setReason('');
       fetchLeaveRequests();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to submit application');
+      toast.error(error.response?.data?.message || 'Failed to process application');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (leave) => {
+    setEditingId(leave._id);
+    setLeaveType(leave.leaveType);
+    const formatDate = (dateString) => new Date(dateString).toISOString().split('T')[0];
+    setStartDate(formatDate(leave.startDate));
+    setEndDate(formatDate(leave.endDate));
+    setReason(leave.reason);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancel = async (id) => {
@@ -94,6 +116,18 @@ const LeaveApplicationPage = () => {
       toast.error(error.response?.data?.message || 'Failed to cancel application');
     }
   };
+
+  const handleProcess = async (id, status) => {
+    if (!window.confirm(`Are you sure you want to ${status.toLowerCase()} this leave application?`)) return;
+    try {
+      await processLeaveRequestAPI(id, { status, remarks: '' });
+      toast.success(`Leave application ${status.toLowerCase()} successfully`);
+      fetchLeaveRequests();
+    } catch (error) {
+      toast.error(error.response?.data?.message || `Failed to process application`);
+    }
+  };
+
 
   const calculateDays = (start, end) => {
     if (!start || !end) return 0;
@@ -125,8 +159,23 @@ const LeaveApplicationPage = () => {
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-dark-850">
               <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 <FileText size={18} className="text-teal-600" />
-                New Application
+                {editingId ? 'Edit Application' : 'New Application'}
               </h3>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setLeaveType('Casual');
+                    setStartDate('');
+                    setEndDate('');
+                    setReason('');
+                  }}
+                  className="text-xs text-red-500 hover:text-red-600 font-bold ml-auto"
+                >
+                  Cancel Edit
+                </button>
+              )}
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -210,7 +259,7 @@ const LeaveApplicationPage = () => {
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:from-teal-700 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                {submitting ? 'Submitting...' : 'Submit Application'}
+                {submitting ? 'Processing...' : (editingId ? 'Update Application' : 'Submit Application')}
               </button>
             </form>
           </div>
@@ -296,12 +345,39 @@ const LeaveApplicationPage = () => {
                           </div>
 
                           {leave.status === 'Pending' && (
-                            <button
-                              onClick={() => handleCancel(leave._id)}
-                              className="text-xs font-bold px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-800/30"
-                            >
-                              Cancel Request
-                            </button>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              {leave.canApprove && user?._id !== (leave.requester?._id || leave.requester) ? (
+                                <>
+                                  <button
+                                    onClick={() => handleProcess(leave._id, 'Approved')}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-lg text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200 transition-colors dark:text-green-400 dark:hover:bg-green-900/20 dark:hover:border-green-800/30"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleProcess(leave._id, 'Rejected')}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-800/30"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleEdit(leave)}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-colors dark:text-teal-400 dark:hover:bg-teal-900/20 dark:hover:border-teal-800/30"
+                                  >
+                                    Edit Request
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancel(leave._id)}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-800/30"
+                                  >
+                                    Cancel Request
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

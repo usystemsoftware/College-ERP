@@ -29,8 +29,11 @@ const AIChatWidget = () => {
     setIsLoading(true);
 
     try {
-      // Send context of conversation history if needed, but for now just the message
-      const res = await client.post('/ai/chat', { message: userText });
+      // Send context of conversation history
+      const res = await client.post('/ai/chat', { 
+        message: userText,
+        history: messages
+      });
 
       if (res.data?.success) {
         setMessages((prev) => [...prev, { sender: 'bot', text: res.data.data.response }]);

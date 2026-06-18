@@ -86,13 +86,34 @@ Current User Info:
       }
     }
 
-    // Combine history into a format Gemini expects if using generateContent directly,
-    // or just pass the latest prompt with context. For simplicity, we prepend context to the current prompt.
-    const fullPrompt = `System Context:\n${context}\n\nUser Message:\n${message}`;
+    let contents = [];
+    if (history && Array.isArray(history)) {
+      history.forEach(msg => {
+        if (!msg.text) return;
+        contents.push({
+          role: msg.sender === 'bot' ? 'model' : 'user',
+          parts: [{ text: msg.text }]
+        });
+      });
+    }
+    
+    // Gemini requires the history to start with a 'user' role
+    while (contents.length > 0 && contents[0].role === 'model') {
+      contents.shift();
+    }
+    
+    // Add current message
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: fullPrompt,
+      contents: contents,
+      config: {
+        systemInstruction: context
+      }
     });
 
     return res.status(200).json(

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMyFeesAPI } from '../../api/fees.api';
+import { getMyFeesAPI, createCheckoutSessionAPI } from '../../api/fees.api';
 import { CreditCard, Download, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 const StudentFeesPage = () => {
@@ -21,6 +21,20 @@ const StudentFeesPage = () => {
     };
     fetchFees();
   }, []);
+
+  const handlePayNow = async (feeId, installmentId) => {
+    try {
+      setLoading(true);
+      const res = await createCheckoutSessionAPI(feeId, { installmentId });
+      if (res.data?.data?.url) {
+        window.location.href = res.data.data.url;
+      }
+    } catch (err) {
+      console.error('Failed to create checkout session', err);
+      setError('Failed to initiate payment. Please try again.');
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -147,7 +161,10 @@ const StudentFeesPage = () => {
                             </td>
                             <td className="px-4 py-3 text-right">
                               {inst.status !== 'Paid' ? (
-                                <button className="rounded-lg bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40">
+                                <button 
+                                  onClick={() => handlePayNow(fee._id, inst._id)}
+                                  className="rounded-lg bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40"
+                                >
                                   Pay Now
                                 </button>
                               ) : (

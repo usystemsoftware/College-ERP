@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  Briefcase,
   Building,
   UserPlus,
   Archive,
@@ -31,7 +32,9 @@ import {
   QrCode,
   FileText,
   MapPin,
-  ClipboardList
+  ClipboardList,
+  LifeBuoy,
+  Coffee
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
@@ -136,6 +139,9 @@ const DashboardLayout = () => {
   let navItems = [
     { name: 'Timetable', path: '/timetable', icon: Calendar },
     { name: 'LMS / Library', path: '/library', icon: BookOpen },
+    { name: 'Cafeteria', path: '/canteen', icon: Coffee },
+    { name: 'Digital Locker', path: '/digital-locker', icon: Archive },
+    { name: 'Helpdesk', path: '/helpdesk', icon: LifeBuoy },
     { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
@@ -160,6 +166,8 @@ const DashboardLayout = () => {
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
+      { name: 'Placements', path: '/placements', icon: Briefcase },
+      { name: 'Alumni', path: '/alumni', icon: GraduationCap },
     ];
   } else if (userRole === 'HOD' || (userRole === 'Faculty' && userIsDepartmentHod)) {
     navItems = [
@@ -201,6 +209,9 @@ const DashboardLayout = () => {
       { name: 'Report Incident', path: '/report-incident', icon: ShieldAlert },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
       { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
+      { name: 'Placements', path: '/placements', icon: Briefcase },
+      { name: 'Alumni', path: '/alumni', icon: GraduationCap },
+      ...navItems,
     ];
   } else if (userRole === 'Parent') {
     navItems = [
@@ -223,10 +234,6 @@ const DashboardLayout = () => {
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       ...navItems,
-    ];
-  } else if (userRole === 'Parent') {
-    navItems = [
-      { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
     ];
   } else {
     navItems = [

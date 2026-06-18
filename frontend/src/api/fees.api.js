@@ -9,6 +9,8 @@ export const getStudentPaymentsAPI = (studentId) => api.get(`/fee/payments/stude
 export const getFeeStatsAPI = () => api.get('/fee/stats');
 export const getMyFeesAPI = () => api.get('/fee/my');
 export const getParentFeesAPI = () => api.get('/fee/parent-fees');
+export const createCheckoutSessionAPI = (feeId, data) => api.post(`/fee/${feeId}/checkout`, data);
+export const stripeWebhookAPI = (data) => api.post('/fee/webhook', data);
 
 // Fee Categories
 export const getFeeCategoriesAPI = () => api.get('/fee/categories');

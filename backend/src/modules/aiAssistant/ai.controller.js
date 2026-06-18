@@ -80,6 +80,48 @@ Current User Info:
           } else {
             context += `\n\nToday's Timetable (${today}): No classes scheduled today.`;
           }
+
+          // ---- ENHANCED CONTEXT INJECTION ----
+          try {
+            const Fee = require('../fees/fee.model');
+            const Ticket = require('../helpdesk/ticket.model');
+            const Order = require('../canteen/order.model');
+
+            const [pendingFees, activeTickets, activeOrders] = await Promise.all([
+              Fee.find({ student: student._id, status: { $ne: 'Paid' } }).lean(),
+              Ticket.find({ createdBy: user._id, status: { $in: ['Open', 'In Progress'] } }).lean(),
+              Order.find({ user: user._id, status: { $in: ['Pending', 'Preparing', 'Ready'] } }).populate('items.menuItem', 'name').lean()
+            ]);
+
+            if (pendingFees.length > 0) {
+              context += `\n\nPending Fees:`;
+              pendingFees.forEach(fee => {
+                const due = fee.totalAmount - (fee.paidAmount || 0);
+                context += `\n- ${fee.feeType || 'Fee'}: ₹${due} due on ${new Date(fee.dueDate).toLocaleDateString()}`;
+              });
+            } else {
+              context += `\n\nPending Fees: None!`;
+            }
+
+            if (activeTickets.length > 0) {
+              context += `\n\nActive Helpdesk Tickets:`;
+              activeTickets.forEach(t => {
+                context += `\n- [${t.category}] "${t.title}" (Status: ${t.status})`;
+              });
+            }
+
+            if (activeOrders.length > 0) {
+              context += `\n\nActive Cafeteria Orders:`;
+              activeOrders.forEach(o => {
+                const itemNames = o.items.map(i => i.menuItem?.name).join(', ');
+                context += `\n- Order #${o._id.toString().slice(-6).toUpperCase()} [Status: ${o.status}]: ${itemNames} (Total: ₹${o.totalAmount})`;
+              });
+            }
+          } catch (contextErr) {
+            console.warn('Failed to fetch enhanced context:', contextErr);
+          }
+          // ---- END ENHANCED CONTEXT ----
+
         }
       } catch (err) {
         console.warn('Could not fetch student context for AI', err);

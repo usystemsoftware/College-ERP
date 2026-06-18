@@ -44,11 +44,7 @@ app.use('/api', routes);
 
 // Serve static uploads
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
-  setHeaders: (res, filePath, stat) => {
-    res.set('Content-Disposition', 'attachment');
-  }
-}));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Serve incident uploads (images/audio viewable inline)
 app.use('/uploads/incidents', express.static(path.join(__dirname, '../uploads/incidents')));

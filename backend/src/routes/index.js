@@ -63,6 +63,10 @@ const transportRoutes = require('../modules/transport/transport.routes');
 // Campus Life & Communication
 const eventRoutes = require('../modules/events/event.routes');
 const placementRoutes = require('../modules/placements/placement.routes');
+const alumniRoutes = safeRequire('alumni/alumni.routes');
+const ticketRoutes = safeRequire('helpdesk/ticket.routes');
+const documentRoutes = safeRequire('documents/document.routes');
+const canteenRoutes = safeRequire('canteen/canteen.routes');
 const gatepassRoutes = require('../modules/gatepasses/gatepass.routes');
 const leaveRoutes = require('../modules/leave/leave.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
@@ -124,6 +128,10 @@ router.use('/transport', transportRoutes);
 // Campus Life & Communication
 router.use('/events', eventRoutes);
 router.use('/placements', placementRoutes);
+if (alumniRoutes) router.use('/alumni', alumniRoutes);
+if (ticketRoutes) router.use('/helpdesk', ticketRoutes);
+if (documentRoutes) router.use('/documents', documentRoutes);
+if (canteenRoutes) router.use('/canteen', canteenRoutes);
 router.use('/gatepasses', gatepassRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/notifications', notificationRoutes);

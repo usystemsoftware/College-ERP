@@ -464,22 +464,14 @@ const getAttendanceAnalytics = async (req, res, next) => {
       name: k,
       present: dailyMap[k].total > 0 ? Math.round((dailyMap[k].present / dailyMap[k].total) * 100) : 0,
       absent: dailyMap[k].total > 0 ? 100 - Math.round((dailyMap[k].present / dailyMap[k].total) * 100) : 0
+    const subjectData = Object.keys(subjectMap).slice(0, 5).map(k => ({
+      name: k,
+      avg: Math.round((subjectMap[k].present / subjectMap[k].total) * 100)
     }));
 
-    // Generate monthly data for Jan to May (for UI purposes)
-    const mockMonthlyData = ['Jan', 'Feb', 'Mar', 'Apr', 'May'].map(k => ({
+    const teacherData = Object.keys(teacherMap).slice(0, 4).map(k => ({
       name: k,
-      rate: monthlyMap[k] && monthlyMap[k].total > 0 ? Math.round((monthlyMap[k].present / monthlyMap[k].total) * 100) : 0
-    }));
-
-    const mockSubjectData = Object.keys(subjectMap).slice(0, 5).map(k => ({
-      name: k,
-      rate: subjectMap[k].total > 0 ? Math.round((subjectMap[k].present / subjectMap[k].total) * 100) : 0
-    }));
-
-    const mockTeacherData = Object.keys(teacherMap).slice(0, 4).map(k => ({
-      name: k,
-      rate: teacherMap[k].total > 0 ? Math.round((teacherMap[k].present / teacherMap[k].total) * 100) : 0
+      avg: Math.round((teacherMap[k].present / teacherMap[k].total) * 100)
     }));
 
     return res.json(new ApiResponse(200, {
@@ -488,10 +480,10 @@ const getAttendanceAnalytics = async (req, res, next) => {
       totalTeachers,
       presentToday,
       lateArrivals,
-      dailyData: mockDailyData,
-      monthlyData: mockMonthlyData,
-      subjectData: mockSubjectData,
-      teacherData: mockTeacherData
+      dailyData: [],
+      monthlyData: [],
+      subjectData: subjectData,
+      teacherData: teacherData
     }, 'Attendance analytics fetched successfully'));
   } catch (error) { next(error); }
 };

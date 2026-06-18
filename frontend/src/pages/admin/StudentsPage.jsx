@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchStudents } from '../../features/students/studentSlice';
-import { Search, Plus, Filter, MoreVertical, Download } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical } from 'lucide-react';
+import ExportButton from '../../components/common/ExportButton';
 
 const StudentsPage = () => {
   const dispatch = useDispatch();
@@ -17,6 +18,15 @@ const StudentsPage = () => {
     student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const exportColumns = [
+    { header: 'Roll Number', dataKey: 'rollNumber' },
+    { header: 'Full Name', dataKey: 'personalDetails.fullName' },
+    { header: 'Email', dataKey: 'user.email' },
+    { header: 'Course', dataKey: 'course.name' },
+    { header: 'Semester', dataKey: 'semester.name' },
+    { header: 'Status', dataKey: 'user.status' }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -25,10 +35,11 @@ const StudentsPage = () => {
           <p className="text-sm text-slate-500">Manage student profiles, academic records, and enrollments.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-dark-800 dark:hover:bg-dark-750">
-            <Download size={16} />
-            Export
-          </button>
+          <ExportButton 
+            data={filteredStudents} 
+            columns={exportColumns} 
+            filename="students_directory" 
+          />
           <button className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600">
             <Plus size={16} />
             Add Student

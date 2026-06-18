@@ -41,4 +41,8 @@ router.get('/student/:studentId', protect, authorize(...FINANCE_ROLES), feeContr
 router.post('/:feeId/pay', protect, authorize(...FINANCE_ROLES), feeController.recordPayment);
 router.get('/payments/student/:studentId', protect, feeController.getPayments);
 
+// Stripe Checkout (Mock)
+router.post('/:feeId/checkout', protect, feeController.createCheckoutSession);
+router.post('/webhook', express.json(), feeController.stripeWebhook);
+
 module.exports = router;

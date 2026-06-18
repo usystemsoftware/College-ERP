@@ -394,12 +394,7 @@ const getStudentDashboardStats = async (req, res, next) => {
       }));
     }
 
-    if (formattedClasses.length === 0) {
-      formattedClasses = [
-        { time: '09:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', done: true },
-        { time: '11:15 AM', subject: 'Operating Systems (Mock)', room: 'L-102', done: false },
-      ];
-    }
+    // Removed mock classes fallback
 
     // 3. Action Center Stats
     let Assignment;
@@ -412,12 +407,27 @@ const getStudentDashboardStats = async (req, res, next) => {
       });
     } catch(e) {}
 
+    // Dynamic Fees
+    let feesDue = 0;
+    try {
+      const Fee = require('../fees/fee.model');
+      const pendingFees = await Fee.find({ student: student._id, status: { $ne: 'Paid' } }).lean();
+      feesDue = pendingFees.reduce((sum, f) => sum + (f.totalAmount - (f.paidAmount || 0)), 0);
+    } catch(e) {}
+
+    // Dynamic Library Books
+    let libraryBooksDue = 0;
+    try {
+      const BookIssue = require('../library/bookIssue.model');
+      libraryBooksDue = await BookIssue.countDocuments({ user: req.user._id, status: 'Issued' });
+    } catch(e) {}
+
     const stats = {
       attendance: attendanceData,
       todaysClasses: formattedClasses,
-      feesDue: 25000, // Placeholder
+      feesDue: feesDue,
       assignmentsDue: assignmentsDue,
-      libraryBooksDue: 1, // Placeholder
+      libraryBooksDue: libraryBooksDue,
       studentDetails: {
         course: student.course?.name || 'Unknown Course',
         semester: student.semester?.name || 'Unknown Semester',

@@ -159,6 +159,10 @@ const DashboardLayout = () => {
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
       { name: 'Inventory', path: '/inventory', icon: Archive },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'HR & Payroll', path: '/hr', icon: Briefcase },
+      { name: 'Hostel', path: '/hostel', icon: Hotel },
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
@@ -179,6 +183,9 @@ const DashboardLayout = () => {
       { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Attendance Analytics', path: '/attendance-analytics', icon: BarChart2 },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'My HR', path: '/hr', icon: Briefcase },
       ...navItems,
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
@@ -193,6 +200,9 @@ const DashboardLayout = () => {
       { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'My HR', path: '/hr', icon: Briefcase },
       ...navItems,
     ];
   } else if (userRole === 'Student') {
@@ -211,6 +221,8 @@ const DashboardLayout = () => {
       { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
       { name: 'Placements', path: '/placements', icon: Briefcase },
       { name: 'Alumni', path: '/alumni', icon: GraduationCap },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'Hostel', path: '/hostel', icon: Hotel },
       ...navItems,
     ];
   } else if (userRole === 'Parent') {

@@ -460,10 +460,6 @@ const getAttendanceAnalytics = async (req, res, next) => {
 
     const overallAttendance = totalRecords > 0 ? ((totalPresent / totalRecords) * 100).toFixed(1) : 0;
 
-    const mockDailyData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(k => ({
-      name: k,
-      present: dailyMap[k].total > 0 ? Math.round((dailyMap[k].present / dailyMap[k].total) * 100) : 0,
-      absent: dailyMap[k].total > 0 ? 100 - Math.round((dailyMap[k].present / dailyMap[k].total) * 100) : 0
     const subjectData = Object.keys(subjectMap).slice(0, 5).map(k => ({
       name: k,
       avg: Math.round((subjectMap[k].present / subjectMap[k].total) * 100)

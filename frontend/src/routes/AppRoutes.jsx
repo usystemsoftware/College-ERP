@@ -41,6 +41,9 @@ const LeaveDashboard = React.lazy(() => import('../pages/leave/LeaveDashboard'))
 // Exams
 const ExamDashboard = React.lazy(() => import('../pages/exams/ExamDashboard'));
 const StudentResultsPage = React.lazy(() => import('../pages/exams/StudentResultsPage'));
+const HRDashboard = React.lazy(() => import('../pages/hr/HRDashboard'));
+const HostelDashboard = React.lazy(() => import('../pages/hostel/HostelDashboard'));
+const AssignmentDashboard = React.lazy(() => import('../pages/assignments/AssignmentDashboard'));
 
 // Payments Mock
 const MockStripeCheckout = React.lazy(() => import('../pages/student/MockStripeCheckout'));
@@ -301,6 +304,10 @@ const AppRoutes = () => {
           }
         />
         <Route path="/bus-tracking" element={<ProtectedRoute><BusTrackingPage /></ProtectedRoute>} />
+        <Route path="hr" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'HR Manager', 'Faculty']}><HRDashboard /></ProtectedRoute>} />
+        <Route path="hostel" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Hostel Warden', 'Student']}><HostelDashboard /></ProtectedRoute>} />
+        <Route path="exams" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Faculty']}><ExamDashboard /></ProtectedRoute>} />
+        <Route path="assignments" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Faculty', 'Student']}><AssignmentDashboard /></ProtectedRoute>} />
         <Route path="/parent/consent" element={<ProtectedRoute allowedRoles={['Parent']}><ParentConsentPage /></ProtectedRoute>} />
         <Route path="/parent/tracking" element={<ProtectedRoute allowedRoles={['Parent']}><ParentTrackingPage /></ProtectedRoute>} />
         <Route

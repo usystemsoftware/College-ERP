@@ -27,7 +27,7 @@ const StudentFeesPage = () => {
       setLoading(true);
       const res = await createCheckoutSessionAPI(feeId, { installmentId });
       if (res.data?.data?.url) {
-        window.location.href = res.data.data.url;
+        window.location.assign(res.data.data.url);
       }
     } catch (err) {
       console.error('Failed to create checkout session', err);

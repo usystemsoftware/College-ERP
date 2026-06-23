@@ -10,9 +10,12 @@ import { getFacultyAPI } from '../../api/faculty.api';
 
 const StudentDirectory = () => {
   const dispatch = useDispatch();
-  const { list: students, loading, error } = useSelector((state) => state.students);
+  const { list: students, pagination, loading, error } = useSelector((state) => state.students);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterCourses, setFilterCourses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editStudentId, setEditStudentId] = useState(null);
   const [toast, setToast] = useState(null);
@@ -37,8 +40,18 @@ const StudentDirectory = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchStudents());
-  }, [dispatch]);
+    dispatch(fetchStudents({ page: currentPage, limit: 10, course: courseFilter || undefined }));
+  }, [dispatch, currentPage, courseFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [courseFilter]);
+
+  useEffect(() => {
+    getCourses().then(res => {
+      setFilterCourses(res.data?.data || []);
+    }).catch(err => console.error(err));
+  }, []);
 
   useEffect(() => {
     if (isModalOpen && departments.length === 0) {
@@ -70,10 +83,7 @@ const StudentDirectory = () => {
       fatherEmail: '', fatherPassword: '', motherEmail: '', motherPassword: '', mentor: ''
     });
     setIsModalOpen(true);
-  }; A                  
-
-
-  
+  };  
   const handleEditClick = (student) => {
     setEditStudentId(student._id);
     reset({
@@ -215,10 +225,22 @@ const StudentDirectory = () => {
               className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
             />
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800 transition-colors">
-            <Filter size={16} />
-            Filter
-          </button>
+          <div className="flex items-center gap-2">
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
+            >
+              <option value="">All Courses</option>
+              {filterCourses.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+            <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800 transition-colors">
+              <Filter size={16} />
+              Filter
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -293,6 +315,46 @@ const StudentDirectory = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && students.length > 0 && pagination && (
+          <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-dark-800/50">
+            <span className="text-sm text-slate-500">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} students
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-900 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded-lg text-sm font-medium ${
+                      currentPage === page
+                        ? 'bg-brand-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-800'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                disabled={currentPage === pagination.pages || pagination.pages === 0}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-900 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editStudentId ? "Edit Student" : "Add New Student"} hideFooter={true}>

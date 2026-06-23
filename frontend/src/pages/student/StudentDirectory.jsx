@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Phone, MoreVertical, Loader2, Edit2, Trash2, CheckCircle2, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import Modal from '../../components/common/Modal';
 import LottieLoader from '../../components/common/LottieLoader';
 import { fetchStudents, createStudent, updateStudent, deleteStudent } from '../../features/students/studentSlice';
@@ -24,9 +24,9 @@ const StudentDirectory = () => {
   const [faculties, setFaculties] = useState([]);
   const [fetchingOptions, setFetchingOptions] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue, control } = useForm();
 
-  const selectedCourseId = watch('course');
+  const selectedCourseId = useWatch({ control, name: 'course' });
   const selectedCourse = courses.find(c => c._id === selectedCourseId);
   const maxSemesters = selectedCourse ? selectedCourse.durationSemesters : 8;
   const filteredSemesters = semesters.slice(0, maxSemesters);

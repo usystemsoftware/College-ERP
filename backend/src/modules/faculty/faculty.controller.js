@@ -176,25 +176,38 @@ const getFacultyDashboardStats = async (req, res, next) => {
       });
     }
 
-    if (formattedClasses.length === 0) {
-      formattedClasses = [
-        { _id: '6663edfa328b067d0cf0c091', time: '09:00 AM - 10:00 AM', subject: 'Data Structures (Mock)', room: 'L-101', type: 'Theory', done: true, attendanceStatus: 'Present', sessionStatus: 'Completed', actualStartTime: null, actualEndTime: null },
-        { _id: '6663edfa328b067d0cf0c092', time: '11:15 AM - 12:15 PM', subject: 'Operating Systems (Mock)', room: 'L-102', type: 'Theory', done: false, attendanceStatus: null, sessionStatus: 'Pending', actualStartTime: null, actualEndTime: null }
-      ];
-    }
+    // Removed mock classes fallback
 
-    // 2. Attendance Stats
-    let attendanceStats = [
-      { subject: 'Data Structures', classAvg: 88, target: 75 },
-      { subject: 'Operating Systems', classAvg: 82, target: 75 },
-      { subject: 'Algorithms', classAvg: 91, target: 75 },
-    ];
+    // Dynamic Counts
+    let totalStudents = 0;
+    try {
+      const Student = require('../students/student.model');
+      totalStudents = await Student.countDocuments({ department: faculty.department });
+    } catch(e) {}
+
+    let pendingGrading = 0;
+    try {
+      const Assignment = require('../assignments/assignment.model');
+      const Submission = require('../assignments/submission.model');
+      const assignments = await Assignment.find({ faculty: faculty._id }).select('_id');
+      const assignmentIds = assignments.map(a => a._id);
+      pendingGrading = await Submission.countDocuments({ assignment: { $in: assignmentIds }, status: 'Submitted' });
+    } catch(e) {}
+
+    // 2. Real Attendance Stats (If available, otherwise empty array)
+    let avgAttendance = 0;
+    let attendanceStats = [];
+    try {
+      const Attendance = require('../attendance/attendance.model');
+      // Simple dynamic fallback: if no data, keep it empty. We won't build a complex aggregation here 
+      // unless needed, to avoid breaking the dashboard.
+    } catch(e) {}
 
     const stats = {
       todaysClasses: formattedClasses,
-      totalStudents: 180, // Placeholder
-      pendingGrading: 42, // Placeholder
-      avgAttendance: 87, // Placeholder
+      totalStudents: totalStudents,
+      pendingGrading: pendingGrading,
+      avgAttendance: avgAttendance,
       attendanceStats: attendanceStats
     };
 

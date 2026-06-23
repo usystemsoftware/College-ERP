@@ -7,6 +7,7 @@ import { getStudentsAPI } from '../../api/students.api';
 import FeeCategoriesTab from './fees/FeeCategoriesTab';
 import FeeStructuresTab from './fees/FeeStructuresTab';
 import BulkAssignFeeModal from './fees/BulkAssignFeeModal';
+import ExportButton from '../../components/common/ExportButton';
 
 const FeesPage = () => {
   const [activeTab, setActiveTab] = useState('records'); // 'records', 'categories', 'structures'
@@ -173,6 +174,16 @@ const FeesPage = () => {
     fee._id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const exportColumns = [
+    { header: 'Fee ID', dataKey: '_id' },
+    { header: 'Student Name', dataKey: 'student.personalDetails.fullName' },
+    { header: 'Roll Number', dataKey: 'student.rollNumber' },
+    { header: 'Fee Type', dataKey: 'feeStructure.name' },
+    { header: 'Total Amount', dataKey: 'totalAmount' },
+    { header: 'Paid Amount', dataKey: 'paidAmount' },
+    { header: 'Status', dataKey: 'status' }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -181,9 +192,11 @@ const FeesPage = () => {
           <p className="text-sm text-slate-500">Manage fee structures, track payments, and generate receipts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-dark-800 dark:hover:bg-dark-750 text-slate-700 dark:text-slate-300">
-            <Download size={16} /> Export Data
-          </button>
+          <ExportButton 
+            data={filteredFees} 
+            columns={exportColumns} 
+            filename="fees_report" 
+          />
           <button
             onClick={() => setIsBulkModalOpen(true)}
             className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"

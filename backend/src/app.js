@@ -3,11 +3,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorMiddleware');
 const ApiError = require('./utils/apiError');
 
 const app = express();
+
+// Compress all responses
+app.use(compression());
 
 // Security Headers
 app.use(helmet());
@@ -40,11 +44,7 @@ app.use('/api', routes);
 
 // Serve static uploads
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
-  setHeaders: (res, filePath, stat) => {
-    res.set('Content-Disposition', 'attachment');
-  }
-}));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Serve incident uploads (images/audio viewable inline)
 app.use('/uploads/incidents', express.static(path.join(__dirname, '../uploads/incidents')));

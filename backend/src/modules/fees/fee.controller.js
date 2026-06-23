@@ -325,4 +325,59 @@ const getFeesForParent = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats, getFeeDashboardStats, getFeesForParent };
+const createCheckoutSession = async (req, res, next) => {
+  try {
+    const { installmentId } = req.body;
+    const fee = await Fee.findById(req.params.feeId);
+    if (!fee) throw new ApiError(404, 'Fee not found');
+
+    let amount = fee.totalAmount - fee.paidAmount;
+    if (installmentId) {
+      const inst = fee.installments.id(installmentId);
+      if (inst) amount = inst.amount - (inst.paidAmount || 0);
+    }
+
+    if (amount <= 0) throw new ApiError(400, 'Fee is already paid');
+
+    // Mock Stripe Checkout URL
+    const mockCheckoutUrl = `http://localhost:5173/mock-checkout?feeId=${fee._id}&installmentId=${installmentId || ''}&amount=${amount}`;
+
+    return res.json(new ApiResponse(200, { url: mockCheckoutUrl }, 'Checkout session created'));
+  } catch (error) { next(error); }
+};
+
+const stripeWebhook = async (req, res, next) => {
+  try {
+    // Mock Webhook handler
+    const { feeId, installmentId, amount, transactionId } = req.body;
+
+    const fee = await Fee.findById(feeId);
+    if (!fee) throw new ApiError(404, 'Fee record not found');
+
+    if (installmentId) {
+      const inst = fee.installments.id(installmentId);
+      if (inst) {
+        inst.paidAmount = (inst.paidAmount || 0) + Number(amount);
+        if (inst.paidAmount >= inst.amount) inst.status = 'Paid';
+        else if (inst.paidAmount > 0) inst.status = 'Partial';
+      }
+    }
+
+    await Payment.create({
+      fee: fee._id, student: fee.student, amount: Number(amount), paymentMethod: 'Card (Stripe Mock)', transactionId,
+      status: 'Success', paymentDate: new Date(),
+      collegeId: fee.collegeId,
+      receiptNumber: `RCP-STRIPE-${Date.now()}`
+    });
+
+    fee.paidAmount = (fee.paidAmount || 0) + Number(amount);
+    if (fee.paidAmount >= fee.totalAmount) fee.status = 'Paid';
+    else if (fee.paidAmount > 0) fee.status = 'Partial';
+    
+    await fee.save();
+
+    return res.json({ received: true });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getStudentFees, getAllFees, createFee, bulkCreateFees, recordPayment, getPayments, getFeeStats, getFeeDashboardStats, getFeesForParent, createCheckoutSession, stripeWebhook };

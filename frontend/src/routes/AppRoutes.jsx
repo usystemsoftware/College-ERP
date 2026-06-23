@@ -1,57 +1,78 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import StudentsPage from '../pages/student/StudentDirectory';
-import FacultyPage from '../pages/admin/FacultyPage';
-import AttendancePage from '../pages/admin/AttendancePage';
-import AttendanceAnalytics from '../pages/admin/AttendanceAnalytics';
-import FeesPage from '../pages/admin/FeesPage';
-import TimetablePage from '../pages/shared/TimetablePage';
-import LMSPage from '../pages/shared/LMSPage';
-import NotificationsPage from '../pages/shared/NotificationsPage';
-import Profile from '../pages/shared/Profile';
-import GatePassPage from '../pages/admin/GatePassPage';
-import StudentGatePassPage from '../pages/student/StudentGatePassPage';
-import HodGatePassPage from '../pages/faculty/HodGatePassPage';
-import DepartmentsPage from '../pages/admin/DepartmentsPage';
-import StudentDashboard from '../pages/student/StudentDashboard';
-import StudentAttendancePage from '../pages/student/StudentAttendancePage';
-import StudentFeesPage from '../pages/student/StudentFeesPage';
-import FacultyDashboard from '../pages/faculty/FacultyDashboard';
+const Login = React.lazy(() => import('../pages/auth/Login'));
+const Register = React.lazy(() => import('../pages/auth/Register'));
+const AdminDashboard = React.lazy(() => import('../pages/admin/AdminDashboard'));
+const StudentsPage = React.lazy(() => import('../pages/student/StudentDirectory'));
+const FacultyPage = React.lazy(() => import('../pages/admin/FacultyPage'));
+const AttendancePage = React.lazy(() => import('../pages/admin/AttendancePage'));
+const AttendanceAnalytics = React.lazy(() => import('../pages/admin/AttendanceAnalytics'));
+const FeesPage = React.lazy(() => import('../pages/admin/FeesPage'));
+const TimetablePage = React.lazy(() => import('../pages/shared/TimetablePage'));
+const LMSPage = React.lazy(() => import('../pages/shared/LMSPage'));
+const NotificationsPage = React.lazy(() => import('../pages/shared/NotificationsPage'));
+const Profile = React.lazy(() => import('../pages/shared/Profile'));
+const GatePassPage = React.lazy(() => import('../pages/admin/GatePassPage'));
+const StudentGatePassPage = React.lazy(() => import('../pages/student/StudentGatePassPage'));
+const HodGatePassPage = React.lazy(() => import('../pages/faculty/HodGatePassPage'));
+const DepartmentsPage = React.lazy(() => import('../pages/admin/DepartmentsPage'));
+const StudentDashboard = React.lazy(() => import('../pages/student/StudentDashboard'));
+const StudentAttendancePage = React.lazy(() => import('../pages/student/StudentAttendancePage'));
+const StudentFeesPage = React.lazy(() => import('../pages/student/StudentFeesPage'));
+const FacultyDashboard = React.lazy(() => import('../pages/faculty/FacultyDashboard'));
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import { loadCurrentUser } from '../features/auth/authSlice';
-import AdmissionReview from '../pages/admission/AdmissionReview';
-import AdmissionPortal from '../pages/admission/AdmissionPortal';
-import ParentDashboard from '../pages/parent/ParentDashboard';
-import ParentAttendancePage from '../pages/parent/ParentAttendancePage';
-import ParentFeesPage from '../pages/parent/ParentFeesPage';
-import SubjectsPage from '../pages/academic/SubjectsPage';
-import InventoryDashboard from '../pages/inventory/InventoryDashboard';
-import FacultyLectureAttendance from '../pages/hr/FacultyLectureAttendance';
-import IncidentReportPage from '../pages/incidents/IncidentReportPage';
-import IncidentDashboard from '../pages/incidents/IncidentDashboard';
-import QRAttendancePage from '../pages/attendance/QRAttendancePage';
-import LeaveApplicationPage from '../pages/leave/LeaveApplicationPage';
-import LeaveDashboard from '../pages/leave/LeaveDashboard';
+const AdmissionReview = React.lazy(() => import('../pages/admission/AdmissionReview'));
+const AdmissionPortal = React.lazy(() => import('../pages/admission/AdmissionPortal'));
+const ParentDashboard = React.lazy(() => import('../pages/parent/ParentDashboard'));
+const ParentAttendancePage = React.lazy(() => import('../pages/parent/ParentAttendancePage'));
+const ParentFeesPage = React.lazy(() => import('../pages/parent/ParentFeesPage'));
+const SubjectsPage = React.lazy(() => import('../pages/academic/SubjectsPage'));
+const InventoryDashboard = React.lazy(() => import('../pages/inventory/InventoryDashboard'));
+const FacultyLectureAttendance = React.lazy(() => import('../pages/hr/FacultyLectureAttendance'));
+const IncidentReportPage = React.lazy(() => import('../pages/incidents/IncidentReportPage'));
+const IncidentDashboard = React.lazy(() => import('../pages/incidents/IncidentDashboard'));
+const QRAttendancePage = React.lazy(() => import('../pages/attendance/QRAttendancePage'));
+const LeaveApplicationPage = React.lazy(() => import('../pages/leave/LeaveApplicationPage'));
+const LeaveDashboard = React.lazy(() => import('../pages/leave/LeaveDashboard'));
 
 // Exams
-import ExamDashboard from '../pages/exams/ExamDashboard';
-import StudentResultsPage from '../pages/exams/StudentResultsPage';
+const ExamDashboard = React.lazy(() => import('../pages/exams/ExamDashboard'));
+const StudentResultsPage = React.lazy(() => import('../pages/exams/StudentResultsPage'));
+const HRDashboard = React.lazy(() => import('../pages/hr/HRDashboard'));
+const HostelDashboard = React.lazy(() => import('../pages/hostel/HostelDashboard'));
+const AssignmentDashboard = React.lazy(() => import('../pages/assignments/AssignmentDashboard'));
+
+// Payments Mock
+const MockStripeCheckout = React.lazy(() => import('../pages/student/MockStripeCheckout'));
+
+// Alumni
+const AlumniDirectory = React.lazy(() => import('../pages/shared/AlumniDirectory'));
+
+// Helpdesk
+const HelpdeskDashboard = React.lazy(() => import('../pages/helpdesk/HelpdeskDashboard'));
+
+// Documents
+const DigitalLocker = React.lazy(() => import('../pages/student/DigitalLocker'));
+
+// Canteen
+const CanteenDashboard = React.lazy(() => import('../pages/shared/CanteenDashboard'));
 
 // Transport
-import TransportDashboard from '../pages/transport/TransportDashboard';
-import BusTrackingPage from '../pages/transport/BusTrackingPage';
+const TransportDashboard = React.lazy(() => import('../pages/transport/TransportDashboard'));
+const BusTrackingPage = React.lazy(() => import('../pages/transport/BusTrackingPage'));
 
 // Parents
-import ParentConsentPage from '../pages/parent/ParentConsentPage';
-import ParentTrackingPage from '../pages/parent/ParentTrackingPage';
+const ParentConsentPage = React.lazy(() => import('../pages/parent/ParentConsentPage'));
+const ParentTrackingPage = React.lazy(() => import('../pages/parent/ParentTrackingPage'));
 
 // Checkpoints
-import CheckpointPage from '../pages/attendance/CheckpointPage';
+const CheckpointPage = React.lazy(() => import('../pages/attendance/CheckpointPage'));
+
+// Placements
+const PlacementDashboard = React.lazy(() => import('../pages/placements/PlacementDashboard'));
 const Unauthorized = () => (
   <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-50 text-slate-800 dark:bg-dark-950 dark:text-slate-100">
     <h1 className="text-4xl font-extrabold text-red-500">403 - Access Denied</h1>
@@ -96,11 +117,13 @@ const AppRoutes = () => {
   };
 
   return (
-    <Routes>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div></div>}>
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/apply" element={<AdmissionPortal />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="/mock-checkout" element={<MockStripeCheckout />} />
 
       <Route
         path="/"
@@ -281,6 +304,10 @@ const AppRoutes = () => {
           }
         />
         <Route path="/bus-tracking" element={<ProtectedRoute><BusTrackingPage /></ProtectedRoute>} />
+        <Route path="hr" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'HR Manager', 'Faculty']}><HRDashboard /></ProtectedRoute>} />
+        <Route path="hostel" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Hostel Warden', 'Student']}><HostelDashboard /></ProtectedRoute>} />
+        <Route path="exams" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'Faculty']}><ExamDashboard /></ProtectedRoute>} />
+        <Route path="assignments" element={<ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Faculty', 'Student']}><AssignmentDashboard /></ProtectedRoute>} />
         <Route path="/parent/consent" element={<ProtectedRoute allowedRoles={['Parent']}><ParentConsentPage /></ProtectedRoute>} />
         <Route path="/parent/tracking" element={<ProtectedRoute allowedRoles={['Parent']}><ParentTrackingPage /></ProtectedRoute>} />
         <Route
@@ -365,10 +392,51 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="placements"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Placement Officer', 'Student']}>
+              <PlacementDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="alumni"
+          element={
+            <ProtectedRoute>
+              <AlumniDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="helpdesk"
+          element={
+            <ProtectedRoute>
+              <HelpdeskDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="digital-locker"
+          element={
+            <ProtectedRoute>
+              <DigitalLocker />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="canteen"
+          element={
+            <ProtectedRoute>
+              <CanteenDashboard />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+      </Suspense>
   );
 };
 

@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  Briefcase,
   Building,
   UserPlus,
   Archive,
@@ -31,13 +32,16 @@ import {
   QrCode,
   FileText,
   MapPin,
-  ClipboardList
+  ClipboardList,
+  LifeBuoy,
+  Coffee
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { initiateSocketConnection, disconnectSocket, subscribeToNotifications } from '../../services/socket';
 import { getMyNotifications } from '../../api/notifications.api';
 import { performStudentCampusCheckin, clearCampusCheckinSession } from '../../utils/campusCheckin';
 import { getUserRole, isDepartmentHod, getDisplayRole } from '../../utils/roles';
+import AIChatWidget from '../AIChatWidget';
 
 const DashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -135,6 +139,9 @@ const DashboardLayout = () => {
   let navItems = [
     { name: 'Timetable', path: '/timetable', icon: Calendar },
     { name: 'LMS / Library', path: '/library', icon: BookOpen },
+    { name: 'Cafeteria', path: '/canteen', icon: Coffee },
+    { name: 'Digital Locker', path: '/digital-locker', icon: Archive },
+    { name: 'Helpdesk', path: '/helpdesk', icon: LifeBuoy },
     { name: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
@@ -152,6 +159,10 @@ const DashboardLayout = () => {
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Fees & Finance', path: '/fees', icon: CreditCard },
       { name: 'Inventory', path: '/inventory', icon: Archive },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'HR & Payroll', path: '/hr', icon: Briefcase },
+      { name: 'Hostel', path: '/hostel', icon: Hotel },
       ...navItems,
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
@@ -159,6 +170,8 @@ const DashboardLayout = () => {
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
+      { name: 'Placements', path: '/placements', icon: Briefcase },
+      { name: 'Alumni', path: '/alumni', icon: GraduationCap },
     ];
   } else if (userRole === 'HOD' || (userRole === 'Faculty' && userIsDepartmentHod)) {
     navItems = [
@@ -170,6 +183,9 @@ const DashboardLayout = () => {
       { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Attendance Analytics', path: '/attendance-analytics', icon: BarChart2 },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'My HR', path: '/hr', icon: Briefcase },
       ...navItems,
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       { name: 'Leave Approvals', path: '/leave-approvals', icon: FileText },
@@ -184,6 +200,9 @@ const DashboardLayout = () => {
       { name: 'QR Attendance', path: '/qr-attendance', icon: QrCode },
       { name: 'Faculty Attd.', path: '/faculty-attendance', icon: CheckCircle },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
+      { name: 'Exams & Results', path: '/exams', icon: ClipboardList },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'My HR', path: '/hr', icon: Briefcase },
       ...navItems,
     ];
   } else if (userRole === 'Student') {
@@ -200,6 +219,11 @@ const DashboardLayout = () => {
       { name: 'Report Incident', path: '/report-incident', icon: ShieldAlert },
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
       { name: 'Bus Tracking', path: '/bus-tracking', icon: Bus },
+      { name: 'Placements', path: '/placements', icon: Briefcase },
+      { name: 'Alumni', path: '/alumni', icon: GraduationCap },
+      { name: 'Assignments', path: '/assignments', icon: FileText },
+      { name: 'Hostel', path: '/hostel', icon: Hotel },
+      ...navItems,
     ];
   } else if (userRole === 'Parent') {
     navItems = [
@@ -222,10 +246,6 @@ const DashboardLayout = () => {
       { name: 'Gate Passes', path: '/gatepass', icon: ShieldCheck },
       { name: 'Incidents', path: '/incidents', icon: ShieldAlert },
       ...navItems,
-    ];
-  } else if (userRole === 'Parent') {
-    navItems = [
-      { name: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
     ];
   } else {
     navItems = [
@@ -393,6 +413,7 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      <AIChatWidget />
     </div>
   );
 };

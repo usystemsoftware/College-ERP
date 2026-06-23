@@ -10,6 +10,10 @@ const getBackendUrl = (path) => {
 const AdmissionReview = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [courseFilter, setCourseFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1, limit: 10 });
+  const [courses, setCourses] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -32,16 +36,39 @@ const AdmissionReview = () => {
   }, [selectedApp]);
 
   useEffect(() => {
+    // Fetch courses for filter
+    client.get('/courses')
+      .then(res => {
+        if (res.data.success) {
+          setCourses(res.data.data.courses || res.data.data);
+        }
+      })
+      .catch(err => console.error('Error fetching courses', err));
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, courseFilter]);
+
+  useEffect(() => {
     fetchApplications();
-  }, [statusFilter]);
+  }, [statusFilter, courseFilter, currentPage]);
 
   async function fetchApplications() {
     setLoading(true);
     try {
-      const url = statusFilter !== 'All' ? `/admission/applications?status=${statusFilter}` : '/admission/applications';
-      const response = await client.get(url);
+      const params = new URLSearchParams();
+      if (statusFilter !== 'All') params.append('status', statusFilter);
+      if (courseFilter !== 'All') params.append('course', courseFilter);
+      params.append('page', currentPage);
+      params.append('limit', 10);
+
+      const response = await client.get(`/admission/applications?${params.toString()}`);
       if (response.data.success) {
         setApplications(response.data.data.applications);
+        if (response.data.data.pagination) {
+          setPagination(response.data.data.pagination);
+        }
       }
     } catch (error) {
       console.error('Error fetching applications', error);
@@ -111,6 +138,16 @@ const AdmissionReview = () => {
             <div className="flex items-center gap-2">
               <Filter className="text-slate-400" size={16} />
               <select
+                value={courseFilter}
+                onChange={(e) => setCourseFilter(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
+              >
+                <option value="All">All Courses</option>
+                {courses.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-dark-800 dark:text-white"
@@ -178,6 +215,46 @@ const AdmissionReview = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && applications.length > 0 && pagination.pages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 p-4">
+            <span className="text-sm text-slate-500">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-800 dark:text-slate-300 dark:hover:bg-dark-700"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded-lg text-sm font-medium ${
+                      currentPage === page
+                        ? 'bg-brand-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-800'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                disabled={currentPage === pagination.pages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-800 dark:text-slate-300 dark:hover:bg-dark-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Review Modal */}

@@ -28,6 +28,8 @@ const SubjectsPage = () => {
   // Filters
   const [filters, setFilters] = useState({ department: '', course: '', semester: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1, limit: 10 });
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,13 +59,18 @@ const SubjectsPage = () => {
   async function fetchSubjects() {
     setLoading(true);
     try {
-      const query = {};
+      const query = { page: currentPage, limit: 10 };
       if (filters.department) query.department = filters.department;
       if (filters.course) query.course = filters.course;
       if (filters.semester) query.semester = filters.semester;
       
       const res = await getSubjects(query);
-      setSubjects(res.data?.data || []);
+      if (res.data?.data?.subjects) {
+        setSubjects(res.data.data.subjects);
+        setPagination(res.data.data.pagination);
+      } else {
+        setSubjects(res.data?.data || []);
+      }
     } catch (err) {
       toast.error('Failed to load subjects');
     } finally {
@@ -72,8 +79,12 @@ const SubjectsPage = () => {
   };
 
   useEffect(() => {
-    fetchSubjects();
+    setCurrentPage(1);
   }, [filters]);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, [filters, currentPage]);
 
   // Derived filtered courses for the form
   const formCourses = courses.filter(c => !formData.department || c.department === formData.department || c.department?._id === formData.department);
@@ -240,6 +251,46 @@ const SubjectsPage = () => {
             </table>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && subjects.length > 0 && (
+          <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-dark-800/50">
+            <span className="text-sm text-slate-500">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} subjects
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-900 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded-lg text-sm font-medium ${
+                      currentPage === page
+                        ? 'bg-brand-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-dark-800'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                disabled={currentPage === pagination.pages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-dark-900 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Subject' : 'Add Subject'} hideFooter={true}>

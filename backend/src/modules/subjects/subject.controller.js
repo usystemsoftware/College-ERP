@@ -10,12 +10,30 @@ const getSubjects = async (req, res, next) => {
     if (req.query.course) filter.course = req.query.course;
     if (req.query.semester) filter.semester = req.query.semester;
     if (req.query.department) filter.department = req.query.department;
+    
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Subject.countDocuments(filter);
+
     const subjects = await Subject.find(filter)
       .populate('course', 'name code')
       .populate('semester', 'name')
       .populate('department', 'name code')
-      .sort({ name: 1 });
-    return res.json(new ApiResponse(200, subjects, 'Subjects fetched'));
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.json(new ApiResponse(200, {
+      subjects,
+      pagination: {
+        total: totalCount,
+        page,
+        pages: Math.ceil(totalCount / limit),
+        limit
+      }
+    }, 'Subjects fetched'));
   } catch (error) { next(error); }
 };
 

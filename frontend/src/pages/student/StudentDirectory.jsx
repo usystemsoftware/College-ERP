@@ -70,8 +70,10 @@ const StudentDirectory = () => {
       fatherEmail: '', fatherPassword: '', motherEmail: '', motherPassword: '', mentor: ''
     });
     setIsModalOpen(true);
-  };
+  }; A                  
 
+
+  
   const handleEditClick = (student) => {
     setEditStudentId(student._id);
     reset({

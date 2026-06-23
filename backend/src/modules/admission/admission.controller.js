@@ -56,15 +56,34 @@ const submitApplication = async (req, res, next) => {
 const getApplications = async (req, res, next) => {
   try {
     const filter = req.user.role.name !== 'Super Admin' ? { collegeId: req.user.collegeId } : {};
-    if (req.query.status) {
+    if (req.query.status && req.query.status !== 'All') {
       filter.status = req.query.status;
     }
+    if (req.query.course && req.query.course !== 'All') {
+      filter.courseId = req.query.course;
+    }
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Application.countDocuments(filter);
 
     const applications = await Application.find(filter)
       .populate('courseId', 'name code')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    return res.status(200).json(new ApiResponse(200, { applications }, 'Applications fetched successfully'));
+    return res.status(200).json(new ApiResponse(200, {
+      applications,
+      pagination: {
+        total: totalCount,
+        page,
+        pages: Math.ceil(totalCount / limit),
+        limit
+      }
+    }, 'Applications fetched successfully'));
   } catch (error) {
     next(error);
   }

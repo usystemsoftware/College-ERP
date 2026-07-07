@@ -113,7 +113,7 @@ const FeesPage = () => {
     }
   };
 
-  const handleGenerateFee = async (e) => {
+  async function handleGenerateFee(e) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
@@ -148,7 +148,7 @@ const FeesPage = () => {
     setIsInvoiceModalOpen(true);
   };
 
-  const handleCollectPaymentSubmit = async (e) => {
+  async function handleCollectPaymentSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true);
     try {

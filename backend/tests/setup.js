@@ -8,7 +8,11 @@ jest.setTimeout(60000); // 60 seconds to allow for initial MongoDB binary downlo
 let mongoServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      launchTimeout: 60000 // Increase timeout to 60 seconds
+    }
+  });
   const mongoUri = mongoServer.getUri();
   await mongoose.connect(mongoUri);
 });

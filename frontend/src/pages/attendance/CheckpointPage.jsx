@@ -29,7 +29,7 @@ const CheckpointPage = () => {
     }
   }, [activeTab]);
 
-  const fetchDashboard = async () => {
+  async function fetchDashboard() {
     setLoading(true);
     try {
       const res = await api.get('/checkpoints/dashboard');
@@ -41,7 +41,7 @@ const CheckpointPage = () => {
     }
   };
 
-  const generateQR = async () => {
+  async function generateQR() {
     setLoading(true);
     try {
       const res = await api.post('/checkpoints/generate', { type: selectedType });
@@ -54,7 +54,7 @@ const CheckpointPage = () => {
     }
   };
 
-  const handleSimulateScan = async () => {
+  async function handleSimulateScan() {
     if (!scanResult.trim()) {
       toast.error('Please enter a QR token');
       return;

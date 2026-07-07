@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 const CompanyModal = ({ onClose, onSuccess }) => {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
-  const onSubmit = async (data) => {
+  async function onSubmit(data) {
     try {
       await createCompanyAPI(data);
       toast.success('Company added successfully');

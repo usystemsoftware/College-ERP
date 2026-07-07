@@ -221,7 +221,7 @@ const ParentFeesPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchFees = async () => {
+    async function fetchFees() {
       try {
         const res = await getParentFeesAPI();
         setFeesData(res.data?.data?.feesData || []);

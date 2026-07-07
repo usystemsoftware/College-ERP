@@ -38,7 +38,7 @@ const BusTrackingPage = () => {
 
   // Fetch initial live positions
   useEffect(() => {
-    const fetchBuses = async () => {
+    async function fetchBuses() {
       try {
         const res = await api.get('/transport/live');
         setBuses(res.data?.data || []);
@@ -55,7 +55,7 @@ const BusTrackingPage = () => {
   useEffect(() => {
     if (!selectedBus) return;
     
-    const fetchETA = async () => {
+    async function fetchETA() {
       try {
         const res = await api.get(`/transport/eta/${selectedBus.vehicleId}`);
         setEtaInfo(res.data?.data);

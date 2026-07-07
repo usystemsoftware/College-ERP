@@ -113,7 +113,7 @@ const StudentAttendancePage = () => {
   };
 
   // ── QR Scanner Handler ───────────────────────────
-  const handleQRScan = async (result) => {
+  async function handleQRScan(result) {
     if (!result || !result[0] || !result[0].rawValue || qrVerification) return;
     const token = result[0].rawValue;
     

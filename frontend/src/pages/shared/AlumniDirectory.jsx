@@ -19,7 +19,7 @@ const AlumniModal = ({ onClose, onSuccess, initialData = null }) => {
 
   useEffect(() => {
     // Fetch students to populate dropdown (in a real app, you'd use an autocomplete/searchable dropdown)
-    const fetchStudents = async () => {
+    async function fetchStudents() {
       try {
         const res = await getStudentsAPI({ limit: 100 });
         setStudents(res.data?.data?.students || []);
@@ -30,7 +30,7 @@ const AlumniModal = ({ onClose, onSuccess, initialData = null }) => {
     if (!initialData) fetchStudents();
   }, [initialData]);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -151,7 +151,7 @@ const AlumniDirectory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
 
-  const fetchAlumni = async () => {
+  async function fetchAlumni() {
     try {
       setLoading(true);
       const res = await getAllAlumniAPI();

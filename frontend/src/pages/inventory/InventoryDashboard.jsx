@@ -37,7 +37,7 @@ const InventoryDashboard = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.itemName || !formData.location) {
       return toast.error('Item name and location are required');

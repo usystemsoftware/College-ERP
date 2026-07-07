@@ -31,7 +31,7 @@ const MaterialUploadModal = ({ isOpen, onClose, onSuccess }) => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.title || !formData.subject || !formData.materialType || !file) {
       setError('Please fill in all required fields and select a file.');

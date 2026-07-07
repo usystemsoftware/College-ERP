@@ -26,7 +26,7 @@ const FeeStructuresTab = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const [strRes, catRes, crsRes, batRes, ayRes] = await Promise.all([
@@ -94,7 +94,7 @@ const FeeStructuresTab = () => {
     setFormData({ ...formData, heads: newHeads });
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
       if (editId) {
@@ -109,7 +109,7 @@ const FeeStructuresTab = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (window.confirm('Are you sure you want to delete this structure?')) {
       try {
         await deleteFeeStructureAPI(id);

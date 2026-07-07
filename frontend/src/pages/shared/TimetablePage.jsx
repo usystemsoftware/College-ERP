@@ -256,7 +256,7 @@ const TimetablePage = () => {
       .finally(() => setLoadingSubjects(false));
   }, [modal.course, modal.semester]);
 
-  const handleAddSubject = async (e) => {
+  async function handleAddSubject(e) {
     e.preventDefault();
     if (!modal.department || !modal.course || !modal.semester) {
       toast.error('Select Department, Course and Semester first');
@@ -312,7 +312,7 @@ const TimetablePage = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id, e) => {
+  async function handleDelete(id, e) {
     e.stopPropagation();
     if (!window.confirm('Delete this class?')) return;
     try {
@@ -324,7 +324,7 @@ const TimetablePage = () => {
 
   const getEndTime = (t) => ({ '09:00':'10:00','10:00':'11:00','11:15':'12:15','12:15':'13:15','2:00':'3:00','3:00':'4:00' }[t] || '10:00');
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!currentAY)           { toast.error('Academic year not configured'); return; }
     if (!modal.department)    { toast.error('Please select a department');   return; }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { Coffee, ShoppingCart, Search, Plus, Minus, Trash2, Clock, CheckCircle, ChefHat, X, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -28,8 +29,8 @@ const AddMenuItemModal = ({ onClose, onSuccess }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/60 backdrop-blur-md p-4">
       <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Menu Item</h3>
@@ -69,7 +70,8 @@ const AddMenuItemModal = ({ onClose, onSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

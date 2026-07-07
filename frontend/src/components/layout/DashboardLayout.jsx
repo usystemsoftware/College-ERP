@@ -172,6 +172,7 @@ const DashboardLayout = () => {
       { name: 'Apply Leave', path: '/leave-application', icon: FileText },
       { name: 'Placements', path: '/placements', icon: Briefcase },
       { name: 'Alumni', path: '/alumni', icon: GraduationCap },
+      { name: 'Id_card', path: '/admin/id-cards', icon: FileText },
     ];
   } else if (userRole === 'HOD' || (userRole === 'Faculty' && userIsDepartmentHod)) {
     navItems = [

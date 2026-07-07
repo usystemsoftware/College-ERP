@@ -5,6 +5,7 @@ const Login = React.lazy(() => import('../pages/auth/Login'));
 const Register = React.lazy(() => import('../pages/auth/Register'));
 const AdminDashboard = React.lazy(() => import('../pages/admin/AdminDashboard'));
 const StudentsPage = React.lazy(() => import('../pages/student/StudentDirectory'));
+const IdCardGenerator = React.lazy(() => import('../pages/admin/IdCardGenerator'));
 const FacultyPage = React.lazy(() => import('../pages/admin/FacultyPage'));
 const AttendancePage = React.lazy(() => import('../pages/admin/AttendancePage'));
 const AttendanceAnalytics = React.lazy(() => import('../pages/admin/AttendanceAnalytics'));
@@ -139,6 +140,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/id-cards"
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'College Admin', 'Principal', 'HOD']}>
+              <IdCardGenerator />
             </ProtectedRoute>
           }
         />

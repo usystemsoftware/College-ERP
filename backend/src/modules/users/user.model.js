@@ -46,6 +46,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  name: {
+    type: String
+  },
+  phone: {
+    type: String
+  },
+  address: {
+    type: String
+  },
   lastLogin: {
     type: Date
   }

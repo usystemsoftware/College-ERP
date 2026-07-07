@@ -136,7 +136,7 @@ const AttendancePage = () => {
   async function fetchSubjects() {
     try {
       const res = await getSubjects();
-      const list = res.data?.data || [];
+      const list = res.data?.data?.subjects || res.data?.data || [];
       setSubjects(list);
       if (list.length > 0) {
         setSubject(list[0]._id);

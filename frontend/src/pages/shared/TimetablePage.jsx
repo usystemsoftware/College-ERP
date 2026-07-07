@@ -248,7 +248,7 @@ const TimetablePage = () => {
     setLoadingSubjects(true);
     getSubjects({ course: modal.course, semester: modal.semester })
       .then(res => {
-        const list = res.data?.data || [];
+        const list = res.data?.data?.subjects || res.data?.data || [];
         setModalSubjects(list);
         setM('subject', list[0]?._id || '');
       })

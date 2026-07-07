@@ -85,7 +85,7 @@ const FacultyQRGenerator = () => {
     async function load() {
       try {
         const res = await getSubjects();
-        const list = res.data?.data || [];
+        const list = res.data?.data?.subjects || res.data?.data || [];
         setSubjects(list);
         if (list.length > 0) setSelectedSubject(list[0]._id);
       } catch (err) { console.error('Error loading subjects:', err); }

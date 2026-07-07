@@ -42,7 +42,7 @@ const IncidentReportPage = () => {
     }
   }, [activeTab]);
 
-  const fetchMyIncidents = async () => {
+  async function fetchMyIncidents() {
     setLoadingIncidents(true);
     try {
       const res = await getMyIncidentsAPI();
@@ -55,7 +55,7 @@ const IncidentReportPage = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
       toast.error('Please fill in the title and description');

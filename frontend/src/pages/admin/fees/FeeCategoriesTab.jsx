@@ -19,7 +19,7 @@ const FeeCategoriesTab = () => {
     fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
+  async function fetchCategories() {
     setLoading(true);
     try {
       const res = await getFeeCategoriesAPI();
@@ -48,7 +48,7 @@ const FeeCategoriesTab = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
       if (editId) {
@@ -63,7 +63,7 @@ const FeeCategoriesTab = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
         await deleteFeeCategoryAPI(id);

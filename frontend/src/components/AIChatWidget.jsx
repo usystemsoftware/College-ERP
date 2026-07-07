@@ -19,7 +19,7 @@ const AIChatWidget = () => {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const handleSend = async (e) => {
+  async function handleSend(e) {
     e.preventDefault();
     if (!input.trim()) return;
 

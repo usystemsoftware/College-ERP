@@ -13,7 +13,7 @@ const MockStripeCheckout = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const handlePay = async (e) => {
+  async function handlePay(e) {
     e.preventDefault();
     try {
       setLoading(true);

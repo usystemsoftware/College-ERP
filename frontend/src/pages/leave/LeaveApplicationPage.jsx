@@ -52,7 +52,7 @@ const LeaveApplicationPage = () => {
     }
   }
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!startDate || !endDate || !reason.trim()) {
       toast.error('Please fill in all required fields');
@@ -106,7 +106,7 @@ const LeaveApplicationPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleCancel = async (id) => {
+  async function handleCancel(id) {
     if (!window.confirm('Are you sure you want to cancel this leave application?')) return;
     try {
       await cancelLeaveRequestAPI(id);
@@ -117,7 +117,7 @@ const LeaveApplicationPage = () => {
     }
   };
 
-  const handleProcess = async (id, status) => {
+  async function handleProcess(id, status) {
     if (!window.confirm(`Are you sure you want to ${status.toLowerCase()} this leave application?`)) return;
     try {
       await processLeaveRequestAPI(id, { status, remarks: '' });

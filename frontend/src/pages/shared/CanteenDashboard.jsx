@@ -15,7 +15,7 @@ const AddMenuItemModal = ({ onClose, onSuccess }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -88,7 +88,7 @@ const CanteenDashboard = () => {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showAddMenuModal, setShowAddMenuModal] = useState(false);
 
-  const fetchMenu = async () => {
+  async function fetchMenu() {
     try {
       const res = await getMenuAPI();
       setMenu(res.data?.data || []);
@@ -97,7 +97,7 @@ const CanteenDashboard = () => {
     }
   };
 
-  const fetchOrders = async () => {
+  async function fetchOrders() {
     try {
       const res = isAdmin ? await getAllOrdersAPI() : await getMyOrdersAPI();
       setOrders(res.data?.data || []);
@@ -107,7 +107,7 @@ const CanteenDashboard = () => {
   };
 
   useEffect(() => {
-    const loadData = async () => {
+    async function loadData() {
       setLoading(true);
       await fetchMenu();
       if (isAdmin || activeTab === 'my-orders') {
@@ -153,7 +153,7 @@ const CanteenDashboard = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handlePlaceOrder = async () => {
+  async function handlePlaceOrder() {
     if (cart.length === 0) return;
     try {
       setIsPlacingOrder(true);
@@ -170,7 +170,7 @@ const CanteenDashboard = () => {
     }
   };
 
-  const handleToggleAvailability = async (id) => {
+  async function handleToggleAvailability(id) {
     try {
       await toggleMenuItemAvailabilityAPI(id);
       toast.success('Availability updated');
@@ -180,7 +180,7 @@ const CanteenDashboard = () => {
     }
   };
 
-  const handleUpdateOrderStatus = async (id, status) => {
+  async function handleUpdateOrderStatus(id, status) {
     try {
       await updateOrderStatusAPI(id, { status });
       toast.success(`Order marked as ${status}`);

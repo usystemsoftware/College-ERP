@@ -34,7 +34,7 @@ const AdmissionPortal = () => {
     shouldUnregister: false
   });
 
-  const handleNext = async () => {
+  async function handleNext() {
     let fieldsToValidate = [];
     if (step === 1) {
       fieldsToValidate = ['firstName', 'lastName', 'email', 'phone', 'dob', 'address'];
@@ -55,7 +55,7 @@ const AdmissionPortal = () => {
     });
   };
 
-  const onSubmit = async (data) => {
+  async function onSubmit(data) {
     setIsSubmitting(true);
     try {
       const formData = new FormData();

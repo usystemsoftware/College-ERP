@@ -37,7 +37,7 @@ const LMSDashboard = () => {
     fetchMaterials();
   }, [activeSubject, searchTerm]);
 
-  const handleDownload = async (material) => {
+  async function handleDownload(material) {
     try {
       await materialService.incrementDownload(material._id);
       

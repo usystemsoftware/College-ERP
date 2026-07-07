@@ -26,7 +26,7 @@ const ParentDashboard = () => {
   const [attData, setAttData] = useState([]);
   const [attLoading, setAttLoading] = useState(false);
 
-  const openAttendanceModal = async (student) => {
+  async function openAttendanceModal(student) {
     setSelectedStudentForAtt(student);
     setAttModalOpen(true);
     setAttLoading(true);

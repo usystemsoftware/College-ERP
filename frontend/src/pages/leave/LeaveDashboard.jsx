@@ -51,7 +51,7 @@ const LeaveDashboard = () => {
     }
   }
 
-  const handleProcess = async (status) => {
+  async function handleProcess(status) {
     if (!selectedLeave) return;
     if (status === 'Rejected' && !remarks.trim()) {
       toast.error('Remarks are required when rejecting a leave');

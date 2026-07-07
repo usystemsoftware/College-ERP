@@ -51,7 +51,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const handleDeptSubmit = async (e) => {
+  async function handleDeptSubmit(e) {
     e.preventDefault();
     try {
       const payload = { ...deptForm };
@@ -72,7 +72,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const handleCourseSubmit = async (e) => {
+  async function handleCourseSubmit(e) {
     e.preventDefault();
     if (!courseForm.department) {
       alert("Please select a department");
@@ -92,7 +92,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const handleDeleteDept = async (id) => {
+  async function handleDeleteDept(id) {
     if (window.confirm('Are you sure you want to delete this department?')) {
       try {
         await deleteDepartment(id);
@@ -103,7 +103,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const handleDeleteCourse = async (id) => {
+  async function handleDeleteCourse(id) {
     if (window.confirm('Are you sure you want to delete this course?')) {
       try {
         await deleteCourse(id);
@@ -114,7 +114,7 @@ const DepartmentsPage = () => {
     }
   };
 
-  const handleViewStudents = async (course) => {
+  async function handleViewStudents(course) {
     setSelectedCourseForStudents(course);
     setCourseStudents([]);
     setIsStudentsModalOpen(true);

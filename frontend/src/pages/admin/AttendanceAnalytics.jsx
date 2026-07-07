@@ -27,7 +27,7 @@ const AttendanceAnalytics = () => {
     fetchAnalyticsData(); 
   }, []);
 
-  const fetchAnalyticsData = async () => {
+  async function fetchAnalyticsData() {
     try {
       setLoading(true);
       const res = await getAttendanceAnalyticsAPI();

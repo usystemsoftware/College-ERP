@@ -142,7 +142,7 @@ const createTimetableEntry = async (req, res, next) => {
       }
     }
 
-    const allowedData = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive']);
+    const allowedData = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive', 'academicYear']);
     const entry = await Timetable.create({ ...allowedData, collegeId: req.user.collegeId });
 
     // Notify all students in the assigned department/course/semester/division
@@ -184,7 +184,7 @@ const createTimetableEntry = async (req, res, next) => {
 
 const updateTimetableEntry = async (req, res, next) => {
   try {
-    const allowedUpdates = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive']);
+    const allowedUpdates = pick(req.body, ['department', 'course', 'semester', 'division', 'dayOfWeek', 'startTime', 'endTime', 'subject', 'faculty', 'roomNumber', 'isLab', 'isActive', 'academicYear']);
     const entry = await Timetable.findByIdAndUpdate(req.params.id, allowedUpdates, { new: true });
     if (!entry) throw new ApiError(404, 'Timetable entry not found');
     return res.json(new ApiResponse(200, entry, 'Timetable entry updated'));

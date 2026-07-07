@@ -45,7 +45,7 @@ const NotificationsPage = () => {
     };
   }, [activeTab]);
 
-  const handleMarkAsRead = async (id) => {
+  async function handleMarkAsRead(id) {
     try {
       await markAsRead(id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, status: 'Read' } : n));
@@ -64,7 +64,7 @@ const NotificationsPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     try {
       await deleteNotification(id);
       setNotifications(prev => prev.filter(n => n._id !== id));

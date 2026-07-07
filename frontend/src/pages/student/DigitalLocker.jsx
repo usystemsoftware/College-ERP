@@ -16,7 +16,7 @@ const UploadModal = ({ onClose, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!file) {
       toast.error('Please select a file');
@@ -129,7 +129,7 @@ const DigitalLocker = () => {
   const [showModal, setShowModal] = useState(false);
   const [studentIdInput, setStudentIdInput] = useState(''); // For Admin to search a student
 
-  const fetchDocuments = async (studentId = null) => {
+  async function fetchDocuments(studentId = null) {
     try {
       setLoading(true);
       let res;
@@ -166,7 +166,7 @@ const DigitalLocker = () => {
     fetchDocuments(studentIdInput);
   };
 
-  const handleStatusUpdate = async (id, newStatus) => {
+  async function handleStatusUpdate(id, newStatus) {
     try {
       await updateDocumentStatusAPI(id, { status: newStatus });
       toast.success('Document status updated');

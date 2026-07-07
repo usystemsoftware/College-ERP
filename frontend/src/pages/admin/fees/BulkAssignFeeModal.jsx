@@ -33,7 +33,7 @@ const BulkAssignFeeModal = ({ isOpen, onClose, onSuccess }) => {
     }
   }, [formData.batchId, formData.assignTo]);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       const [strRes, batRes] = await Promise.all([
         getFeeStructuresAPI(),
@@ -46,7 +46,7 @@ const BulkAssignFeeModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
-  const fetchStudents = async (batchId) => {
+  async function fetchStudents(batchId) {
     try {
       const selectedBatch = batches.find(b => b._id === batchId);
       // Student model stores batch as String (e.g. "2024-2026"), so we must pass the name, not the ID
@@ -97,7 +97,7 @@ const BulkAssignFeeModal = ({ isOpen, onClose, onSuccess }) => {
     setFormData({ ...formData, installmentsBreakdown: newInst });
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     try {

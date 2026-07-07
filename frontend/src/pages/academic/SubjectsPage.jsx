@@ -115,7 +115,7 @@ const SubjectsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -135,7 +135,7 @@ const SubjectsPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (!window.confirm('Are you sure you want to delete this subject?')) return;
     try {
       await deleteSubject(id);

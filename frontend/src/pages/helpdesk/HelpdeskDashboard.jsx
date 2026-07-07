@@ -13,7 +13,7 @@ const TicketModal = ({ onClose, onSuccess }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -114,7 +114,7 @@ const HelpdeskDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
 
-  const fetchTickets = async () => {
+  async function fetchTickets() {
     try {
       setLoading(true);
       const res = isAdmin 
@@ -132,7 +132,7 @@ const HelpdeskDashboard = () => {
     fetchTickets();
   }, [isAdmin, filterStatus]);
 
-  const handleStatusUpdate = async (id, newStatus) => {
+  async function handleStatusUpdate(id, newStatus) {
     try {
       await updateTicketStatusAPI(id, { status: newStatus });
       toast.success('Status updated');

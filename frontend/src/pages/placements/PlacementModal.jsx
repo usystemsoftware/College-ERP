@@ -9,7 +9,7 @@ const PlacementModal = ({ onClose, onSuccess }) => {
   const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
-    const fetchCompanies = async () => {
+    async function fetchCompanies() {
       try {
         const response = await getCompaniesAPI();
         setCompanies(response.data.data || []);
@@ -20,7 +20,7 @@ const PlacementModal = ({ onClose, onSuccess }) => {
     fetchCompanies();
   }, []);
 
-  const onSubmit = async (data) => {
+  async function onSubmit(data) {
     try {
       await createPlacementAPI(data);
       toast.success('Placement drive created successfully');

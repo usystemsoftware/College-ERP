@@ -43,7 +43,7 @@ const ParentTrackingPage = () => {
 
   // Fetch Parent's Students
   useEffect(() => {
-    const fetchStudents = async () => {
+    async function fetchStudents() {
       try {
         const res = await api.get('/parents/profile');
         const studentList = res.data?.data?.students || [];

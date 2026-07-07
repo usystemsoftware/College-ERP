@@ -16,7 +16,7 @@ const PlacementDashboard = () => {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showPlacementModal, setShowPlacementModal] = useState(false);
 
-  const fetchPlacements = async () => {
+  async function fetchPlacements() {
     try {
       setLoading(true);
       const response = await getPlacementsAPI();
@@ -32,7 +32,7 @@ const PlacementDashboard = () => {
     fetchPlacements();
   }, []);
 
-  const handleApply = async (id) => {
+  async function handleApply(id) {
     try {
       await applyForPlacementAPI(id);
       toast.success('Successfully applied for this drive');

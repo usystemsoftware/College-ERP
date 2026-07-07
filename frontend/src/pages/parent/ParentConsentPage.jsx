@@ -12,7 +12,7 @@ const ParentConsentPage = () => {
     fetchConsentStatus();
   }, []);
 
-  const fetchConsentStatus = async () => {
+  async function fetchConsentStatus() {
     try {
       const res = await getConsentStatusAPI();
       setConsentData(res.data?.data || []);
@@ -23,7 +23,7 @@ const ParentConsentPage = () => {
     }
   };
 
-  const handleToggleConsent = async (studentId, consentType, currentStatus) => {
+  async function handleToggleConsent(studentId, consentType, currentStatus) {
     setUpdating({ studentId, type: consentType });
     try {
       if (currentStatus === 'granted') {

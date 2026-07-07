@@ -72,7 +72,7 @@ const FacultyLectureAttendance = () => {
     fetchSummary();
   }, [selectedFaculty, date]);
 
-  const markAttendance = async (timetableId, status) => {
+  async function markAttendance(timetableId, status) {
     try {
       await api.post('/attendance/faculty-lecture', {
         facultyId: selectedFaculty,

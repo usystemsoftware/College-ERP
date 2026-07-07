@@ -8,7 +8,7 @@ const StudentFeesPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchFees = async () => {
+    async function fetchFees() {
       try {
         const res = await getMyFeesAPI();
         setFees(res.data?.data || []);
@@ -22,7 +22,7 @@ const StudentFeesPage = () => {
     fetchFees();
   }, []);
 
-  const handlePayNow = async (feeId, installmentId) => {
+  async function handlePayNow(feeId, installmentId) {
     try {
       setLoading(true);
       const res = await createCheckoutSessionAPI(feeId, { installmentId });

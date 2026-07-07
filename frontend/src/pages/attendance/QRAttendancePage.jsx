@@ -440,7 +440,7 @@ const StudentQRScanner = () => {
     n => n.metadata?.type === 'STUDENT_QR_ATTENDANCE' && new Date(n.metadata.expiresAt) > now
   );
 
-  const handleScan = async (result) => {
+  async function handleScan(result) {
     if (!result || !result[0] || !result[0].rawValue || verification) return;
     const token = result[0].rawValue;
     setVerification({ status: 'verifying', token });

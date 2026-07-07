@@ -30,7 +30,7 @@ const HodGatePassPage = () => {
     }
   };
 
-  const handleAction = async (id, action) => {
+  async function handleAction(id, action) {
     try {
       await approveGatePassAPI(id, action, remarksMap[id] || undefined);
       setRemarksMap(prev => ({ ...prev, [id]: '' }));

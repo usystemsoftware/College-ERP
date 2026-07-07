@@ -15,7 +15,7 @@ const Register = () => {
     formState: { errors }
   } = useForm();
 
-  const onSubmit = async (data) => {
+  async function onSubmit(data) {
     setLoading(true);
     setError(null);
     try {

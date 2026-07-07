@@ -101,7 +101,7 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [user?._id, token]); // Use user._id instead of full user object to avoid unnecessary re-runs
 
-  const markAsRead = async (id) => {
+  async function markAsRead(id) {
     try {
       await apiClient.patch(`/notifications/${id}/read`);
       setNotifications((prev) =>
@@ -125,7 +125,7 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  const deleteNotification = async (id) => {
+  async function deleteNotification(id) {
     try {
       await apiClient.delete(`/notifications/${id}`);
       const deletedNotif = notifications.find((n) => n._id === id);

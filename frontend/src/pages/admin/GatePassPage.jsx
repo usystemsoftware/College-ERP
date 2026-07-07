@@ -37,7 +37,7 @@ const GatePassPage = () => {
     }
   };
 
-  const handleCreate = async (e) => {
+  async function handleCreate(e) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
@@ -71,7 +71,7 @@ const GatePassPage = () => {
     setNumberOfVisitors(1);
   };
 
-  const handleAction = async (id, type) => {
+  async function handleAction(id, type) {
     try {
       if (type === 'Approve') await approveGatePassAPI(id, 'Approved');
       else if (type === 'Reject') await approveGatePassAPI(id, 'Rejected');

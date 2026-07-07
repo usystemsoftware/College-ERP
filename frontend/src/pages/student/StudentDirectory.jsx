@@ -122,7 +122,7 @@ const StudentDirectory = () => {
     }
   };
 
-  const onSubmit = async (data) => {
+  async function onSubmit(data) {
     // Transform data for backend
     const payload = {
       email: data.email,

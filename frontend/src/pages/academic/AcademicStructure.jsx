@@ -109,7 +109,7 @@ const AcademicStructure = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -129,7 +129,7 @@ const AcademicStructure = () => {
     }
   };
 
-  const handleDelete = async (type, id) => {
+  async function handleDelete(type, id) {
     if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
     try {
       if (type === 'Department') await deleteDepartment(id);

@@ -77,7 +77,7 @@ const AdmissionReview = () => {
     }
   };
 
-  const handleReviewAction = async (status) => {
+  async function handleReviewAction(status) {
     if (status === 'Approved' && !allottedBatchId) {
       alert('Please provide an allotted batch ID to approve.');
       return;

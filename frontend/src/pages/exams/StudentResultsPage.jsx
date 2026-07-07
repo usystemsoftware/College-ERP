@@ -12,7 +12,7 @@ const StudentResultsPage = () => {
     fetchResults();
   }, []);
 
-  const fetchResults = async () => {
+  async function fetchResults() {
     try {
       const res = await getMyResultsAPI();
       setResults(res.data?.data?.results || []);

@@ -258,7 +258,7 @@ const AttendancePage = () => {
     }
   };
 
-  const handleGenerateQR = async (isLate = false) => {
+  async function handleGenerateQR(isLate = false) {
     if (!subject || !date) {
       toast.error('Please select a subject and date first');
       return;

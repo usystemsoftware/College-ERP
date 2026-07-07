@@ -73,7 +73,7 @@ const FacultyDashboard = () => {
     }
   }, [isHOD]);
 
-  const handleStartSession = async (timetableId) => {
+  async function handleStartSession(timetableId) {
     try {
       const res = await api.post('/attendance/faculty-lecture/start-session', {
         timetableId,
@@ -96,7 +96,7 @@ const FacultyDashboard = () => {
     }
   };
 
-  const handleEndSession = async (timetableId) => {
+  async function handleEndSession(timetableId) {
     try {
       const res = await api.post('/attendance/faculty-lecture/end-session', {
         timetableId,

@@ -30,7 +30,7 @@ const StudentGatePassPage = () => {
     }
   };
 
-  const handleCreate = async (e) => {
+  async function handleCreate(e) {
     e.preventDefault();
     setIsSubmitting(true);
     try {

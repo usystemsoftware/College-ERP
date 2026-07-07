@@ -298,6 +298,60 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const { buildUserPayload } = require('../../utils/userPayload.util');
+
+const updateProfileImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new ApiError(400, 'Please upload an image file');
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    // Usually you would upload to S3/Cloudinary here. We'll just save the local path or serve statically
+    // For this boilerplate, assuming /uploads is served statically in server.js
+    const photoUrl = `/uploads/${req.file.filename}`;
+    user.profileImage = photoUrl;
+    await user.save();
+
+    const updatedPayload = await buildUserPayload(user);
+
+    return res.status(200).json(
+      new ApiResponse(200, { user: updatedPayload }, 'Profile photo updated successfully')
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, phone, address } = req.body;
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (address !== undefined) user.address = address;
+    
+    await user.save();
+
+    const updatedPayload = await buildUserPayload(user);
+
+    return res.status(200).json(
+      new ApiResponse(200, { user: updatedPayload }, 'Profile updated successfully')
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -306,5 +360,7 @@ module.exports = {
   sendOtp,
   verifyOtp,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  updateProfileImage,
+  updateProfile
 };

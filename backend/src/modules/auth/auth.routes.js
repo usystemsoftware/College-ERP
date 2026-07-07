@@ -15,6 +15,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 
 const { buildUserPayload } = require('../../utils/userPayload.util');
+const upload = require('../../middleware/uploadMiddleware');
 
 router.get('/me', protect, async (req, res, next) => {
   try {
@@ -24,5 +25,9 @@ router.get('/me', protect, async (req, res, next) => {
     next(error);
   }
 });
+
+router.post('/profile-image', protect, upload.single('profileImage'), authController.updateProfileImage);
+
+router.put('/profile', protect, authController.updateProfile);
 
 module.exports = router;

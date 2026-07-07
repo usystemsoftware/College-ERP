@@ -39,3 +39,15 @@ export async function fetchMeAPI() {
   const response = await client.get('/auth/me');
   return response.data;
 };
+
+export const uploadProfileImageAPI = async (formData) => {
+  const response = await client.post('/auth/profile-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+};
+
+export const updateProfileAPI = async (data) => {
+  const response = await client.put('/auth/profile', data);
+  return response.data;
+};

@@ -57,3 +57,43 @@
   box-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;
   animation: sweep 2.5s infinite linear;
 }
+
+/* ID Card Print Styles */
+@media print {
+  body {
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .id-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    row-gap: 1cm;
+    justify-items: center;
+  }
+  .id-card-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 0 !important;
+  }
+  .print-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    /* Force exact print sizes */
+    width: 2.125in !important;
+    height: 3.375in !important;
+  }
+  /* Remove Tailwind flex gaps in print if they mess up spacing */
+  .gap-4 {
+    gap: 0.25in !important;
+  }
+}

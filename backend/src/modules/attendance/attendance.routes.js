@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../../middleware/authMiddleware');
 const { authorize } = require('../../middleware/roleMiddleware');
+const upload = require('../../middleware/uploadMiddleware');
 const {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -23,7 +24,8 @@ const {
   startLectureSession,
   endLectureSession,
   getDepartmentLectureAnomalies,
-  getAttendanceAnalytics
+  getAttendanceAnalytics,
+  scanAndMarkAttendance
 } = require('./attendance.controller');
 
 // Faculty / Admin routes
@@ -36,6 +38,9 @@ router.get('/report', protect, authorize('Super Admin', 'College Admin', 'Princi
 
 // Admin live feed of student self-check-ins
 router.get('/admin-live-feed', protect, authorize('Super Admin', 'College Admin', 'Principal', 'HOD', 'Faculty'), getAdminLiveFeed);
+
+// ID Card Scanner
+router.post('/scan-id', protect, authorize('Faculty', 'Class Coordinator', 'HOD', 'Principal', 'College Admin', 'Super Admin'), upload.single('idCard'), scanAndMarkAttendance);
 
 // Student self-attendance routes
 router.post('/student-checkin', protect, authorize('Student'), studentCheckIn);

@@ -6,7 +6,9 @@ const Timetable = require('../timetables/timetable.model');
 const ApiError = require('../../utils/apiError');
 const ApiResponse = require('../../utils/apiResponse');
 const jwt = require('jsonwebtoken');
-
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 // Mark attendance (bulk) — Faculty/Admin
 const markAttendance = async (req, res, next) => {
   try {
@@ -1012,6 +1014,110 @@ const getDepartmentLectureAnomalies = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────
+// ID CARD SCANNER (OCR)
+// ─────────────────────────────────────────────────
+
+const scanAndMarkAttendance = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new ApiError(400, 'ID Card image is required');
+    }
+    
+    // The image path saved by multer
+    const imagePath = req.file.path;
+    const pythonScript = path.join(__dirname, '../../../../scripts/scanner.py');
+
+    // Spawn Python process
+    const pythonProcess = spawn('python', [pythonScript, imagePath]);
+    
+    let resultData = '';
+    let errorData = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      resultData += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      errorData += data.toString();
+    });
+
+    pythonProcess.on('close', async (code) => {
+      // Clean up the uploaded temp file after processing
+      fs.unlink(imagePath, (err) => {
+        if (err) console.error('Failed to delete temp image:', err);
+      });
+
+      if (code !== 0) {
+        console.error('Python Script Error:', errorData);
+        return res.status(500).json(new ApiResponse(500, null, 'Error processing image: ' + errorData));
+      }
+
+      try {
+        const parsedResult = JSON.parse(resultData.trim());
+        
+        if (parsedResult.status === 'success') {
+          const studentIdStr = parsedResult.studentId;
+          
+          // Find student by rollNumber or enrollmentNumber
+          const student = await Student.findOne({ 
+            $or: [
+              { rollNumber: new RegExp('^' + studentIdStr + '$', 'i') },
+              { enrollmentNumber: new RegExp('^' + studentIdStr + '$', 'i') }
+            ],
+            collegeId: req.user.collegeId
+          });
+
+          if (!student) {
+            return res.status(404).json(new ApiResponse(404, { extractedText: parsedResult.rawText, extractedId: studentIdStr }, `Student ID ${studentIdStr} extracted, but not found in database.`));
+          }
+
+          // Mark as present for today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const record = await Attendance.findOneAndUpdate(
+            { student: student._id, date: today },
+            { 
+              $set: { 
+                status: 'Present', 
+                markedBy: req.user._id, 
+                collegeId: req.user.collegeId,
+                checkInTime: new Date(),
+                selfMarked: false
+              } 
+            },
+            { upsert: true, new: true }
+          );
+
+          return res.status(200).json(new ApiResponse(200, {
+            student: { 
+              name: student.personalDetails?.fullName, 
+              rollNumber: student.rollNumber,
+              course: student.course,
+              department: student.department
+            },
+            record
+          }, `Successfully scanned ID and marked attendance for ${student.personalDetails?.fullName}`));
+
+        } else {
+           return res.status(400).json(new ApiResponse(400, { rawText: parsedResult.rawText }, parsedResult.message || 'Failed to extract Student ID'));
+        }
+      } catch (parseErr) {
+        console.error('JSON Parse Error:', parseErr, resultData);
+        return res.status(500).json(new ApiResponse(500, null, 'Invalid response from OCR service'));
+      }
+    });
+
+  } catch (error) {
+    // If multer uploaded a file before the error occurred, clean it up
+    if (req.file) {
+      fs.unlink(req.file.path, () => {});
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   markAttendance,
   getAttendanceBySubjectDate,
@@ -1033,5 +1139,6 @@ module.exports = {
   startLectureSession,
   endLectureSession,
   getDepartmentLectureAnomalies,
-  getAttendanceAnalytics
+  getAttendanceAnalytics,
+  scanAndMarkAttendance
 };

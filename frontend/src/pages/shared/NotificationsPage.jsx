@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, Clock, Inbox, Search, Trash2, Loader2 } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, Inbox, Search, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMyNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../api/notifications.api';
 import { subscribeToNotifications, unsubscribeFromNotifications } from '../../services/socket';
 import { toast } from 'react-hot-toast';
@@ -10,11 +10,14 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
 
   async function fetchNotifications() {
     try {
       setTimeout(() => setLoading(true), 0);
-      const params = {};
+      const params = { page: currentPage, limit };
       if (activeTab !== 'All') {
         if (activeTab === 'Unread') params.status = 'Unread';
         else if (activeTab === 'Alerts') params.category = 'Alert';
@@ -22,6 +25,7 @@ const NotificationsPage = () => {
       }
       const res = await getMyNotifications(params);
       setNotifications(res?.data?.data?.notifications || []);
+      setTotalPages(res?.data?.data?.pagination?.pages || 1);
     } catch (error) {
       toast.error('Failed to load notifications');
     } finally {
@@ -33,17 +37,23 @@ const NotificationsPage = () => {
     fetchNotifications();
 
     subscribeToNotifications((newNotif) => {
-      // Prepend the new notification if it matches the current tab filter
-      setNotifications(prev => [
-        { ...newNotif, _id: newNotif._id || Date.now(), createdAt: new Date().toISOString(), status: 'Unread' },
-        ...prev
-      ]);
+      // Prepend the new notification if we are on the first page
+      if (currentPage === 1) {
+        setNotifications(prev => {
+          const newArr = [
+            { ...newNotif, _id: newNotif._id || Date.now(), createdAt: new Date().toISOString(), status: 'Unread' },
+            ...prev
+          ];
+          if (newArr.length > limit) newArr.pop();
+          return newArr;
+        });
+      }
     });
 
     return () => {
       unsubscribeFromNotifications();
     };
-  }, [activeTab]);
+  }, [activeTab, currentPage]);
 
   async function handleMarkAsRead(id) {
     try {
@@ -109,7 +119,7 @@ const NotificationsPage = () => {
             {['All', 'Unread', 'Academic', 'Alerts', 'Placement', 'General'].map(tab => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab 
                     ? 'bg-slate-100 text-slate-900 dark:bg-dark-700 dark:text-white' 
@@ -198,6 +208,31 @@ const NotificationsPage = () => {
             ))
           )}
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 p-4 dark:border-slate-800">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                <ChevronLeft size={16} /> Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-dark-800"
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -146,14 +146,7 @@ const Login = () => {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-          
-          <div className="mt-6 border-t border-gray-200 dark:border-dark-700 pt-6">
-            <p className="text-xs text-gray-500 dark:text-dark-400 mb-2 font-medium text-center">Demo Administrator Credentials:</p>
-            <div className="rounded-lg bg-gray-100 dark:bg-dark-800 p-3 text-xs text-gray-600 dark:text-dark-300 space-y-1 text-center font-mono">
-              <p><span className="font-semibold text-gray-500 dark:text-dark-400">Email:</span> superadmin@erp.com</p>
-              <p><span className="font-semibold text-gray-500 dark:text-dark-400">Password:</span> admin123</p>
-            </div>
-          </div>
+
           
         </form>
       </div>
